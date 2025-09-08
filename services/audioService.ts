@@ -6,7 +6,7 @@ export interface RelaxingSound {
   description: string;
   duration: number;
   file: string;
-  category: 'nature' | 'binaural' | 'white_noise' | 'meditation';
+  category: 'nature' | 'binaural' | 'white_noise' | 'meditation' | 'frequencies' | 'classical';
   frequency?: string;
 }
 
@@ -17,7 +17,7 @@ export interface HypnotherapySession {
   duration: number;
   script: string[];
   backgroundSound?: string;
-  category: 'addiction' | 'anxiety' | 'confidence' | 'sleep';
+  category: 'addiction' | 'anxiety' | 'confidence' | 'sleep' | 'trauma' | 'motivation';
   level: 'beginner' | 'intermediate' | 'advanced';
 }
 
@@ -48,6 +48,22 @@ export const relaxingSounds: RelaxingSound[] = [
   },
   {
     id: '4',
+    name: 'Горный ручей',
+    description: 'Журчание воды среди камней для глубокого умиротворения',
+    duration: 2100, // 35 минут
+    file: 'stream.mp3',
+    category: 'nature'
+  },
+  {
+    id: '5',
+    name: 'Ночные сверчки',
+    description: 'Убаюкивающие звуки летней ночи для глубокого сна',
+    duration: 3600, // 60 минут
+    file: 'crickets.mp3',
+    category: 'nature'
+  },
+  {
+    id: '6',
     name: 'Бинауральные биты 10 Гц',
     description: 'Альфа-волны для снижения стресса и тревожности',
     duration: 1200, // 20 минут
@@ -56,7 +72,7 @@ export const relaxingSounds: RelaxingSound[] = [
     frequency: '10 Гц (Альфа)'
   },
   {
-    id: '5',
+    id: '7',
     name: 'Бинауральные биты 6 Гц',
     description: 'Тета-волны для глубокой медитации и самоисцеления',
     duration: 1800, // 30 минут
@@ -65,7 +81,7 @@ export const relaxingSounds: RelaxingSound[] = [
     frequency: '6 Гц (Тета)'
   },
   {
-    id: '6',
+    id: '8',
     name: 'Бинауральные биты 40 Гц',
     description: 'Гамма-волны для повышения концентрации и когнитивных функций',
     duration: 900, // 15 минут
@@ -74,7 +90,16 @@ export const relaxingSounds: RelaxingSound[] = [
     frequency: '40 Гц (Гамма)'
   },
   {
-    id: '7',
+    id: '9',
+    name: 'Бинауральные биты 4 Гц',
+    description: 'Дельта-волны для глубокого исцеляющего сна',
+    duration: 2400, // 40 минут
+    file: 'binaural_4hz.mp3',
+    category: 'binaural',
+    frequency: '4 Гц (Дельта)'
+  },
+  {
+    id: '10',
     name: 'Белый шум',
     description: 'Равномерный фон для блокировки отвлекающих звуков',
     duration: 3600, // 60 минут
@@ -82,7 +107,7 @@ export const relaxingSounds: RelaxingSound[] = [
     category: 'white_noise'
   },
   {
-    id: '8',
+    id: '11',
     name: 'Розовый шум',
     description: 'Более мягкий шум для улучшения качества сна',
     duration: 3600, // 60 минут
@@ -90,7 +115,15 @@ export const relaxingSounds: RelaxingSound[] = [
     category: 'white_noise'
   },
   {
-    id: '9',
+    id: '12',
+    name: 'Коричневый шум',
+    description: 'Глубокий шум для максимального расслабления',
+    duration: 3600, // 60 минут
+    file: 'brown_noise.mp3',
+    category: 'white_noise'
+  },
+  {
+    id: '13',
     name: 'Тибетские поющие чаши',
     description: 'Священные вибрации для глубокой медитации',
     duration: 1800, // 30 минут
@@ -98,12 +131,63 @@ export const relaxingSounds: RelaxingSound[] = [
     category: 'meditation'
   },
   {
-    id: '10',
+    id: '14',
     name: 'Мантра Ом',
     description: 'Древняя мантра для духовного очищения',
     duration: 1200, // 20 минут
     file: 'om_mantra.mp3',
     category: 'meditation'
+  },
+  {
+    id: '15',
+    name: 'Колокольчики ветра',
+    description: 'Нежные звуки для создания священного пространства',
+    duration: 1500, // 25 минут
+    file: 'wind_chimes.mp3',
+    category: 'meditation'
+  },
+  {
+    id: '16',
+    name: 'Частота 528 Гц',
+    description: 'Частота любви и исцеления ДНК',
+    duration: 1800, // 30 минут
+    file: 'frequency_528.mp3',
+    category: 'frequencies',
+    frequency: '528 Гц (Любовь)'
+  },
+  {
+    id: '17',
+    name: 'Частота 396 Гц',
+    description: 'Освобождение от страха и чувства вины',
+    duration: 1200, // 20 минут
+    file: 'frequency_396.mp3',
+    category: 'frequencies',
+    frequency: '396 Гц (Освобождение)'
+  },
+  {
+    id: '18',
+    name: 'Частота 741 Гц',
+    description: 'Пробуждение интуиции и выражение истины',
+    duration: 1500, // 25 минут
+    file: 'frequency_741.mp3',
+    category: 'frequencies',
+    frequency: '741 Гц (Интуиция)'
+  },
+  {
+    id: '19',
+    name: 'Классика: Кэнон Пахельбеля',
+    description: 'Умиротворяющая классическая музыка для релаксации',
+    duration: 900, // 15 минут
+    file: 'pachelbel_canon.mp3',
+    category: 'classical'
+  },
+  {
+    id: '20',
+    name: 'Классика: Лунная соната',
+    description: 'Бетховен для глубокого эмоционального исцеления',
+    duration: 1200, // 20 минут
+    file: 'moonlight_sonata.mp3',
+    category: 'classical'
   }
 ];
 
@@ -208,6 +292,57 @@ export const hypnotherapySessions: HypnotherapySession[] = [
       'Запомните это ощущение полного спокойствия и безопасности...',
       'В любой момент вы можете вернуться к этому озеру в своем сознании...'
     ]
+  },
+  {
+    id: '5',
+    title: 'Исцеление внутреннего ребенка',
+    description: 'Работа с детскими травмами, которые могут быть корнем зависимости',
+    duration: 2700, // 45 минут
+    category: 'trauma',
+    level: 'advanced',
+    script: [
+      'Устройтесь поудобнее и позвольте глазам медленно закрыться...',
+      'Представьте себя идущим по тропинке в прекрасном саду...',
+      'Впереди вы видите маленького ребенка, сидящего одного...',
+      'Этот ребенок - это вы в детстве, нуждающийся в любви и понимании...',
+      'Подойдите к нему мягко, с любовью в сердце...',
+      'Посмотрите в его глаза и скажите: "Я здесь, ты в безопасности"...',
+      'Обнимите этого ребенка, почувствуйте его боль и одиночество...',
+      'Скажите ему: "Ты достойн любви, ты важен, ты имеешь значение"...',
+      'Почувствуйте, как его боль начинает исцеляться от вашей любви...',
+      'Этот ребенок больше не будет искать утешения в алкоголе...',
+      'Потому что он знает, что любовь и безопасность живут в вашем сердце...',
+      'Возьмите его за руку и пройдитесь с ним по саду...',
+      'Покажите ему красоту жизни без зависимости...',
+      'Скажите: "Мы вместе, и мы сильные"...',
+      'Медленно вернитесь в настоящее, неся этого исцеленного ребенка в своем сердце...'
+    ]
+  },
+  {
+    id: '6',
+    title: 'Мотивация к трезвости',
+    description: 'Усиление внутренней мотивации и напоминание о целях трезвой жизни',
+    duration: 2000, // 33 минуты
+    category: 'motivation',
+    level: 'intermediate',
+    script: [
+      'Примите удобную позу и медленно закройте глаза...',
+      'Представьте себя стоящим перед двумя дорогами...',
+      'Одна дорога ведет назад, к старым привычкам и зависимости...',
+      'Другая - вперед, к здоровой, трезвой жизни...',
+      'Посмотрите на дорогу назад - что вы там видите?...',
+      'Болезнь, разрушенные отношения, потерянные возможности...',
+      'Теперь посмотрите на дорогу вперед - она светится золотым светом...',
+      'Там ваши мечты, здоровье, любящие отношения, достижения...',
+      'Почувствуйте силу выбора в своих руках...',
+      'Каждый день вы выбираете, по какой дороге идти...',
+      'Вспомните свои самые важные причины быть трезвыми...',
+      'Ваши дети, ваши цели, ваше здоровье, ваше достоинство...',
+      'Эти причины горят в вашем сердце ярким пламенем...',
+      'Это пламя никогда не погаснет, оно ваш внутренний компас...',
+      'Сделайте шаг на светлую дорогу, почувствуйте решимость...',
+      'Вы выбираете жизнь, вы выбираете свободу, вы выбираете себя...'
+    ]
   }
 ];
 
@@ -215,7 +350,7 @@ export class AudioService {
   private static sound: Audio.Sound | null = null;
   private static isPlaying: boolean = false;
   
-    static async initializeAudio(): Promise<void> {
+  static async initializeAudio(): Promise<void> {
     try {
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: false,
