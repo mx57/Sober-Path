@@ -3,7 +3,7 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal } from 'rea
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { relaxingSounds, hypnotherapySessions, RelaxingSound, HypnotherapySession } from '../../services/audioService';
-import AudioPlayer from '../../components/AudioPlayer';
+import AdvancedAudioPlayer from '../../components/AdvancedAudioPlayer';
 
 export default function SoundsPage() {
   const insets = useSafeAreaInsets();
@@ -224,7 +224,7 @@ export default function SoundsPage() {
         onRequestClose={closePlayer}
       >
         <View style={[styles.playerModal, { paddingTop: insets.top }]}>
-          <AudioPlayer
+          <AdvancedAudioPlayer
             sound={selectedSound || undefined}
             session={selectedSession || undefined}
             onClose={closePlayer}

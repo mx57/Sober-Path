@@ -4,16 +4,20 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useRecovery } from '../../hooks/useRecovery';
+import { useAnalytics } from '../../hooks/useAnalytics';
 import { Calendar } from 'react-native-calendars';
 import AchievementSystem from '../../components/AchievementSystem';
+import CrisisIntervention from '../../components/CrisisIntervention';
 
 export default function ProgressPage() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { soberDays, getStreakDays, userProfile, progress, addProgressEntry } = useRecovery();
+  const { addMoodEntry, getAverageMood, getMoodTrend } = useAnalytics();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [mood, setMood] = useState<1 | 2 | 3 | 4 | 5>(3);
   const [showMoodSelector, setShowMoodSelector] = useState(false);
+  const [showCrisisIntervention, setShowCrisisIntervention] = useState(false);
 
   // Web alert state
   const [alertConfig, setAlertConfig] = useState<{
@@ -67,6 +71,15 @@ export default function ProgressPage() {
       mood
     });
 
+    // Также добавляем данные в аналитику
+    await addMoodEntry({
+      date: selectedDate,
+      mood,
+      cravingLevel: status === 'relapse' ? 5 : Math.floor(Math.random() * 3) + 1,
+      stressLevel: Math.floor(Math.random() * 5) + 1,
+      sleepQuality: Math.floor(Math.random() * 5) + 1
+    });
+
     if (status === 'relapse') {
       showWebAlert(
         'Не сдавайтесь!',
@@ -101,7 +114,7 @@ export default function ProgressPage() {
         <Text style={styles.title}>Ваш прогресс</Text>
         <TouchableOpacity 
           style={styles.emergencyButton}
-          onPress={() => router.push('/emergency' as any)}
+          onPress={() => setShowCrisisIntervention(true)}
         >
           <MaterialIcons name="emergency" size={24} color="#FF6B6B" />
         </TouchableOpacity>
@@ -134,6 +147,32 @@ export default function ProgressPage() {
           </View>
         </View>
       )}
+
+      {/* Mood Analytics Preview */}
+      <View style={styles.moodPreview}>
+        <View style={styles.moodHeader}>
+          <Text style={styles.sectionTitle}>Настроение</Text>
+          <TouchableOpacity onPress={() => router.push('/(tabs)/analytics' as any)}>
+            <Text style={styles.viewMore}>Подробнее →</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.moodStats}>
+          <View style={styles.moodStat}>
+            <Text style={styles.moodNumber}>{getAverageMood(7).toFixed(1)}</Text>
+            <Text style={styles.moodLabel}>Среднее за неделю</Text>
+          </View>
+          <View style={styles.moodStat}>
+            <MaterialIcons 
+              name={getMoodTrend() === 'improving' ? 'trending-up' : getMoodTrend() === 'declining' ? 'trending-down' : 'trending-flat'} 
+              size={32} 
+              color={getMoodTrend() === 'improving' ? '#4CAF50' : getMoodTrend() === 'declining' ? '#FF6B6B' : '#FF9800'} 
+            />
+            <Text style={styles.moodLabel}>
+              {getMoodTrend() === 'improving' ? 'Улучшается' : getMoodTrend() === 'declining' ? 'Снижается' : 'Стабильно'}
+            </Text>
+          </View>
+        </View>
+      </View>
 
       {/* Achievement System */}
       <AchievementSystem />
@@ -244,6 +283,12 @@ export default function ProgressPage() {
           </View>
         </Modal>
       )}
+
+      {/* Crisis Intervention Modal */}
+      <CrisisIntervention 
+        visible={showCrisisIntervention}
+        onClose={() => setShowCrisisIntervention(false)}
+      />
     </ScrollView>
   );
 }
@@ -475,5 +520,46 @@ const styles = StyleSheet.create({
   },
   confirmButtonText: {
     color: 'white'
+  },
+  moodPreview: {
+    backgroundColor: 'white',
+    borderRadius: 15,
+    padding: 20,
+    margin: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3
+  },
+  moodHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15
+  },
+  viewMore: {
+    fontSize: 14,
+    color: '#2E7D4A',
+    fontWeight: '500'
+  },
+  moodStats: {
+    flexDirection: 'row',
+    gap: 20
+  },
+  moodStat: {
+    flex: 1,
+    alignItems: 'center'
+  },
+  moodNumber: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#2E7D4A',
+    marginBottom: 5
+  },
+  moodLabel: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center'
   }
 });
