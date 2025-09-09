@@ -139,10 +139,12 @@ export default function ProgressAnalytics() {
       {cravingPatterns.length > 0 && (
         <View style={styles.chartContainer}>
           <Text style={styles.chartTitle}>Время повышенной тяги</Text>
-          <BarChart
+                    <BarChart
             data={cravingData}
             width={screenWidth - 40}
             height={200}
+            yAxisLabel=""
+            yAxisSuffix=""
             chartConfig={chartConfig}
             style={styles.chart}
             verticalLabelRotation={30}

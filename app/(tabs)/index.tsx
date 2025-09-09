@@ -71,13 +71,13 @@ export default function ProgressPage() {
       mood
     });
 
-    // Также добавляем данные в аналитику
+        // Также добавляем данные в аналитику
     await addMoodEntry({
       date: selectedDate,
       mood,
-      cravingLevel: status === 'relapse' ? 5 : Math.floor(Math.random() * 3) + 1,
-      stressLevel: Math.floor(Math.random() * 5) + 1,
-      sleepQuality: Math.floor(Math.random() * 5) + 1
+      cravingLevel: status === 'relapse' ? 5 : (Math.floor(Math.random() * 3) + 1) as 1 | 2 | 3 | 4 | 5,
+      stressLevel: (Math.floor(Math.random() * 5) + 1) as 1 | 2 | 3 | 4 | 5,
+      sleepQuality: (Math.floor(Math.random() * 5) + 1) as 1 | 2 | 3 | 4 | 5
     });
 
     if (status === 'relapse') {
