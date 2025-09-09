@@ -2,7 +2,6 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Dimensions } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useAnalytics } from '../hooks/useAnalytics';
-import { LineChart, BarChart, PieChart } from 'react-native-chart-kit';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -19,44 +18,6 @@ export default function ProgressAnalytics() {
   const moodTrend = getMoodTrend();
   const cravingPatterns = getCravingPatterns();
   const insights = getPersonalizedInsights();
-
-  // Данные для графиков
-  const moodData = {
-    labels: last30DaysMood.slice(-7).map(entry => 
-      new Date(entry.date).toLocaleDateString('ru-RU', { weekday: 'short' })
-    ),
-    datasets: [{
-      data: last30DaysMood.slice(-7).map(entry => entry.mood),
-      color: (opacity = 1) => `rgba(46, 125, 74, ${opacity})`,
-      strokeWidth: 3
-    }]
-  };
-
-  const cravingData = {
-    labels: cravingPatterns.slice(0, 4).map(p => p.time),
-    datasets: [{
-      data: cravingPatterns.slice(0, 4).map(p => p.frequency)
-    }]
-  };
-
-  const weeklyMoodDistribution = [
-    { name: '😢', population: last30DaysMood.filter(e => e.mood === 1).length, color: '#FF6B6B', legendFontColor: '#333' },
-    { name: '😕', population: last30DaysMood.filter(e => e.mood === 2).length, color: '#FF9800', legendFontColor: '#333' },
-    { name: '😐', population: last30DaysMood.filter(e => e.mood === 3).length, color: '#FFC107', legendFontColor: '#333' },
-    { name: '😊', population: last30DaysMood.filter(e => e.mood === 4).length, color: '#4CAF50', legendFontColor: '#333' },
-    { name: '😄', population: last30DaysMood.filter(e => e.mood === 5).length, color: '#2E7D4A', legendFontColor: '#333' }
-  ];
-
-  const chartConfig = {
-    backgroundColor: 'transparent',
-    backgroundGradientFrom: '#ffffff',
-    backgroundGradientTo: '#ffffff',
-    decimalPlaces: 1,
-    color: (opacity = 1) => `rgba(46, 125, 74, ${opacity})`,
-    labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-    style: { borderRadius: 16 },
-    propsForLabels: { fontSize: 12 }
-  };
 
   const getTrendIcon = () => {
     switch (moodTrend) {
@@ -82,6 +43,75 @@ export default function ProgressAnalytics() {
     }
   };
 
+  // Простая визуализация настроения без внешних библиотек
+  const renderMoodChart = () => {
+    const recentMoods = last30DaysMood.slice(-7);
+    const maxHeight = 100;
+    
+    return (
+      <View style={styles.chartContainer}>
+        <Text style={styles.chartTitle}>Настроение за неделю</Text>
+        <View style={styles.simpleChart}>
+          {recentMoods.map((entry, index) => (
+            <View key={index} style={styles.chartBarContainer}>
+              <View 
+                style={[
+                  styles.chartBar, 
+                  { 
+                    height: (entry.mood / 5) * maxHeight,
+                    backgroundColor: entry.mood >= 4 ? '#4CAF50' : entry.mood >= 3 ? '#FF9800' : '#FF6B6B'
+                  }
+                ]} 
+              />
+              <Text style={styles.chartLabel}>
+                {new Date(entry.date).toLocaleDateString('ru-RU', { weekday: 'short' })}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </View>
+    );
+  };
+
+  // Визуализация распределения настроения
+  const renderMoodDistribution = () => {
+    const distribution = [
+      { emoji: '😢', mood: 1, count: last30DaysMood.filter(e => e.mood === 1).length },
+      { emoji: '😕', mood: 2, count: last30DaysMood.filter(e => e.mood === 2).length },
+      { emoji: '😐', mood: 3, count: last30DaysMood.filter(e => e.mood === 3).length },
+      { emoji: '😊', mood: 4, count: last30DaysMood.filter(e => e.mood === 4).length },
+      { emoji: '😄', mood: 5, count: last30DaysMood.filter(e => e.mood === 5).length }
+    ];
+
+    const total = distribution.reduce((sum, item) => sum + item.count, 0);
+    if (total === 0) return null;
+
+    return (
+      <View style={styles.chartContainer}>
+        <Text style={styles.chartTitle}>Распределение настроения</Text>
+        <View style={styles.distributionChart}>
+          {distribution.map((item) => {
+            const percentage = total > 0 ? (item.count / total) * 100 : 0;
+            return (
+              <View key={item.mood} style={styles.distributionItem}>
+                <Text style={styles.distributionEmoji}>{item.emoji}</Text>
+                <View style={styles.distributionBar}>
+                  <View 
+                    style={[
+                      styles.distributionFill, 
+                      { width: `${percentage}%` }
+                    ]} 
+                  />
+                </View>
+                <Text style={styles.distributionText}>{item.count}</Text>
+              </View>
+            );
+          })}
+        </View>
+      </View>
+    );
+  };
+
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Общая статистика */}
@@ -103,52 +133,32 @@ export default function ProgressAnalytics() {
         </View>
       </View>
 
-      {/* График настроения за неделю */}
-      {moodData.labels.length > 0 && (
-        <View style={styles.chartContainer}>
-          <Text style={styles.chartTitle}>Динамика настроения за неделю</Text>
-          <LineChart
-            data={moodData}
-            width={screenWidth - 40}
-            height={200}
-            chartConfig={chartConfig}
-            style={styles.chart}
-            bezier
-          />
-        </View>
-      )}
+      {/* График настроения */}
+      {last30DaysMood.length > 0 && renderMoodChart()}
 
       {/* Распределение настроения */}
-      {weeklyMoodDistribution.some(item => item.population > 0) && (
-        <View style={styles.chartContainer}>
-          <Text style={styles.chartTitle}>Распределение настроения за месяц</Text>
-          <PieChart
-            data={weeklyMoodDistribution.filter(item => item.population > 0)}
-            width={screenWidth - 40}
-            height={200}
-            chartConfig={chartConfig}
-            accessor="population"
-            backgroundColor="transparent"
-            paddingLeft="15"
-            style={styles.chart}
-          />
-        </View>
-      )}
+      {last30DaysMood.length > 0 && renderMoodDistribution()}
 
       {/* Паттерны тяги */}
       {cravingPatterns.length > 0 && (
         <View style={styles.chartContainer}>
           <Text style={styles.chartTitle}>Время повышенной тяги</Text>
-                    <BarChart
-            data={cravingData}
-            width={screenWidth - 40}
-            height={200}
-            yAxisLabel=""
-            yAxisSuffix=""
-            chartConfig={chartConfig}
-            style={styles.chart}
-            verticalLabelRotation={30}
-          />
+          <View style={styles.patternsContainer}>
+            {cravingPatterns.slice(0, 4).map((pattern, index) => (
+              <View key={index} style={styles.patternItem}>
+                <Text style={styles.patternTime}>{pattern.time}</Text>
+                <View style={styles.patternBar}>
+                  <View 
+                    style={[
+                      styles.patternFill, 
+                      { width: `${(pattern.frequency / Math.max(...cravingPatterns.map(p => p.frequency))) * 100}%` }
+                    ]} 
+                  />
+                </View>
+                <Text style={styles.patternCount}>{pattern.frequency}</Text>
+              </View>
+            ))}
+          </View>
         </View>
       )}
 
@@ -259,8 +269,86 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     textAlign: 'center'
   },
-  chart: {
-    borderRadius: 16
+  simpleChart: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'flex-end',
+    height: 120,
+    paddingBottom: 20
+  },
+  chartBarContainer: {
+    alignItems: 'center',
+    flex: 1
+  },
+  chartBar: {
+    width: 20,
+    borderRadius: 10,
+    marginBottom: 5
+  },
+  chartLabel: {
+    fontSize: 10,
+    color: '#666',
+    textAlign: 'center'
+  },
+  distributionChart: {
+    gap: 10
+  },
+  distributionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10
+  },
+  distributionEmoji: {
+    fontSize: 20,
+    width: 30
+  },
+  distributionBar: {
+    flex: 1,
+    height: 8,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 4,
+    overflow: 'hidden'
+  },
+  distributionFill: {
+    height: '100%',
+    backgroundColor: '#2E7D4A'
+  },
+  distributionText: {
+    fontSize: 12,
+    color: '#666',
+    width: 30,
+    textAlign: 'right'
+  },
+  patternsContainer: {
+    gap: 12
+  },
+  patternItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12
+  },
+  patternTime: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#333',
+    width: 60
+  },
+  patternBar: {
+    flex: 1,
+    height: 8,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 4,
+    overflow: 'hidden'
+  },
+  patternFill: {
+    height: '100%',
+    backgroundColor: '#FF6B6B'
+  },
+  patternCount: {
+    fontSize: 12,
+    color: '#666',
+    width: 30,
+    textAlign: 'right'
   },
   insightsContainer: {
     backgroundColor: 'white',
