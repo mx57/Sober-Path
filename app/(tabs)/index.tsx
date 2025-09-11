@@ -159,7 +159,7 @@ export default function ProgressPage() {
         <View style={styles.moodStats}>
           <View style={styles.moodStat}>
             <Text style={styles.moodNumber}>{getAverageMood(7).toFixed(1)}</Text>
-            <Text style={styles.moodLabel}>Среднее за неделю</Text>
+            <Text style={styles.moodStatLabel}>Среднее за неделю</Text>
           </View>
           <View style={styles.moodStat}>
             <MaterialIcons 
@@ -167,7 +167,7 @@ export default function ProgressPage() {
               size={32} 
               color={getMoodTrend() === 'improving' ? '#4CAF50' : getMoodTrend() === 'declining' ? '#FF6B6B' : '#FF9800'} 
             />
-            <Text style={styles.moodLabel}>
+            <Text style={styles.moodStatLabel}>
               {getMoodTrend() === 'improving' ? 'Улучшается' : getMoodTrend() === 'declining' ? 'Снижается' : 'Стабильно'}
             </Text>
           </View>
@@ -557,7 +557,7 @@ const styles = StyleSheet.create({
     color: '#2E7D4A',
     marginBottom: 5
   },
-  moodLabel: {
+  moodStatLabel: {
     fontSize: 12,
     color: '#666',
     textAlign: 'center'
