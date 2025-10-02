@@ -9,7 +9,7 @@ import { Calendar } from 'react-native-calendars';
 import AchievementSystem from '../../components/AchievementSystem';
 import CrisisIntervention from '../../components/CrisisIntervention';
 
-export default function ProgressPage() {
+export default function HomePage() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { soberDays, getStreakDays, userProfile, progress, addProgressEntry } = useRecovery();
@@ -71,7 +71,6 @@ export default function ProgressPage() {
       mood
     });
 
-        // Также добавляем данные в аналитику
     await addMoodEntry({
       date: selectedDate,
       mood,
@@ -92,6 +91,52 @@ export default function ProgressPage() {
     setShowMoodSelector(false);
   };
 
+  // Навигационные кнопки
+  const navigationItems = [
+    {
+      title: 'Психологические советы',
+      description: 'Профессиональные рекомендации',
+      icon: 'psychology',
+      color: '#3F51B5',
+      route: '/(tabs)/psychology'
+    },
+    {
+      title: 'Терапевтические техники',
+      description: 'Эффективные методы восстановления',
+      icon: 'healing',
+      color: '#9C27B0',
+      route: '/(tabs)/therapy'
+    },
+    {
+      title: 'НЛП упражнения',
+      description: 'Нейролингвистическое программирование',
+      icon: 'self-improvement',
+      color: '#FF9800',
+      route: '/(tabs)/exercises'
+    },
+    {
+      title: 'Сообщество поддержки',
+      description: 'Общение с единомышленниками',
+      icon: 'group',
+      color: '#4CAF50',
+      route: '/(tabs)/community'
+    },
+    {
+      title: 'Профиль и настройки',
+      description: 'Персональные данные',
+      icon: 'person',
+      color: '#607D8B',
+      route: '/(tabs)/profile'
+    },
+    {
+      title: 'Детальная аналитика',
+      description: 'Глубокий анализ прогресса',
+      icon: 'analytics',
+      color: '#E91E63',
+      route: '/(tabs)/analytics'
+    }
+  ];
+
   // Calculate health improvements
   const getHealthMetrics = () => {
     if (soberDays === 0) return null;
@@ -111,7 +156,7 @@ export default function ProgressPage() {
   return (
     <ScrollView style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>Ваш прогресс</Text>
+        <Text style={styles.title}>Главная</Text>
         <TouchableOpacity 
           style={styles.emergencyButton}
           onPress={() => setShowCrisisIntervention(true)}
@@ -120,6 +165,7 @@ export default function ProgressPage() {
         </TouchableOpacity>
       </View>
 
+      {/* Статистика прогресса */}
       <View style={styles.statsContainer}>
         <View style={styles.statCard}>
           <MaterialIcons name="timeline" size={32} color="#2E7D4A" />
@@ -148,37 +194,57 @@ export default function ProgressPage() {
         </View>
       )}
 
-      {/* Mood Analytics Preview */}
-      <View style={styles.moodPreview}>
-        <View style={styles.moodHeader}>
-          <Text style={styles.sectionTitle}>Настроение</Text>
-          <TouchableOpacity onPress={() => router.push('/(tabs)/analytics' as any)}>
-            <Text style={styles.viewMore}>Подробнее →</Text>
+      {/* Быстрые действия */}
+      <View style={styles.quickActionsContainer}>
+        <Text style={styles.sectionTitle}>Быстрые действия</Text>
+        <View style={styles.quickActionsGrid}>
+          <TouchableOpacity 
+            style={[styles.quickAction, { backgroundColor: '#2E7D4A' }]}
+            onPress={() => setShowMoodSelector(true)}
+          >
+            <MaterialIcons name="check-circle" size={28} color="white" />
+            <Text style={styles.quickActionText}>Отметить день</Text>
           </TouchableOpacity>
-        </View>
-        <View style={styles.moodStats}>
-          <View style={styles.moodStat}>
-            <Text style={styles.moodNumber}>{getAverageMood(7).toFixed(1)}</Text>
-            <Text style={styles.moodStatLabel}>Среднее за неделю</Text>
-          </View>
-          <View style={styles.moodStat}>
-            <MaterialIcons 
-              name={getMoodTrend() === 'improving' ? 'trending-up' : getMoodTrend() === 'declining' ? 'trending-down' : 'trending-flat'} 
-              size={32} 
-              color={getMoodTrend() === 'improving' ? '#4CAF50' : getMoodTrend() === 'declining' ? '#FF6B6B' : '#FF9800'} 
-            />
-            <Text style={styles.moodStatLabel}>
-              {getMoodTrend() === 'improving' ? 'Улучшается' : getMoodTrend() === 'declining' ? 'Снижается' : 'Стабильно'}
-            </Text>
-          </View>
+          
+          <TouchableOpacity 
+            style={[styles.quickAction, { backgroundColor: '#FF6B6B' }]}
+            onPress={() => setShowCrisisIntervention(true)}
+          >
+            <MaterialIcons name="emergency" size={28} color="white" />
+            <Text style={styles.quickActionText}>Нужна помощь</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
-      {/* Achievement System */}
+      {/* Навигация по разделам */}
+      <View style={styles.navigationContainer}>
+        <Text style={styles.sectionTitle}>Инструменты восстановления</Text>
+        <View style={styles.navigationGrid}>
+          {navigationItems.map((item, index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.navCard}
+              onPress={() => router.push(item.route as any)}
+            >
+              <View style={[styles.navIcon, { backgroundColor: item.color }]}>
+                <MaterialIcons name={item.icon as any} size={32} color="white" />
+              </View>
+              <View style={styles.navContent}>
+                <Text style={styles.navTitle}>{item.title}</Text>
+                <Text style={styles.navDescription}>{item.description}</Text>
+              </View>
+              <MaterialIcons name="arrow-forward" size={20} color="#666" />
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {/* Achievement System Preview */}
       <AchievementSystem />
 
+      {/* Calendar Preview */}
       <View style={styles.calendarContainer}>
-        <Text style={styles.sectionTitle}>Календарь трезвости</Text>
+        <Text style={styles.sectionTitle}>Календарь прогресса</Text>
         <Calendar
           onDayPress={(day) => setSelectedDate(day.dateString)}
           markedDates={{
@@ -201,31 +267,11 @@ export default function ProgressPage() {
         />
       </View>
 
-      <View style={styles.actionContainer}>
-        <Text style={styles.sectionTitle}>Отметить день</Text>
-        <View style={styles.buttonRow}>
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.soberButton]}
-            onPress={() => setShowMoodSelector(true)}
-          >
-            <MaterialIcons name="check-circle" size={24} color="white" />
-            <Text style={styles.actionButtonText}>Трезвый день</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.relapseButton]}
-            onPress={() => handleLogDay('relapse')}
-          >
-            <MaterialIcons name="cancel" size={24} color="white" />
-            <Text style={styles.actionButtonText}>Был срыв</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
       {/* Mood Selector Modal */}
       <Modal visible={showMoodSelector} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Как ваше настроение?</Text>
+            <Text style={styles.modalTitle}>Как ваше настроение сегодня?</Text>
             <View style={styles.moodContainer}>
               {[1, 2, 3, 4, 5].map((moodValue) => (
                 <TouchableOpacity
@@ -267,9 +313,9 @@ export default function ProgressPage() {
       {Platform.OS === 'web' && (
         <Modal visible={alertConfig.visible} transparent animationType="fade">
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
-            <View style={{ backgroundColor: 'white', padding: 20, borderRadius: 8, minWidth: 280 }}>
+            <View style={{ backgroundColor: 'white', padding: 20, borderRadius: 8, minWidth: 280, maxWidth: '80%' }}>
               <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>{alertConfig.title}</Text>
-              <Text style={{ fontSize: 16, marginBottom: 20 }}>{alertConfig.message}</Text>
+              <Text style={{ fontSize: 16, marginBottom: 20, lineHeight: 22 }}>{alertConfig.message}</Text>
               <TouchableOpacity 
                 style={{ backgroundColor: '#2E7D4A', padding: 10, borderRadius: 4, alignItems: 'center' }}
                 onPress={() => {
@@ -412,6 +458,66 @@ const styles = StyleSheet.create({
     color: '#333',
     fontWeight: '500'
   },
+  quickActionsContainer: {
+    margin: 20
+  },
+  quickActionsGrid: {
+    flexDirection: 'row',
+    gap: 15
+  },
+  quickAction: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    borderRadius: 12,
+    gap: 8
+  },
+  quickActionText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold'
+  },
+  navigationContainer: {
+    margin: 20
+  },
+  navigationGrid: {
+    gap: 15
+  },
+  navCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3
+  },
+  navIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15
+  },
+  navContent: {
+    flex: 1
+  },
+  navTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 4
+  },
+  navDescription: {
+    fontSize: 14,
+    color: '#666'
+  },
   calendarContainer: {
     margin: 20,
     backgroundColor: 'white',
@@ -428,33 +534,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#2E7D4A',
     marginBottom: 15
-  },
-  actionContainer: {
-    margin: 20
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    gap: 15
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 15,
-    borderRadius: 12,
-    gap: 8
-  },
-  soberButton: {
-    backgroundColor: '#2E7D4A'
-  },
-  relapseButton: {
-    backgroundColor: '#FF6B6B'
-  },
-  actionButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold'
   },
   modalOverlay: {
     flex: 1,
@@ -520,46 +599,5 @@ const styles = StyleSheet.create({
   },
   confirmButtonText: {
     color: 'white'
-  },
-  moodPreview: {
-    backgroundColor: 'white',
-    borderRadius: 15,
-    padding: 20,
-    margin: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3
-  },
-  moodHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 15
-  },
-  viewMore: {
-    fontSize: 14,
-    color: '#2E7D4A',
-    fontWeight: '500'
-  },
-  moodStats: {
-    flexDirection: 'row',
-    gap: 20
-  },
-  moodStat: {
-    flex: 1,
-    alignItems: 'center'
-  },
-  moodNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#2E7D4A',
-    marginBottom: 5
-  },
-  moodStatLabel: {
-    fontSize: 12,
-    color: '#666',
-    textAlign: 'center'
   }
 });

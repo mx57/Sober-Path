@@ -14,30 +14,34 @@ export default function TabLayout() {
         tabBarInactiveTintColor: '#666',
         tabBarStyle: {
           height: Platform.select({
-            ios: insets.bottom + 80,
-            android: insets.bottom + 80,
-            default: 90
+            ios: insets.bottom + 70,
+            android: insets.bottom + 70,
+            default: 80
           }),
           paddingTop: 8,
           paddingBottom: Platform.select({
-            ios: insets.bottom + 12,
-            android: insets.bottom + 12,
-            default: 12
+            ios: insets.bottom + 8,
+            android: insets.bottom + 8,
+            default: 8
           }),
-          paddingHorizontal: 8
+          paddingHorizontal: 4
         },
         tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '500'
+          fontSize: 10,
+          fontWeight: '500',
+          marginTop: -2
+        },
+        tabBarIconStyle: {
+          marginBottom: 2
         }
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Прогресс',
+          title: 'Главная',
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="timeline" size={size} color={color} />
+            <MaterialIcons name="home" size={size - 2} color={color} />
           ),
         }}
       />
@@ -46,25 +50,16 @@ export default function TabLayout() {
         options={{
           title: 'AI-Коуч',
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="psychology" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="gamification"
-        options={{
-          title: 'Награды',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="emoji-events" size={size} color={color} />
+            <MaterialIcons name="psychology" size={size - 2} color={color} />
           ),
         }}
       />
       <Tabs.Screen
         name="advanced-therapy"
         options={{
-          title: 'Терапия',
+          title: 'Техники',
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="science" size={size} color={color} />
+            <MaterialIcons name="science" size={size - 2} color={color} />
           ),
         }}
       />
@@ -73,12 +68,21 @@ export default function TabLayout() {
         options={{
           title: 'Аудио',
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="headphones" size={size} color={color} />
+            <MaterialIcons name="headphones" size={size - 2} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="gamification"
+        options={{
+          title: 'Награды',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="emoji-events" size={size - 2} color={color} />
           ),
         }}
       />
       
-      {/* Скрытые табы */}
+      {/* Скрытые страницы - доступны через навигацию, но не отображаются в табах */}
       <Tabs.Screen
         name="psychology"
         options={{
