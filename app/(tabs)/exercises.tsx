@@ -1,185 +1,464 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, Platform, Modal } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { nlpExercises, NLPExercise, NLPCategory } from '../../services/recoveryService';
+import { useRouter } from 'expo-router';
+import { advancedNLPTechniques, submodalityTechniques, mindfulnessExercises, NLPTechnique } from '../../services/enhancedNLPService';
+import { modernTherapeuticTechniques, microTechniques } from '../../services/therapeuticTechniques';
 
 export default function ExercisesPage() {
   const insets = useSafeAreaInsets();
-  const [selectedExercise, setSelectedExercise] = useState<NLPExercise | null>(null);
-  const [currentStep, setCurrentStep] = useState(0);
-  const [isExerciseActive, setIsExerciseActive] = useState(false);
-  const categoryIcons: Record<NLPCategory, string> = {
-    anchoring: 'anchor',
-    visualization: 'visibility',
-    reframing: 'refresh',
-    future_pacing: 'timeline'
-  };
+  const router = useRouter();
+  const [activeCategory, setActiveCategory] = useState<string>('nlp');
+  const [selectedTechnique, setSelectedTechnique] = useState<NLPTechnique | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
-  const categoryNames: Record<NLPCategory, string> = {
-    anchoring: 'Якорение',
-    visualization: 'Визуализация',
-    reframing: 'Рефрейминг',
-    future_pacing: 'Планирование будущего'
-  };
+  // Web alert state
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    onOk?: () => void;
+  }>({ visible: false, title: '', message: '' });
 
-  const startExercise = (exercise: NLPExercise) => {
-    setSelectedExercise(exercise);
-    setCurrentStep(0);
-    setIsExerciseActive(true);
-  };
-
-  const nextStep = () => {
-    if (!selectedExercise) return;
-    
-    if (currentStep < selectedExercise.steps.length - 1) {
-      setCurrentStep(currentStep + 1);
+  const showWebAlert = (title: string, message: string, onOk?: () => void) => {
+    if (Platform.OS === 'web') {
+      setAlertConfig({ visible: true, title, message, onOk });
     } else {
-      completeExercise();
+      Alert.alert(title, message, onOk ? [{ text: 'OK', onPress: onOk }] : undefined);
     }
   };
 
-  const previousStep = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-    }
+  const categoryIcons: Record<string, string> = {
+    nlp: 'psychology',
+    therapy: 'healing',
+    mindfulness: 'spa',
+    micro: 'flash-on'
   };
 
-  const completeExercise = () => {
-    setIsExerciseActive(false);
-    setSelectedExercise(null);
-    setCurrentStep(0);
+  const categoryNames: Record<string, string> = {
+    nlp: 'НЛП техники',
+    therapy: 'Терапия',
+    mindfulness: 'Осознанность',
+    micro: 'Экспресс'
   };
 
-  const renderExerciseCard = (exercise: NLPExercise) => (
-    <View key={exercise.id} style={styles.exerciseCard}>
-      <View style={styles.exerciseHeader}>
-        <MaterialIcons 
-          name={categoryIcons[exercise.category] as any} 
-          size={32} 
-          color="#2E7D4A" 
-        />
-        <View style={styles.exerciseInfo}>
-          <Text style={styles.exerciseTitle}>{exercise.title}</Text>
-          <Text style={styles.exerciseCategory}>
-            {categoryNames[exercise.category]}
-          </Text>
-          <View style={styles.exerciseMeta}>
-            <MaterialIcons name="schedule" size={16} color="#999" />
-            <Text style={styles.exerciseDuration}>{exercise.duration} мин</Text>
-          </View>
-        </View>
-      </View>
-      
-      <Text style={styles.exerciseDescription}>
-        {exercise.description}
+  const difficultyColors = {
+    beginner: '#4CAF50',
+    intermediate: '#FF9800', 
+    advanced: '#F44336',
+    expert: '#9C27B0'
+  };
+
+  const difficultyNames = {
+    beginner: 'Новичок',
+    intermediate: 'Средний',
+    advanced: 'Продвинутый',
+    expert: 'Эксперт'
+  };
+
+  const nlpCategoryColors = {
+    anchoring: '#2196F3',
+    reframing: '#4CAF50',
+    timeline: '#9C27B0',
+    submodalities: '#FF9800',
+    swish: '#F44336',
+    phobia: '#795548',
+    belief_change: '#607D8B'
+  };
+
+  const nlpCategoryNames = {
+    anchoring: 'Якорение',
+    reframing: 'Рефрейминг',
+    timeline: 'Временная линия',
+    submodalities: 'Субмодальности',
+    swish: 'Свиш-паттерн',
+    phobia: 'Работа с фобиями',
+    belief_change: 'Изменение убеждений'
+  };
+
+  const startTechnique = (technique: NLPTechnique) => {
+    setSelectedTechnique(technique);
+    setShowDetailModal(true);
+  };
+
+  const startMicroTechnique = (technique: any) => {
+    showWebAlert(
+      technique.name,
+      `Длительность: ${technique.duration} сек\n\nИспользуйте при: ${technique.situation}\n\nНачать выполнение?`,
+      () => {
+        // Здесь можно запустить таймер или гид по технике
+        showWebAlert('Техника запущена', 'Следуйте инструкциям для выполнения упражнения');
+      }
+    );
+  };
+
+  const renderNLPTechniques = () => (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>Продвинутые НЛП техники</Text>
+      <Text style={styles.sectionDescription}>
+        Нейролингвистическое программирование для изменения поведенческих паттернов
       </Text>
       
-      <TouchableOpacity 
-        style={styles.startButton}
-        onPress={() => startExercise(exercise)}
-      >
-        <MaterialIcons name="play-arrow" size={20} color="white" />
-        <Text style={styles.startButtonText}>Начать упражнение</Text>
-      </TouchableOpacity>
+      {advancedNLPTechniques.map((technique) => (
+        <View key={technique.id} style={styles.techniqueCard}>
+          <View style={styles.techniqueHeader}>
+            <View style={[styles.categoryBadge, { 
+              backgroundColor: nlpCategoryColors[technique.category] 
+            }]}>
+              <Text style={styles.categoryBadgeText}>
+                {nlpCategoryNames[technique.category]}
+              </Text>
+            </View>
+            <View style={[styles.difficultyBadge, { 
+              backgroundColor: difficultyColors[technique.difficulty] 
+            }]}>
+              <Text style={styles.difficultyText}>
+                {difficultyNames[technique.difficulty]}
+              </Text>
+            </View>
+          </View>
+
+          <Text style={styles.techniqueTitle}>{technique.name}</Text>
+          <Text style={styles.techniqueDescription}>{technique.description}</Text>
+
+          <View style={styles.techniqueMeta}>
+            <View style={styles.metaItem}>
+              <MaterialIcons name="schedule" size={16} color="#666" />
+              <Text style={styles.metaText}>{technique.duration} мин</Text>
+            </View>
+            <View style={styles.metaItem}>
+              <MaterialIcons name="format-list-numbered" size={16} color="#666" />
+              <Text style={styles.metaText}>{technique.steps.length} шагов</Text>
+            </View>
+          </View>
+
+          {/* Преимущества */}
+          <View style={styles.benefitsContainer}>
+            <Text style={styles.benefitsTitle}>Преимущества:</Text>
+            <View style={styles.benefitsList}>
+              {technique.benefits.slice(0, 3).map((benefit, index) => (
+                <Text key={index} style={styles.benefitItem}>• {benefit}</Text>
+              ))}
+            </View>
+          </View>
+
+          {/* Предупреждения */}
+          {technique.contraindications && (
+            <View style={styles.warningBox}>
+              <MaterialIcons name="warning" size={16} color="#FF9800" />
+              <Text style={styles.warningText}>
+                Противопоказания: {technique.contraindications.join(', ')}
+              </Text>
+            </View>
+          )}
+
+          <TouchableOpacity 
+            style={styles.startButton}
+            onPress={() => startTechnique(technique)}
+          >
+            <MaterialIcons name="play-arrow" size={20} color="white" />
+            <Text style={styles.startButtonText}>Начать технику</Text>
+          </TouchableOpacity>
+        </View>
+      ))}
     </View>
   );
+
+  const renderTherapyTechniques = () => (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>Современные терапевтические техники</Text>
+      <Text style={styles.sectionDescription}>
+        CBT, DBT, ACT, EMDR, IFS, соматические техники и другие современные подходы
+      </Text>
+      
+      {modernTherapeuticTechniques.map((technique) => (
+        <View key={technique.id} style={styles.techniqueCard}>
+          <View style={styles.techniqueHeader}>
+            <View style={[styles.approachBadge]}>
+              <Text style={styles.approachText}>{technique.approach}</Text>
+            </View>
+            <View style={[styles.difficultyBadge, { 
+              backgroundColor: difficultyColors[technique.difficulty] 
+            }]}>
+              <Text style={styles.difficultyText}>
+                {difficultyNames[technique.difficulty]}
+              </Text>
+            </View>
+          </View>
+
+          <Text style={styles.techniqueTitle}>{technique.name}</Text>
+          <Text style={styles.techniqueDescription}>{technique.description}</Text>
+
+          <View style={styles.techniqueMeta}>
+            <View style={styles.metaItem}>
+              <MaterialIcons name="schedule" size={16} color="#666" />
+              <Text style={styles.metaText}>{technique.duration} мин</Text>
+            </View>
+            <View style={styles.metaItem}>
+              <MaterialIcons name="format-list-numbered" size={16} color="#666" />
+              <Text style={styles.metaText}>{technique.steps.length} шагов</Text>
+            </View>
+          </View>
+
+          {/* Преимущества */}
+          <View style={styles.benefitsContainer}>
+            <Text style={styles.benefitsTitle}>Преимущества:</Text>
+            <View style={styles.benefitsList}>
+              {technique.benefits.slice(0, 3).map((benefit, index) => (
+                <Text key={index} style={styles.benefitItem}>• {benefit}</Text>
+              ))}
+            </View>
+          </View>
+
+          {/* Противопоказания */}
+          {technique.contraindications && (
+            <View style={styles.warningBox}>
+              <MaterialIcons name="warning" size={16} color="#FF9800" />
+              <Text style={styles.warningText}>
+                Противопоказания: {technique.contraindications.join(', ')}
+              </Text>
+            </View>
+          )}
+
+          <TouchableOpacity 
+            style={[styles.startButton, { backgroundColor: '#6A1B9A' }]}
+            onPress={() => showWebAlert('Техника', `Запуск техники: ${technique.name}`)}
+          >
+            <MaterialIcons name="healing" size={20} color="white" />
+            <Text style={styles.startButtonText}>Начать терапию</Text>
+          </TouchableOpacity>
+        </View>
+      ))}
+    </View>
+  );
+
+  const renderMindfulnessTechniques = () => (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>Техники осознанности</Text>
+      <Text style={styles.sectionDescription}>
+        Упражнения для развития внимательности и присутствия в моменте
+      </Text>
+      
+      {mindfulnessExercises.map((exercise) => (
+        <View key={exercise.id} style={styles.techniqueCard}>
+          <Text style={styles.techniqueTitle}>{exercise.name}</Text>
+          
+          <View style={styles.techniqueMeta}>
+            <View style={styles.metaItem}>
+              <MaterialIcons name="schedule" size={16} color="#666" />
+              <Text style={styles.metaText}>{exercise.duration} мин</Text>
+            </View>
+            <View style={styles.metaItem}>
+              <MaterialIcons name="format-list-numbered" size={16} color="#666" />
+              <Text style={styles.metaText}>{exercise.instructions.length} шагов</Text>
+            </View>
+          </View>
+
+          <View style={styles.instructionsContainer}>
+            <Text style={styles.instructionsTitle}>Инструкции:</Text>
+            {exercise.instructions.slice(0, 3).map((instruction, index) => (
+              <Text key={index} style={styles.instructionItem}>
+                {index + 1}. {instruction}
+              </Text>
+            ))}
+            {exercise.instructions.length > 3 && (
+              <Text style={styles.moreInstructions}>
+                и еще {exercise.instructions.length - 3} шагов...
+              </Text>
+            )}
+          </View>
+
+          <View style={styles.benefitsContainer}>
+            <Text style={styles.benefitsTitle}>Преимущества:</Text>
+            <View style={styles.benefitsList}>
+              {exercise.benefits.map((benefit, index) => (
+                <Text key={index} style={styles.benefitItem}>• {benefit}</Text>
+              ))}
+            </View>
+          </View>
+
+          <TouchableOpacity 
+            style={[styles.startButton, { backgroundColor: '#00BCD4' }]}
+            onPress={() => showWebAlert('Осознанность', `Запуск упражнения: ${exercise.name}`)}
+          >
+            <MaterialIcons name="spa" size={20} color="white" />
+            <Text style={styles.startButtonText}>Начать практику</Text>
+          </TouchableOpacity>
+        </View>
+      ))}
+    </View>
+  );
+
+  const renderMicroTechniques = () => (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>Экспресс-техники</Text>
+      <Text style={styles.sectionDescription}>
+        Быстрые техники для экстренных ситуаций (30 сек - 2 мин)
+      </Text>
+      
+      {microTechniques.map((technique) => (
+        <View key={technique.id} style={[styles.techniqueCard, styles.microTechniqueCard]}>
+          <View style={styles.microHeader}>
+            <Text style={styles.techniqueTitle}>{technique.name}</Text>
+            <View style={styles.durationBadge}>
+              <MaterialIcons name="flash-on" size={16} color="#FF6B6B" />
+              <Text style={styles.durationText}>{technique.duration}с</Text>
+            </View>
+          </View>
+
+          <Text style={styles.techniqueDescription}>{technique.description}</Text>
+          
+          <Text style={styles.situationText}>
+            <Text style={styles.situationLabel}>Когда использовать: </Text>
+            {technique.situation}
+          </Text>
+
+          <View style={styles.quickStepsContainer}>
+            <Text style={styles.quickStepsTitle}>Быстрые шаги:</Text>
+            {technique.steps.slice(0, 2).map((step, index) => (
+              <Text key={index} style={styles.quickStepItem}>
+                {index + 1}. {step}
+              </Text>
+            ))}
+            {technique.steps.length > 2 && (
+              <Text style={styles.moreSteps}>
+                +{technique.steps.length - 2} шагов
+              </Text>
+            )}
+          </View>
+
+          <TouchableOpacity 
+            style={[styles.startButton, styles.microStartButton]}
+            onPress={() => startMicroTechnique(technique)}
+          >
+            <MaterialIcons name="flash-on" size={20} color="white" />
+            <Text style={styles.startButtonText}>Быстрый старт</Text>
+          </TouchableOpacity>
+        </View>
+      ))}
+    </View>
+  );
+
+  const renderContent = () => {
+    switch (activeCategory) {
+      case 'nlp':
+        return renderNLPTechniques();
+      case 'therapy':
+        return renderTherapyTechniques();
+      case 'mindfulness':
+        return renderMindfulnessTechniques();
+      case 'micro':
+        return renderMicroTechniques();
+      default:
+        return renderNLPTechniques();
+    }
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>НЛП Упражнения</Text>
+        <Text style={styles.title}>Психотехники и НЛП</Text>
         <Text style={styles.subtitle}>
-          Техники для укрепления мотивации и изменения привычек
+          Современные техники для изменения поведения и мышления
         </Text>
       </View>
 
-      <ScrollView 
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.infoCard}>
-          <MaterialIcons name="info" size={24} color="#2E7D4A" />
-          <View style={styles.infoText}>
-            <Text style={styles.infoTitle}>О НЛП упражнениях</Text>
-            <Text style={styles.infoDescription}>
-              Нейролингвистическое программирование помогает изменить восприятие и 
-              создать новые положительные ассоциации. Выполняйте упражнения в спокойной 
-              обстановке.
+      {/* Категории */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesContainer}>
+        {['nlp', 'therapy', 'mindfulness', 'micro'].map((category) => (
+          <TouchableOpacity
+            key={category}
+            style={[styles.categoryButton, activeCategory === category && styles.activeCategoryButton]}
+            onPress={() => setActiveCategory(category)}
+          >
+            <MaterialIcons 
+              name={categoryIcons[category] as any} 
+              size={20} 
+              color={activeCategory === category ? 'white' : '#2E7D4A'} 
+            />
+            <Text style={[
+              styles.categoryButtonText,
+              activeCategory === category && styles.activeCategoryButtonText
+            ]}>
+              {categoryNames[category]}
             </Text>
-          </View>
-        </View>
-
-        {nlpExercises.map(renderExerciseCard)}
+          </TouchableOpacity>
+        ))}
       </ScrollView>
 
-      {/* Exercise Modal */}
-      <Modal
-        visible={isExerciseActive}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        {selectedExercise && (
+      <ScrollView contentContainerStyle={styles.content}>
+        {renderContent()}
+      </ScrollView>
+
+      {/* Technique Detail Modal */}
+      {selectedTechnique && (
+        <Modal
+          visible={showDetailModal}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setShowDetailModal(false)}
+        >
           <View style={[styles.modalContainer, { paddingTop: insets.top }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{selectedExercise.title}</Text>
-              <TouchableOpacity 
-                style={styles.closeButton}
-                onPress={completeExercise}
-              >
+              <Text style={styles.modalTitle}>{selectedTechnique.name}</Text>
+              <TouchableOpacity onPress={() => setShowDetailModal(false)}>
                 <MaterialIcons name="close" size={24} color="#666" />
               </TouchableOpacity>
             </View>
-
-            <View style={styles.progressContainer}>
-              <Text style={styles.progressText}>
-                Шаг {currentStep + 1} из {selectedExercise.steps.length}
-              </Text>
-              <View style={styles.progressBar}>
-                <View 
-                  style={[
-                    styles.progressFill, 
-                    { width: `${((currentStep + 1) / selectedExercise.steps.length) * 100}%` }
-                  ]} 
-                />
+            
+            <ScrollView contentContainerStyle={styles.modalContent}>
+              <Text style={styles.modalDescription}>{selectedTechnique.description}</Text>
+              
+              <View style={styles.modalSteps}>
+                <Text style={styles.stepsTitle}>Пошаговое выполнение:</Text>
+                {selectedTechnique.steps.map((step, index) => (
+                  <View key={step.id} style={styles.stepItem}>
+                    <View style={styles.stepNumber}>
+                      <Text style={styles.stepNumberText}>{index + 1}</Text>
+                    </View>
+                    <View style={styles.stepContent}>
+                      <Text style={styles.stepTitle}>{step.title}</Text>
+                      <Text style={styles.stepInstruction}>{step.instruction}</Text>
+                      {step.duration && (
+                        <Text style={styles.stepDuration}>Время: {step.duration} мин</Text>
+                      )}
+                      {step.tips && (
+                        <View style={styles.tipsContainer}>
+                          {step.tips.map((tip, tipIndex) => (
+                            <Text key={tipIndex} style={styles.tipText}>💡 {tip}</Text>
+                          ))}
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                ))}
               </View>
-            </View>
-
-            <ScrollView style={styles.stepContainer}>
-              <Text style={styles.stepText}>
-                {selectedExercise.steps[currentStep]}
-              </Text>
             </ScrollView>
+          </View>
+        </Modal>
+      )}
 
-            <View style={styles.navigationButtons}>
+      {/* Web Alert Modal */}
+      {Platform.OS === 'web' && (
+        <Modal visible={alertConfig.visible} transparent animationType="fade">
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
+            <View style={{ backgroundColor: 'white', padding: 20, borderRadius: 8, minWidth: 280, maxWidth: '80%' }}>
+              <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>{alertConfig.title}</Text>
+              <Text style={{ fontSize: 16, marginBottom: 20, lineHeight: 22 }}>{alertConfig.message}</Text>
               <TouchableOpacity 
-                style={[styles.navButton, currentStep === 0 && styles.disabledButton]}
-                onPress={previousStep}
-                disabled={currentStep === 0}
+                style={{ backgroundColor: '#2E7D4A', padding: 10, borderRadius: 4, alignItems: 'center' }}
+                onPress={() => {
+                  alertConfig.onOk?.();
+                  setAlertConfig(prev => ({ ...prev, visible: false }));
+                }}
               >
-                <MaterialIcons name="chevron-left" size={24} color={currentStep === 0 ? '#CCC' : '#2E7D4A'} />
-                <Text style={[styles.navButtonText, currentStep === 0 && styles.disabledText]}>
-                  Назад
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={styles.nextButton}
-                onPress={nextStep}
-              >
-                <Text style={styles.nextButtonText}>
-                  {currentStep === selectedExercise.steps.length - 1 ? 'Завершить' : 'Далее'}
-                </Text>
-                <MaterialIcons 
-                  name={currentStep === selectedExercise.steps.length - 1 ? 'check' : 'chevron-right'} 
-                  size={24} 
-                  color="white" 
-                />
+                <Text style={{ color: 'white', fontWeight: 'bold' }}>OK</Text>
               </TouchableOpacity>
             </View>
           </View>
-        )}
-      </Modal>
+        </Modal>
+      )}
     </View>
   );
 }
@@ -206,32 +485,38 @@ const styles = StyleSheet.create({
     color: '#666',
     lineHeight: 22
   },
-  content: {
-    padding: 20,
-    gap: 20
+  categoriesContainer: {
+    backgroundColor: 'white',
+    paddingHorizontal: 20,
+    paddingVertical: 15
   },
-  infoCard: {
+  categoryButton: {
     flexDirection: 'row',
-    backgroundColor: '#E8F5E8',
-    padding: 15,
-    borderRadius: 12,
-    gap: 12
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: '#2E7D4A',
+    gap: 6
   },
-  infoText: {
-    flex: 1
+  activeCategoryButton: {
+    backgroundColor: '#2E7D4A'
   },
-  infoTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#2E7D4A',
-    marginBottom: 5
-  },
-  infoDescription: {
+  categoryButtonText: {
     fontSize: 14,
-    color: '#4A6741',
-    lineHeight: 20
+    fontWeight: '500',
+    color: '#2E7D4A'
   },
-  exerciseCard: {
+  activeCategoryButtonText: {
+    color: 'white'
+  },
+  content: {
+    padding: 20
+  },
+  section: {
     backgroundColor: 'white',
     borderRadius: 15,
     padding: 20,
@@ -241,52 +526,210 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3
   },
-  exerciseHeader: {
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#2E7D4A',
+    marginBottom: 8
+  },
+  sectionDescription: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 20,
+    lineHeight: 20
+  },
+  techniqueCard: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+    paddingVertical: 20,
+    marginBottom: 15
+  },
+  microTechniqueCard: {
+    backgroundColor: '#FFF8E1',
+    marginHorizontal: -10,
+    marginVertical: 5,
+    paddingHorizontal: 15,
+    borderRadius: 10,
+    borderBottomWidth: 0
+  },
+  techniqueHeader: {
     flexDirection: 'row',
-    marginBottom: 15,
-    gap: 15
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10
   },
-  exerciseInfo: {
-    flex: 1
+  microHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8
   },
-  exerciseTitle: {
+  categoryBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12
+  },
+  categoryBadgeText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold'
+  },
+  approachBadge: {
+    backgroundColor: '#E3F2FD',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12
+  },
+  approachText: {
+    color: '#1976D2',
+    fontSize: 12,
+    fontWeight: 'bold'
+  },
+  difficultyBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12
+  },
+  difficultyText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold'
+  },
+  durationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFEBEE',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4
+  },
+  durationText: {
+    color: '#FF6B6B',
+    fontSize: 12,
+    fontWeight: 'bold'
+  },
+  techniqueTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#2E7D4A',
-    marginBottom: 5
-  },
-  exerciseCategory: {
-    fontSize: 14,
-    color: '#666',
     marginBottom: 8
   },
-  exerciseMeta: {
+  techniqueDescription: {
+    fontSize: 14,
+    color: '#333',
+    lineHeight: 20,
+    marginBottom: 12
+  },
+  techniqueMeta: {
+    flexDirection: 'row',
+    gap: 20,
+    marginBottom: 12
+  },
+  metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4
   },
-  exerciseDuration: {
+  metaText: {
     fontSize: 14,
-    color: '#999'
+    color: '#666'
   },
-  exerciseDescription: {
-    fontSize: 16,
-    lineHeight: 22,
+  benefitsContainer: {
+    marginBottom: 12
+  },
+  benefitsTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#2E7D4A',
+    marginBottom: 6
+  },
+  benefitsList: {
+    gap: 2
+  },
+  benefitItem: {
+    fontSize: 13,
+    color: '#555',
+    lineHeight: 18
+  },
+  instructionsContainer: {
+    marginBottom: 12
+  },
+  instructionsTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#2E7D4A',
+    marginBottom: 6
+  },
+  instructionItem: {
+    fontSize: 13,
+    color: '#555',
+    lineHeight: 18,
+    marginBottom: 2
+  },
+  moreInstructions: {
+    fontSize: 13,
+    color: '#999',
+    fontStyle: 'italic'
+  },
+  situationText: {
+    fontSize: 14,
     color: '#333',
-    marginBottom: 20
+    marginBottom: 10
+  },
+  situationLabel: {
+    fontWeight: 'bold',
+    color: '#FF9800'
+  },
+  quickStepsContainer: {
+    marginBottom: 12
+  },
+  quickStepsTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#2E7D4A',
+    marginBottom: 6
+  },
+  quickStepItem: {
+    fontSize: 13,
+    color: '#555',
+    lineHeight: 18,
+    marginBottom: 2
+  },
+  moreSteps: {
+    fontSize: 13,
+    color: '#999',
+    fontStyle: 'italic'
+  },
+  warningBox: {
+    flexDirection: 'row',
+    backgroundColor: '#FFF8E1',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 12,
+    gap: 8
+  },
+  warningText: {
+    fontSize: 12,
+    color: '#F57C00',
+    flex: 1
   },
   startButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     backgroundColor: '#2E7D4A',
-    padding: 12,
-    borderRadius: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 25,
+    alignSelf: 'flex-start',
     gap: 8
+  },
+  microStartButton: {
+    backgroundColor: '#FF6B6B'
   },
   startButtonText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold'
   },
   modalContainer: {
@@ -307,77 +750,67 @@ const styles = StyleSheet.create({
     color: '#2E7D4A',
     flex: 1
   },
-  closeButton: {
-    padding: 5
-  },
-  progressContainer: {
+  modalContent: {
     padding: 20
   },
-  progressText: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 10,
-    textAlign: 'center'
-  },
-  progressBar: {
-    height: 4,
-    backgroundColor: '#E0E0E0',
-    borderRadius: 2,
-    overflow: 'hidden'
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#2E7D4A'
-  },
-  stepContainer: {
-    flex: 1,
-    padding: 20
-  },
-  stepText: {
-    fontSize: 18,
-    lineHeight: 28,
+  modalDescription: {
+    fontSize: 16,
     color: '#333',
-    textAlign: 'center'
+    lineHeight: 24,
+    marginBottom: 20
   },
-  navigationButtons: {
+  modalSteps: {
+    gap: 20
+  },
+  stepsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2E7D4A',
+    marginBottom: 15
+  },
+  stepItem: {
     flexDirection: 'row',
-    padding: 20,
-    gap: 15,
-    borderTopWidth: 1,
-    borderTopColor: '#E0E0E0'
+    gap: 15
   },
-  navButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: '#F0F0F0',
-    gap: 4
+  stepNumber: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#2E7D4A',
+    justifyContent: 'center',
+    alignItems: 'center'
   },
-  disabledButton: {
-    opacity: 0.5
+  stepNumberText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold'
   },
-  navButtonText: {
+  stepContent: {
+    flex: 1
+  },
+  stepTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#2E7D4A'
+    color: '#333',
+    marginBottom: 4
   },
-  disabledText: {
-    color: '#CCC'
+  stepInstruction: {
+    fontSize: 14,
+    color: '#555',
+    lineHeight: 20,
+    marginBottom: 6
   },
-  nextButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#2E7D4A',
-    padding: 12,
-    borderRadius: 8,
-    gap: 8
+  stepDuration: {
+    fontSize: 12,
+    color: '#999',
+    marginBottom: 8
   },
-  nextButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold'
+  tipsContainer: {
+    gap: 4
+  },
+  tipText: {
+    fontSize: 12,
+    color: '#666',
+    lineHeight: 16
   }
 });

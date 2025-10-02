@@ -1,42 +1,71 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal } from 'react-native';
+
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal, Alert, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { relaxingSounds, hypnotherapySessions, RelaxingSound, HypnotherapySession } from '../../services/audioService';
-import AdvancedAudioPlayer from '../../components/AdvancedAudioPlayer';
+import { generatedSounds, hypnotherapySessions, audioEngine, GeneratedSound, HypnotherapySession } from '../../services/audioService';
+import TherapeuticSoundPlayer from '../../components/TherapeuticSoundPlayer';
 
 export default function SoundsPage() {
   const insets = useSafeAreaInsets();
-  const [selectedSound, setSelectedSound] = useState<RelaxingSound | null>(null);
+  const [selectedSound, setSelectedSound] = useState<GeneratedSound | null>(null);
   const [selectedSession, setSelectedSession] = useState<HypnotherapySession | null>(null);
   const [showAudioPlayer, setShowAudioPlayer] = useState(false);
+  const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState<string>('all');
+
+  // Web alert state
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    onOk?: () => void;
+  }>({ visible: false, title: '', message: '' });
+
+  const showWebAlert = (title: string, message: string, onOk?: () => void) => {
+    if (Platform.OS === 'web') {
+      setAlertConfig({ visible: true, title, message, onOk });
+    } else {
+      Alert.alert(title, message, onOk ? [{ text: 'OK', onPress: onOk }] : undefined);
+    }
+  };
+
+  useEffect(() => {
+    // Инициализация аудио движка
+    audioEngine.initialize().catch(console.error);
+  }, []);
 
   const categoryIcons: Record<string, string> = {
     nature: 'nature',
     binaural: 'graphic-eq',
-    white_noise: 'volume-up',
-    meditation: 'spa'
+    therapeutic: 'volume-up',
+    solfeggio: 'radio'
   };
 
   const categoryNames: Record<string, string> = {
     nature: 'Природа',
     binaural: 'Бинауральные биты',
-    white_noise: 'Белый шум',
-    meditation: 'Медитация'
+    therapeutic: 'Терапевтические',
+    solfeggio: 'Сольфеджио'
   };
 
   const sessionCategoryIcons: Record<string, string> = {
     addiction: 'healing',
     anxiety: 'self-improvement',
     confidence: 'trending-up',
-    sleep: 'bedtime'
+    sleep: 'bedtime',
+    stress: 'spa',
+    trauma: 'psychology'
   };
 
   const sessionCategoryNames: Record<string, string> = {
     addiction: 'Преодоление зависимости',
-    anxiety: 'Снижение тревожности',
+    anxiety: 'Снижение тревожности', 
     confidence: 'Уверенность',
-    sleep: 'Здоровый сон'
+    sleep: 'Здоровый сон',
+    stress: 'Антистресс',
+    trauma: 'Работа с травмами'
   };
 
   const levelColors = {
@@ -45,7 +74,37 @@ export default function SoundsPage() {
     advanced: '#F44336'
   };
 
-  const playSound = (sound: RelaxingSound) => {
+  const categories = ['all', 'nature', 'binaural', 'therapeutic', 'solfeggio'];
+  const filteredSounds = activeCategory === 'all' 
+    ? generatedSounds 
+    : generatedSounds.filter(s => s.category === activeCategory);
+
+  const playQuickSound = async (sound: GeneratedSound) => {
+    if (currentlyPlaying === sound.id) {
+      audioEngine.stopSound(sound.id);
+      setCurrentlyPlaying(null);
+      return;
+    }
+
+    if (currentlyPlaying) {
+      audioEngine.stopSound(currentlyPlaying);
+    }
+
+    setIsLoading(sound.id);
+    
+    try {
+      await audioEngine.playSound(sound.id, true, 0.6);
+      setCurrentlyPlaying(sound.id);
+      showWebAlert('Воспроизведение', `Начато воспроизведение: ${sound.name}`);
+    } catch (error) {
+      showWebAlert('Ошибка', 'Не удалось воспроизвести звук. Попробуйте снова.');
+      console.error('Error playing sound:', error);
+    } finally {
+      setIsLoading(null);
+    }
+  };
+
+  const openFullPlayer = (sound: GeneratedSound) => {
     setSelectedSound(sound);
     setSelectedSession(null);
     setShowAudioPlayer(true);
@@ -63,39 +122,86 @@ export default function SoundsPage() {
     setSelectedSession(null);
   };
 
+  const stopAllSounds = () => {
+    audioEngine.stopAll();
+    setCurrentlyPlaying(null);
+  };
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>Аудиотерапия</Text>
+        <View style={styles.headerTop}>
+          <Text style={styles.title}>Терапевтические звуки</Text>
+          {currentlyPlaying && (
+            <TouchableOpacity style={styles.stopAllButton} onPress={stopAllSounds}>
+              <MaterialIcons name="stop" size={20} color="white" />
+              <Text style={styles.stopAllText}>Стоп</Text>
+            </TouchableOpacity>
+          )}
+        </View>
         <Text style={styles.subtitle}>
-          Расслабляющие звуки и гипнотерапия для восстановления
+          Встроенные звуки и терапевтические частоты для восстановления
         </Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
+        {/* Информационная карточка */}
         <View style={styles.infoCard}>
           <MaterialIcons name="headphones" size={24} color="#2E7D4A" />
           <View style={styles.infoText}>
             <Text style={styles.infoTitle}>Рекомендации по использованию</Text>
             <Text style={styles.infoDescription}>
-              Используйте наушники для максимального эффекта. 
-              Найдите тихое место и уделите время только себе.
+              🎧 Используйте наушники для максимального эффекта
+              {'\n'}🔇 Найдите тихое место для сеанса
+              {'\n'}⏰ Рекомендуемое время: 10-60 минут
             </Text>
           </View>
         </View>
 
-        {/* Расслабляющие звуки */}
+        {/* Фильтр категорий */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesContainer}>
+          {categories.map((category) => (
+            <TouchableOpacity
+              key={category}
+              style={[styles.categoryButton, activeCategory === category && styles.activeCategoryButton]}
+              onPress={() => setActiveCategory(category)}
+            >
+              <MaterialIcons 
+                name={category === 'all' ? 'apps' : categoryIcons[category] as any} 
+                size={20} 
+                color={activeCategory === category ? 'white' : '#2E7D4A'} 
+              />
+              <Text style={[
+                styles.categoryButtonText,
+                activeCategory === category && styles.activeCategoryButtonText
+              ]}>
+                {category === 'all' ? 'Все' : categoryNames[category]}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        {/* Генерируемые звуки */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Расслабляющие звуки</Text>
+          <Text style={styles.sectionTitle}>Встроенные терапевтические звуки</Text>
+          <Text style={styles.sectionDescription}>
+            Все звуки генерируются в реальном времени без необходимости загрузки
+          </Text>
           
-          {relaxingSounds.map((sound) => (
+          {filteredSounds.map((sound) => (
             <View key={sound.id} style={styles.soundCard}>
               <View style={styles.soundHeader}>
-                <MaterialIcons 
-                  name={categoryIcons[sound.category] as any} 
-                  size={32} 
-                  color="#2E7D4A" 
-                />
+                <View style={[styles.soundIcon, { 
+                  backgroundColor: sound.category === 'nature' ? '#4CAF50' : 
+                                 sound.category === 'binaural' ? '#2196F3' :
+                                 sound.category === 'solfeggio' ? '#9C27B0' : '#FF9800' 
+                }]}>
+                  <MaterialIcons 
+                    name={categoryIcons[sound.category] as any} 
+                    size={24} 
+                    color="white" 
+                  />
+                </View>
                 <View style={styles.soundInfo}>
                   <Text style={styles.soundTitle}>{sound.name}</Text>
                   <Text style={styles.categoryLabel}>
@@ -112,39 +218,69 @@ export default function SoundsPage() {
 
               <Text style={styles.soundDescription}>{sound.description}</Text>
 
-              {sound.frequency && (
-                <View style={styles.frequencyBadge}>
-                  <MaterialIcons name="waves" size={16} color="#2E7D4A" />
-                  <Text style={styles.frequencyText}>{sound.frequency}</Text>
-                </View>
-              )}
+              {/* Преимущества */}
+              <View style={styles.benefitsContainer}>
+                {sound.benefits.slice(0, 3).map((benefit, index) => (
+                  <View key={index} style={styles.benefitTag}>
+                    <Text style={styles.benefitText}>{benefit}</Text>
+                  </View>
+                ))}
+              </View>
 
-              <TouchableOpacity 
-                style={styles.playButton}
-                onPress={() => playSound(sound)}
-              >
-                <MaterialIcons name="play-circle-filled" size={20} color="white" />
-                <Text style={styles.playButtonText}>Воспроизвести</Text>
-              </TouchableOpacity>
+              {/* Кнопки управления */}
+              <View style={styles.soundActions}>
+                <TouchableOpacity 
+                  style={[styles.actionButton, styles.quickPlayButton]}
+                  onPress={() => playQuickSound(sound)}
+                  disabled={isLoading === sound.id}
+                >
+                  {isLoading === sound.id ? (
+                    <>
+                      <MaterialIcons name="hourglass-empty" size={18} color="white" />
+                      <Text style={styles.actionButtonText}>Загрузка...</Text>
+                    </>
+                  ) : currentlyPlaying === sound.id ? (
+                    <>
+                      <MaterialIcons name="stop" size={18} color="white" />
+                      <Text style={styles.actionButtonText}>Остановить</Text>
+                    </>
+                  ) : (
+                    <>
+                      <MaterialIcons name="play-arrow" size={18} color="white" />
+                      <Text style={styles.actionButtonText}>Быстрый старт</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={[styles.actionButton, styles.fullPlayerButton]}
+                  onPress={() => openFullPlayer(sound)}
+                >
+                  <MaterialIcons name="tune" size={18} color="white" />
+                  <Text style={styles.actionButtonText}>Настройки</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           ))}
         </View>
 
         {/* Гипнотерапия */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Сеансы гипнотерапии</Text>
+          <Text style={styles.sectionTitle}>Управляемые сеансы гипнотерапии</Text>
           <Text style={styles.sectionDescription}>
-            Профессиональные гипнотерапевтические сессии для работы с подсознанием
+            Профессиональные голосовые сессии с фоновыми терапевтическими звуками
           </Text>
           
           {hypnotherapySessions.map((session) => (
             <View key={session.id} style={styles.sessionCard}>
               <View style={styles.sessionHeader}>
-                <MaterialIcons 
-                  name={sessionCategoryIcons[session.category] as any} 
-                  size={32} 
-                  color="#6A1B9A" 
-                />
+                <View style={styles.sessionIcon}>
+                  <MaterialIcons 
+                    name={sessionCategoryIcons[session.category] as any} 
+                    size={28} 
+                    color="#6A1B9A" 
+                  />
+                </View>
                 <View style={styles.sessionInfo}>
                   <Text style={styles.sessionTitle}>{session.title}</Text>
                   <Text style={styles.sessionCategory}>
@@ -152,29 +288,37 @@ export default function SoundsPage() {
                   </Text>
                   <View style={styles.sessionMeta}>
                     <MaterialIcons name="schedule" size={16} color="#999" />
-                    <Text style={styles.metaText}>
-                      {Math.floor(session.duration / 60)} мин
-                    </Text>
+                    <Text style={styles.metaText}>{session.duration} мин</Text>
                     <View style={[
                       styles.levelBadge,
-                      { backgroundColor: levelColors[session.level] }
+                      { backgroundColor: levelColors[session.difficulty] }
                     ]}>
                       <Text style={styles.levelText}>
-                        {session.level === 'beginner' && 'Начальный'}
-                        {session.level === 'intermediate' && 'Средний'}
-                        {session.level === 'advanced' && 'Продвинутый'}
+                        {session.difficulty === 'beginner' && 'Начальный'}
+                        {session.difficulty === 'intermediate' && 'Средний'}
+                        {session.difficulty === 'advanced' && 'Продвинутый'}
                       </Text>
                     </View>
                   </View>
-                </View>
+                </View>{/* Closing tag added here */}
               </View>
 
               <Text style={styles.sessionDescription}>{session.description}</Text>
 
+              {/* Преимущества сеанса */}
+              <View style={styles.benefitsContainer}>
+                {session.benefits.slice(0, 3).map((benefit, index) => (
+                  <View key={index} style={[styles.benefitTag, styles.sessionBenefitTag]}>
+                    <Text style={styles.sessionBenefitText}>{benefit}</Text>
+                  </View>
+                ))}
+              </View>
+
+              {/* Предупреждение */}
               <View style={styles.warningBox}>
                 <MaterialIcons name="info" size={20} color="#FF9800" />
                 <Text style={styles.warningText}>
-                  Не слушайте во время вождения или работы с механизмами
+                  ⚠️ Не слушайте во время вождения или работы с механизмами
                 </Text>
               </View>
 
@@ -191,26 +335,33 @@ export default function SoundsPage() {
 
         {/* Советы по использованию */}
         <View style={styles.tipsCard}>
-          <Text style={styles.tipsTitle}>Советы по эффективному использованию</Text>
+          <Text style={styles.tipsTitle}>💡 Советы по эффективному использованию</Text>
           
           <View style={styles.tipItem}>
             <MaterialIcons name="schedule" size={20} color="#2E7D4A" />
             <Text style={styles.tipText}>
-              Лучшее время: утром после пробуждения или перед сном
+              <Text style={styles.tipBold}>Лучшее время:</Text> утром после пробуждения или перед сном
             </Text>
           </View>
           
           <View style={styles.tipItem}>
             <MaterialIcons name="volume-up" size={20} color="#2E7D4A" />
             <Text style={styles.tipText}>
-              Установите комфортную громкость, не слишком тихо и не громко
+              <Text style={styles.tipBold}>Громкость:</Text> комфортная, не слишком тихо и не громко
             </Text>
           </View>
           
           <View style={styles.tipItem}>
             <MaterialIcons name="smartphone" size={20} color="#2E7D4A" />
             <Text style={styles.tipText}>
-              Переведите телефон в режим "Не беспокоить"
+              <Text style={styles.tipBold}>Подготовка:</Text> режим "Не беспокоить", удобная поза
+            </Text>
+          </View>
+
+          <View style={styles.tipItem}>
+            <MaterialIcons name="favorite" size={20} color="#2E7D4A" />
+            <Text style={styles.tipText}>
+              <Text style={styles.tipBold}>Регулярность:</Text> ежедневные сеансы дают лучший эффект
             </Text>
           </View>
         </View>
@@ -224,13 +375,34 @@ export default function SoundsPage() {
         onRequestClose={closePlayer}
       >
         <View style={[styles.playerModal, { paddingTop: insets.top }]}>
-          <AdvancedAudioPlayer
+          <TherapeuticSoundPlayer
             sound={selectedSound || undefined}
             session={selectedSession || undefined}
             onClose={closePlayer}
           />
         </View>
       </Modal>
+
+      {/* Web Alert Modal */}
+      {Platform.OS === 'web' && (
+        <Modal visible={alertConfig.visible} transparent animationType="fade">
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
+            <View style={{ backgroundColor: 'white', padding: 20, borderRadius: 8, minWidth: 280, maxWidth: '80%' }}>
+              <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>{alertConfig.title}</Text>
+              <Text style={{ fontSize: 16, marginBottom: 20, lineHeight: 22 }}>{alertConfig.message}</Text>
+              <TouchableOpacity 
+                style={{ backgroundColor: '#2E7D4A', padding: 10, borderRadius: 4, alignItems: 'center' }}
+                onPress={() => {
+                  alertConfig.onOk?.();
+                  setAlertConfig(prev => ({ ...prev, visible: false }));
+                }}
+              >
+                <Text style={{ color: 'white', fontWeight: 'bold' }}>OK</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      )}
     </View>
   );
 }
@@ -246,11 +418,30 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0'
   },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 5
+  },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#2E7D4A',
-    marginBottom: 5
+    color: '#2E7D4A'
+  },
+  stopAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FF6B6B',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    gap: 4
+  },
+  stopAllText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold'
   },
   subtitle: {
     fontSize: 16,
@@ -275,12 +466,38 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#2E7D4A',
-    marginBottom: 5
+    marginBottom: 8
   },
   infoDescription: {
     fontSize: 14,
     color: '#4A6741',
     lineHeight: 20
+  },
+  categoriesContainer: {
+    marginVertical: 10
+  },
+  categoryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: '#2E7D4A',
+    gap: 6
+  },
+  activeCategoryButton: {
+    backgroundColor: '#2E7D4A'
+  },
+  categoryButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#2E7D4A'
+  },
+  activeCategoryButtonText: {
+    color: 'white'
   },
   section: {
     backgroundColor: 'white',
@@ -307,13 +524,20 @@ const styles = StyleSheet.create({
   soundCard: {
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
-    paddingVertical: 15,
+    paddingVertical: 20,
     marginBottom: 15
   },
   soundHeader: {
     flexDirection: 'row',
-    marginBottom: 10,
+    marginBottom: 12,
     gap: 15
+  },
+  soundIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center'
   },
   soundInfo: {
     flex: 1
@@ -342,35 +566,46 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333',
     lineHeight: 20,
-    marginBottom: 10
+    marginBottom: 12
   },
-  frequencyBadge: {
+  benefitsContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E1F5FE',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 15,
-    alignSelf: 'flex-start',
-    marginBottom: 10,
-    gap: 5
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 15
   },
-  frequencyText: {
+  benefitTag: {
+    backgroundColor: '#E8F5E8',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12
+  },
+  benefitText: {
     fontSize: 12,
-    color: '#0277BD',
+    color: '#2E7D4A',
     fontWeight: '500'
   },
-  playButton: {
+  soundActions: {
+    flexDirection: 'row',
+    gap: 10
+  },
+  actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#2E7D4A',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
-    alignSelf: 'flex-start',
     gap: 6
   },
-  playButtonText: {
+  quickPlayButton: {
+    backgroundColor: '#2E7D4A',
+    flex: 2
+  },
+  fullPlayerButton: {
+    backgroundColor: '#666',
+    flex: 1
+  },
+  actionButtonText: {
     color: 'white',
     fontSize: 14,
     fontWeight: 'bold'
@@ -378,13 +613,21 @@ const styles = StyleSheet.create({
   sessionCard: {
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
-    paddingVertical: 15,
+    paddingVertical: 20,
     marginBottom: 15
   },
   sessionHeader: {
     flexDirection: 'row',
-    marginBottom: 10,
+    marginBottom: 12,
     gap: 15
+  },
+  sessionIcon: {
+    width: 50,
+    height: 50,
+    backgroundColor: '#F3E5F5',
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center'
   },
   sessionInfo: {
     flex: 1
@@ -419,30 +662,39 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333',
     lineHeight: 20,
-    marginBottom: 10
+    marginBottom: 12
+  },
+  sessionBenefitTag: {
+    backgroundColor: '#F3E5F5'
+  },
+  sessionBenefitText: {
+    color: '#6A1B9A',
+    fontSize: 12,
+    fontWeight: '500'
   },
   warningBox: {
     flexDirection: 'row',
     backgroundColor: '#FFF8E1',
-    padding: 10,
+    padding: 12,
     borderRadius: 8,
-    marginBottom: 10,
+    marginBottom: 15,
     gap: 8
   },
   warningText: {
-    fontSize: 12,
-    color: '#F57F17',
-    flex: 1
+    fontSize: 13,
+    color: '#F57C00',
+    flex: 1,
+    fontWeight: '500'
   },
   sessionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#6A1B9A',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 25,
     alignSelf: 'flex-start',
-    gap: 6
+    gap: 8
   },
   sessionButtonText: {
     color: 'white',
@@ -467,7 +719,7 @@ const styles = StyleSheet.create({
   },
   tipItem: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 12,
     gap: 12
   },
@@ -477,9 +729,11 @@ const styles = StyleSheet.create({
     flex: 1,
     lineHeight: 20
   },
+  tipBold: {
+    fontWeight: 'bold'
+  },
   playerModal: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center'
+    backgroundColor: '#F8F9FA'
   }
 });

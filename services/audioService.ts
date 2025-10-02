@@ -1,445 +1,555 @@
-import { Audio } from 'expo-av';
+import { useState, useEffect } from 'react';
 
-export interface RelaxingSound {
+// Генератор встроенных звуков
+export class SoundGenerator {
+  private static audioContext: AudioContext | null = null;
+  
+  static async getAudioContext(): Promise<AudioContext> {
+    if (!this.audioContext) {
+      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      // Разблокировка аудио контекста для мобильных
+      if (this.audioContext.state === 'suspended') {
+        await this.audioContext.resume();
+      }
+    }
+    return this.audioContext;
+  }
+
+  // Генерация белого шума
+  static async generateWhiteNoise(duration: number = 60): Promise<AudioBuffer> {
+    const context = await this.getAudioContext();
+    const buffer = context.createBuffer(2, context.sampleRate * duration, context.sampleRate);
+    
+    for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+      const data = buffer.getChannelData(channel);
+      for (let i = 0; i < data.length; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+    }
+    return buffer;
+  }
+
+  // Генерация розового шума
+  static async generatePinkNoise(duration: number = 60): Promise<AudioBuffer> {
+    const context = await this.getAudioContext();
+    const buffer = context.createBuffer(2, context.sampleRate * duration, context.sampleRate);
+    
+    for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+      const data = buffer.getChannelData(channel);
+      let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+      
+      for (let i = 0; i < data.length; i++) {
+        const white = Math.random() * 2 - 1;
+        b0 = 0.99886 * b0 + white * 0.0555179;
+        b1 = 0.99332 * b1 + white * 0.0750759;
+        b2 = 0.96900 * b2 + white * 0.1538520;
+        b3 = 0.86650 * b3 + white * 0.3104856;
+        b4 = 0.55000 * b4 + white * 0.5329522;
+        b5 = -0.7616 * b5 - white * 0.0168980;
+        data[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.11;
+        b6 = white * 0.115926;
+      }
+    }
+    return buffer;
+  }
+
+  // Генерация бинауральных битов
+  static async generateBinauralBeats(baseFreq: number, beatFreq: number, duration: number = 60): Promise<AudioBuffer> {
+    const context = await this.getAudioContext();
+    const buffer = context.createBuffer(2, context.sampleRate * duration, context.sampleRate);
+    
+    const leftData = buffer.getChannelData(0);
+    const rightData = buffer.getChannelData(1);
+    
+    for (let i = 0; i < buffer.length; i++) {
+      const time = i / context.sampleRate;
+      leftData[i] = Math.sin(2 * Math.PI * baseFreq * time) * 0.3;
+      rightData[i] = Math.sin(2 * Math.PI * (baseFreq + beatFreq) * time) * 0.3;
+    }
+    
+    return buffer;
+  }
+
+  // Генерация звуков природы
+  static async generateRainSound(duration: number = 60): Promise<AudioBuffer> {
+    const context = await this.getAudioContext();
+    const buffer = context.createBuffer(2, context.sampleRate * duration, context.sampleRate);
+    
+    for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+      const data = buffer.getChannelData(channel);
+      for (let i = 0; i < data.length; i++) {
+        // Комбинация различных частот для имитации дождя
+        const time = i / context.sampleRate;
+        let sample = 0;
+        
+        // Высокочастотные компоненты (капли)
+        for (let f = 2000; f < 8000; f += 500) {
+          sample += Math.sin(2 * Math.PI * f * time) * Math.random() * 0.05;
+        }
+        
+        // Низкочастотный шум (фон)
+        sample += (Math.random() - 0.5) * 0.3;
+        
+        // Фильтрация
+        data[i] = sample * 0.5;
+      }
+    }
+    return buffer;
+  }
+
+  static async generateOceanWaves(duration: number = 60): Promise<AudioBuffer> {
+    const context = await this.getAudioContext();
+    const buffer = context.createBuffer(2, context.sampleRate * duration, context.sampleRate);
+    
+    for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+      const data = buffer.getChannelData(channel);
+      for (let i = 0; i < data.length; i++) {
+        const time = i / context.sampleRate;
+        
+        // Медленные волны (0.1-0.5 Hz)
+        const slowWave = Math.sin(2 * Math.PI * 0.2 * time) * 0.4;
+        // Средние волны (0.5-2 Hz)  
+        const mediumWave = Math.sin(2 * Math.PI * 1 * time) * 0.3;
+        // Пена и брызги (высокие частоты)
+        const foam = (Math.random() - 0.5) * 0.2 * Math.abs(slowWave);
+        
+        data[i] = (slowWave + mediumWave + foam) * 0.6;
+      }
+    }
+    return buffer;
+  }
+
+  // Генерация частот Сольфеджио
+  static async generateSolfeggio(frequency: number, duration: number = 60): Promise<AudioBuffer> {
+    const context = await this.getAudioContext();
+    const buffer = context.createBuffer(2, context.sampleRate * duration, context.sampleRate);
+    
+    for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+      const data = buffer.getChannelData(channel);
+      for (let i = 0; i < data.length; i++) {
+        const time = i / context.sampleRate;
+        
+        // Основная частота
+        let sample = Math.sin(2 * Math.PI * frequency * time) * 0.4;
+        
+        // Гармоники для более богатого звука
+        sample += Math.sin(2 * Math.PI * frequency * 2 * time) * 0.1;
+        sample += Math.sin(2 * Math.PI * frequency * 3 * time) * 0.05;
+        
+        // Медленная модуляция амплитуды
+        const envelope = 0.5 + 0.5 * Math.sin(2 * Math.PI * 0.1 * time);
+        
+        data[i] = sample * envelope;
+      }
+    }
+    return buffer;
+  }
+}
+
+export interface GeneratedSound {
   id: string;
   name: string;
   description: string;
+  category: string;
   duration: number;
-  file: string;
-  category: 'nature' | 'binaural' | 'white_noise' | 'meditation' | 'frequencies' | 'classical';
-  frequency?: string;
+  generator: () => Promise<AudioBuffer>;
+  benefits: string[];
 }
+
+export const generatedSounds: GeneratedSound[] = [
+  // Звуки природы
+  {
+    id: 'rain',
+    name: 'Дождь',
+    description: 'Успокаивающий звук дождя для релаксации',
+    category: 'nature',
+    duration: 300,
+    generator: () => SoundGenerator.generateRainSound(300),
+    benefits: ['Снижение стресса', 'Улучшение концентрации', 'Глубокий сон']
+  },
+  {
+    id: 'ocean',
+    name: 'Океанские волны',
+    description: 'Ритмичный шум океанских волн',
+    category: 'nature',
+    duration: 300,
+    generator: () => SoundGenerator.generateOceanWaves(300),
+    benefits: ['Медитация', 'Снятие тревожности', 'Восстановление энергии']
+  },
+
+  // Терапевтические шумы
+  {
+    id: 'white-noise',
+    name: 'Белый шум',
+    description: 'Равномерный белый шум для маскировки звуков',
+    category: 'therapeutic',
+    duration: 600,
+    generator: () => SoundGenerator.generateWhiteNoise(600),
+    benefits: ['Улучшение сна', 'Концентрация', 'Блокировка отвлекающих звуков']
+  },
+  {
+    id: 'pink-noise',
+    name: 'Розовый шум',
+    description: 'Более мягкий розовый шум для глубокого сна',
+    category: 'therapeutic',
+    duration: 600,
+    generator: () => SoundGenerator.generatePinkNoise(600),
+    benefits: ['Глубокий сон', 'Восстановление памяти', 'Снижение стресса']
+  },
+
+  // Бинауральные биты
+  {
+    id: 'alpha-waves',
+    name: 'Альфа-волны (10 Гц)',
+    description: 'Бинауральные биты для состояния расслабленной концентрации',
+    category: 'binaural',
+    duration: 900,
+    generator: () => SoundGenerator.generateBinauralBeats(200, 10, 900),
+    benefits: ['Медитация', 'Творчество', 'Снижение тревожности']
+  },
+  {
+    id: 'theta-waves',
+    name: 'Тета-волны (6 Гц)',
+    description: 'Глубокие тета-волны для медитации и восстановления',
+    category: 'binaural',
+    duration: 900,
+    generator: () => SoundGenerator.generateBinauralBeats(150, 6, 900),
+    benefits: ['Глубокая медитация', 'Исцеление травм', 'Интуиция']
+  },
+  {
+    id: 'delta-waves',
+    name: 'Дельта-волны (3 Гц)',
+    description: 'Медленные дельта-волны для глубокого сна',
+    category: 'binaural',
+    duration: 1800,
+    generator: () => SoundGenerator.generateBinauralBeats(100, 3, 1800),
+    benefits: ['Глубокий сон', 'Физическое восстановление', 'Гормональная регуляция']
+  },
+
+  // Частоты Сольфеджио
+  {
+    id: 'solfeggio-174',
+    name: '174 Гц - Обезболивание',
+    description: 'Частота для снятия боли и напряжения',
+    category: 'solfeggio',
+    duration: 1200,
+    generator: () => SoundGenerator.generateSolfeggio(174, 1200),
+    benefits: ['Снятие боли', 'Физическое исцеление', 'Заземление']
+  },
+  {
+    id: 'solfeggio-285',
+    name: '285 Гц - Восстановление',
+    description: 'Частота для восстановления тканей и органов',
+    category: 'solfeggio',
+    duration: 1200,
+    generator: () => SoundGenerator.generateSolfeggio(285, 1200),
+    benefits: ['Регенерация клеток', 'Восстановление энергии', 'Омоложение']
+  },
+  {
+    id: 'solfeggio-396',
+    name: '396 Гц - Освобождение от страха',
+    description: 'Частота для освобождения от страхов и вины',
+    category: 'solfeggio',
+    duration: 1200,
+    generator: () => SoundGenerator.generateSolfeggio(396, 1200),
+    benefits: ['Освобождение от страхов', 'Преодоление вины', 'Трансформация']
+  },
+  {
+    id: 'solfeggio-417',
+    name: '417 Гц - Изменения',
+    description: 'Частота для облегчения изменений и преобразований',
+    category: 'solfeggio',
+    duration: 1200,
+    generator: () => SoundGenerator.generateSolfeggio(417, 1200),
+    benefits: ['Принятие изменений', 'Устранение негативных паттернов', 'Новые начинания']
+  },
+  {
+    id: 'solfeggio-528',
+    name: '528 Гц - Любовь и исцеление',
+    description: 'Частота любви и восстановления ДНК',
+    category: 'solfeggio',
+    duration: 1200,
+    generator: () => SoundGenerator.generateSolfeggio(528, 1200),
+    benefits: ['Исцеление на клеточном уровне', 'Любовь к себе', 'Гармония']
+  },
+  {
+    id: 'solfeggio-639',
+    name: '639 Гц - Отношения',
+    description: 'Частота для улучшения отношений и коммуникации',
+    category: 'solfeggio',
+    duration: 1200,
+    generator: () => SoundGenerator.generateSolfeggio(639, 1200),
+    benefits: ['Улучшение отношений', 'Эмпатия', 'Прощение']
+  },
+  {
+    id: 'solfeggio-741',
+    name: '741 Гц - Очищение',
+    description: 'Частота для очищения и детоксикации',
+    category: 'solfeggio',
+    duration: 1200,
+    generator: () => SoundGenerator.generateSolfeggio(741, 1200),
+    benefits: ['Детоксикация', 'Очищение сознания', 'Ясность мышления']
+  },
+  {
+    id: 'solfeggio-852',
+    name: '852 Гц - Интуиция',
+    description: 'Частота для развития интуиции и духовного порядка',
+    category: 'solfeggio',
+    duration: 1200,
+    generator: () => SoundGenerator.generateSolfeggio(852, 1200),
+    benefits: ['Развитие интуиции', 'Духовное пробуждение', 'Внутренняя мудрость']
+  },
+  {
+    id: 'solfeggio-963',
+    name: '963 Гц - Единство',
+    description: 'Частота для активации шишковидной железы и единения',
+    category: 'solfeggio',
+    duration: 1200,
+    generator: () => SoundGenerator.generateSolfeggio(963, 1200),
+    benefits: ['Единство с вселенной', 'Высшее сознание', 'Просветление']
+  }
+];
 
 export interface HypnotherapySession {
   id: string;
   title: string;
   description: string;
-  duration: number;
+  duration: number; // в минутах
+  category: 'addiction' | 'stress' | 'sleep' | 'confidence' | 'trauma';
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
   script: string[];
   backgroundSound?: string;
-  category: 'addiction' | 'anxiety' | 'confidence' | 'sleep' | 'trauma' | 'motivation';
-  level: 'beginner' | 'intermediate' | 'advanced';
+  benefits: string[];
 }
-
-export const relaxingSounds: RelaxingSound[] = [
-  {
-    id: '1',
-    name: 'Звуки дождя',
-    description: 'Мягкий дождь для глубокого расслабления и снятия стресса',
-    duration: 1800, // 30 минут
-    file: 'rain.mp3',
-    category: 'nature'
-  },
-  {
-    id: '2',
-    name: 'Океанские волны',
-    description: 'Ритмичные звуки прибоя для медитации и успокоения',
-    duration: 2400, // 40 минут
-    file: 'ocean.mp3',
-    category: 'nature'
-  },
-  {
-    id: '3',
-    name: 'Лесные звуки',
-    description: 'Пение птиц и шелест листьев для естественного расслабления',
-    duration: 2700, // 45 минут
-    file: 'forest.mp3',
-    category: 'nature'
-  },
-  {
-    id: '4',
-    name: 'Горный ручей',
-    description: 'Журчание воды среди камней для глубокого умиротворения',
-    duration: 2100, // 35 минут
-    file: 'stream.mp3',
-    category: 'nature'
-  },
-  {
-    id: '5',
-    name: 'Ночные сверчки',
-    description: 'Убаюкивающие звуки летней ночи для глубокого сна',
-    duration: 3600, // 60 минут
-    file: 'crickets.mp3',
-    category: 'nature'
-  },
-  {
-    id: '6',
-    name: 'Бинауральные биты 10 Гц',
-    description: 'Альфа-волны для снижения стресса и тревожности',
-    duration: 1200, // 20 минут
-    file: 'binaural_10hz.mp3',
-    category: 'binaural',
-    frequency: '10 Гц (Альфа)'
-  },
-  {
-    id: '7',
-    name: 'Бинауральные биты 6 Гц',
-    description: 'Тета-волны для глубокой медитации и самоисцеления',
-    duration: 1800, // 30 минут
-    file: 'binaural_6hz.mp3',
-    category: 'binaural',
-    frequency: '6 Гц (Тета)'
-  },
-  {
-    id: '8',
-    name: 'Бинауральные биты 40 Гц',
-    description: 'Гамма-волны для повышения концентрации и когнитивных функций',
-    duration: 900, // 15 минут
-    file: 'binaural_40hz.mp3',
-    category: 'binaural',
-    frequency: '40 Гц (Гамма)'
-  },
-  {
-    id: '9',
-    name: 'Бинауральные биты 4 Гц',
-    description: 'Дельта-волны для глубокого исцеляющего сна',
-    duration: 2400, // 40 минут
-    file: 'binaural_4hz.mp3',
-    category: 'binaural',
-    frequency: '4 Гц (Дельта)'
-  },
-  {
-    id: '10',
-    name: 'Белый шум',
-    description: 'Равномерный фон для блокировки отвлекающих звуков',
-    duration: 3600, // 60 минут
-    file: 'white_noise.mp3',
-    category: 'white_noise'
-  },
-  {
-    id: '11',
-    name: 'Розовый шум',
-    description: 'Более мягкий шум для улучшения качества сна',
-    duration: 3600, // 60 минут
-    file: 'pink_noise.mp3',
-    category: 'white_noise'
-  },
-  {
-    id: '12',
-    name: 'Коричневый шум',
-    description: 'Глубокий шум для максимального расслабления',
-    duration: 3600, // 60 минут
-    file: 'brown_noise.mp3',
-    category: 'white_noise'
-  },
-  {
-    id: '13',
-    name: 'Тибетские поющие чаши',
-    description: 'Священные вибрации для глубокой медитации',
-    duration: 1800, // 30 минут
-    file: 'singing_bowls.mp3',
-    category: 'meditation'
-  },
-  {
-    id: '14',
-    name: 'Мантра Ом',
-    description: 'Древняя мантра для духовного очищения',
-    duration: 1200, // 20 минут
-    file: 'om_mantra.mp3',
-    category: 'meditation'
-  },
-  {
-    id: '15',
-    name: 'Колокольчики ветра',
-    description: 'Нежные звуки для создания священного пространства',
-    duration: 1500, // 25 минут
-    file: 'wind_chimes.mp3',
-    category: 'meditation'
-  },
-  {
-    id: '16',
-    name: 'Частота 528 Гц',
-    description: 'Частота любви и исцеления ДНК',
-    duration: 1800, // 30 минут
-    file: 'frequency_528.mp3',
-    category: 'frequencies',
-    frequency: '528 Гц (Любовь)'
-  },
-  {
-    id: '17',
-    name: 'Частота 396 Гц',
-    description: 'Освобождение от страха и чувства вины',
-    duration: 1200, // 20 минут
-    file: 'frequency_396.mp3',
-    category: 'frequencies',
-    frequency: '396 Гц (Освобождение)'
-  },
-  {
-    id: '18',
-    name: 'Частота 741 Гц',
-    description: 'Пробуждение интуиции и выражение истины',
-    duration: 1500, // 25 минут
-    file: 'frequency_741.mp3',
-    category: 'frequencies',
-    frequency: '741 Гц (Интуиция)'
-  },
-  {
-    id: '19',
-    name: 'Классика: Кэнон Пахельбеля',
-    description: 'Умиротворяющая классическая музыка для релаксации',
-    duration: 900, // 15 минут
-    file: 'pachelbel_canon.mp3',
-    category: 'classical'
-  },
-  {
-    id: '20',
-    name: 'Классика: Лунная соната',
-    description: 'Бетховен для глубокого эмоционального исцеления',
-    duration: 1200, // 20 минут
-    file: 'moonlight_sonata.mp3',
-    category: 'classical'
-  }
-];
 
 export const hypnotherapySessions: HypnotherapySession[] = [
   {
-    id: '1',
+    id: 'addiction-freedom',
     title: 'Освобождение от зависимости',
-    description: 'Глубокая гипнотерапия для преодоления алкогольной зависимости на подсознательном уровне',
-    duration: 2400, // 40 минут
+    description: 'Глубокая гипнотерапевтическая сессия для преодоления алкогольной зависимости',
+    duration: 25,
     category: 'addiction',
-    level: 'intermediate',
+    difficulty: 'intermediate',
     script: [
-      'Устройтесь поудобнее в тихом месте и медленно закройте глаза...',
-      'Начните дышать медленно и глубоко, позволяя каждому выдоху нести расслабление...',
-      'С каждым вдохом вы чувствуете, как покой наполняет ваше тело...',
-      'С каждым выдохом напряжение покидает вас, унося с собой старые привычки...',
-      'Теперь представьте себя стоящим на вершине горы, вдалеке от всех проблем...',
-      'Вы видите свое прошлое внизу, как долину, которую вы преодолели...',
-      'Поверните взгляд к горизонту - там ваше трезвое будущее, светлое и полное возможностей...',
-      'Почувствуйте, как глубоко внутри вас зарождается новая сила...',
-      'Эта сила говорит: "Алкоголь больше не имеет власти надо мной"...',
-      'Повторите мысленно: "Я выбираю здоровье, я выбираю свободу"...',
-      'Представьте, как каждая клетка вашего тела обновляется и исцеляется...',
-      'Ваш разум становится ясным, а воля - непоколебимой...',
-      'Вы видите себя через год - здорового, счастливого, полного энергии...',
-      'Это не мечта, это ваше будущее, к которому вы идете каждый день...',
-      'Сохраните это видение в своем сердце как маяк на пути к трезвости...',
-      'Медленно возвращайтесь в настоящий момент, неся с собой эту внутреннюю силу...'
-    ]
+      'Устройтесь поудобнее и закройте глаза...',
+      'Сделайте глубокий вдох через нос... и медленный выдох через рот...',
+      'Почувствуйте, как ваше тело начинает расслабляться...',
+      'С каждым вдохом вы погружаетесь глубже в состояние покоя...',
+      'Представьте себя в будущем - здорового, сильного, свободного...',
+      'Вы полностью контролируете свои выборы и решения...',
+      'Алкоголь больше не имеет власти над вами...',
+      'Вы выбираете здоровье, ясность и внутреннюю силу...',
+      'Каждая клетка вашего тела наполняется исцеляющей энергией...',
+      'Вы достойны любви, здоровья и счастья...',
+      'Теперь медленно возвращайтесь в настоящее...',
+      'Сохраните это чувство силы и свободы...',
+      'Откройте глаза, когда будете готовы...'
+    ],
+    backgroundSound: 'theta-waves',
+    benefits: ['Снижение тяги', 'Укрепление мотивации', 'Повышение самоконтроля']
   },
   {
-    id: '2',
-    title: 'Уверенность в трезвости',
-    description: 'Укрепление внутренней силы и мотивации для поддержания трезвого образа жизни',
-    duration: 1800, // 30 минут
-    category: 'confidence',
-    level: 'beginner',
+    id: 'stress-relief',
+    title: 'Глубокое снятие стресса',
+    description: 'Расслабляющая сессия для снятия стресса и напряжения',
+    duration: 20,
+    category: 'stress',
+    difficulty: 'beginner',
     script: [
-      'Примите удобное положение и позвольте глазам мягко закрыться...',
-      'Дышите естественно, чувствуя, как с каждым вдохом приходит спокойствие...',
-      'Представьте себя в безопасном, светлом месте - это пространство вашей внутренней силы...',
-      'Здесь живет лучшая версия вас - уверенная, сильная, трезвая...',
-      'Повторяйте мысленно: "Я выбираю трезвость, потому что забочусь о себе"...',
-      'Почувствуйте, как эти слова резонируют в каждой клетке вашего тела...',
-      'Каждый трезвый день - это подарок, который вы делаете себе и близким...',
-      'Вы заслуживаете здоровья, счастья и полноценной жизни...',
-      'Представьте, как гордятся вами те, кто вас любит...',
-      'Почувствуйте эту гордость и в своем сердце - вы достойны восхищения...',
-      'Ваша сила растет с каждым днем, как дерево, пускающее глубокие корни...',
-      'Соблазны могут приходить, но ваши корни глубже любого искушения...',
-      'Повторите: "Я сильнее своих привычек, я хозяин своей жизни"...',
-      'Запомните это ощущение силы и уверенности...',
-      'Медленно возвращайтесь сюда, в настоящий момент, сохраняя эту уверенность...'
-    ]
+      'Найдите удобное положение и мягко закройте глаза...',
+      'Начнем с дыхания... Вдох на 4 счета... Задержите... Выдох на 6...',
+      'Представьте теплый золотой свет, окутывающий вашу голову...',
+      'Этот свет медленно спускается, расслабляя каждую мышцу...',
+      'Ваши плечи опускаются... Челюсть расслабляется...',
+      'Руки становятся тяжелыми и теплыми...',
+      'Весь стресс и напряжение покидают ваше тело...',
+      'Вы находитесь в безопасном месте полного покоя...',
+      'Позвольте себе полностью отпустить все заботы...',
+      'Насладитесь этим моментом глубокого расслабления...',
+      'Когда будете готовы, медленно вернитесь в настоящее...'
+    ],
+    backgroundSound: 'ocean',
+    benefits: ['Глубокое расслабление', 'Снижение кортизола', 'Восстановление нервной системы']
   },
   {
-    id: '3',
-    title: 'Глубокий восстановительный сон',
-    description: 'Гипнотерапия для качественного сна без алкоголя и полного восстановления организма',
-    duration: 3000, // 50 минут
+    id: 'sleep-induction',
+    title: 'Здоровый сон',
+    description: 'Гипнотерапевтическая сессия для улучшения качества сна',
+    duration: 30,
     category: 'sleep',
-    level: 'beginner',
+    difficulty: 'beginner',
     script: [
-      'Устройтесь в постели максимально удобно...',
-      'Почувствуйте, как кровать поддерживает каждую часть вашего тела...',
-      'Ваше тело готовится к глубокому, исцеляющему сну...',
-      'С каждым выдохом мышцы расслабляются все больше и больше...',
-      'Начиная с макушки головы, почувствуйте волну расслабления...',
-      'Она медленно стекает по лицу, снимая любое напряжение...',
-      'Расслабляются плечи, руки становятся тяжелыми и теплыми...',
-      'Грудь поднимается и опускается в естественном ритме покоя...',
-      'Живот мягко расслабляется, как будто тает...',
-      'Ноги становятся тяжелыми, полностью расслабленными...',
-      'Ваш естественный механизм сна включается идеально...',
-      'Вам не нужны никакие вещества, чтобы заснуть...',
-      'Ваше тело знает, как восстанавливаться и исцеляться во сне...',
-      'Каждая клетка обновляется, каждый орган отдыхает и восстанавливается...',
-      'Утром вы проснетесь свежими, отдохнувшими, полными жизненной силы...',
-      'Позвольте себе погружаться в этот целебный сон все глубже и глубже...'
-    ]
+      'Лягте удобно и позвольте глазам закрыться...',
+      'Ваше тело тяжелеет с каждым выдохом...',
+      'Представьте себя на мягком облаке...',
+      'Это облако медленно несет вас в мир грез...',
+      'Ваши мысли становятся все более туманными...',
+      'Разум замедляется... Тело полностью расслабляется...',
+      'Вы дрейфуете в состоянии глубокого покоя...',
+      'Каждая клетка вашего тела восстанавливается...',
+      'Завтра вы проснетесь отдохнувшим и энергичным...',
+      'Позвольте себе погрузиться в целительный сон...'
+    ],
+    backgroundSound: 'delta-waves',
+    benefits: ['Быстрое засыпание', 'Глубокий сон', 'Утреннее восстановление']
   },
   {
-    id: '4',
-    title: 'Исцеление от тревоги',
-    description: 'Специальная сессия для преодоления тревожности без использования алкоголя',
-    duration: 2100, // 35 минут
-    category: 'anxiety',
-    level: 'intermediate',
+    id: 'confidence-building',
+    title: 'Укрепление уверенности',
+    description: 'Сессия для повышения самооценки и внутренней силы',
+    duration: 22,
+    category: 'confidence',
+    difficulty: 'intermediate',
     script: [
-      'Найдите спокойное место и медленно закройте глаза...',
-      'Представьте себя на берегу тихого озера на рассвете...',
-      'Вода абсолютно спокойна, как зеркало, отражающее небо...',
-      'Эта вода символизирует ваш спокойный, умиротворенный разум...',
-      'Любые тревожные мысли - это лишь рябь на поверхности...',
-      'Но глубина озера остается неизменно спокойной...',
-      'Дышите синхронно с легким движением воды...',
-      'Вдох - покой входит в вас, выдох - тревога растворяется...',
-      'Вы понимаете: тревога - это временное состояние, не ваша суть...',
-      'Ваша истинная природа - это глубокий, нерушимый покой...',
-      'Алкоголь не может дать вам этого покоя, он может только нарушить его...',
-      'Но этот покой всегда доступен вам изнутри...',
-      'Запомните это ощущение полного спокойствия и безопасности...',
-      'В любой момент вы можете вернуться к этому озеру в своем сознании...'
-    ]
+      'Сядьте прямо, почувствуйте свою силу и закройте глаза...',
+      'Представьте яркий свет в области вашего сердца...',
+      'Этот свет - ваша внутренняя сила и мудрость...',
+      'Вы видите себя уверенным и спокойным...',
+      'Каждый вызов делает вас только сильнее...',
+      'Вы доверяете своим способностям и интуиции...',
+      'Прошлые ошибки - это уроки, которые привели к мудрости...',
+      'Вы достойны успеха и счастья...',
+      'Ваша уверенность растет с каждым днем...',
+      'Вы излучаете силу и спокойствие...',
+      'Эта уверенность останется с вами навсегда...'
+    ],
+    backgroundSound: 'solfeggio-528',
+    benefits: ['Повышение самооценки', 'Внутренняя сила', 'Преодоление сомнений']
   },
   {
-    id: '5',
-    title: 'Исцеление внутреннего ребенка',
-    description: 'Работа с детскими травмами, которые могут быть корнем зависимости',
-    duration: 2700, // 45 минут
+    id: 'trauma-healing',
+    title: 'Исцеление травм',
+    description: 'Деликатная работа с травматическим опытом',
+    duration: 35,
     category: 'trauma',
-    level: 'advanced',
+    difficulty: 'advanced',
     script: [
-      'Устройтесь поудобнее и позвольте глазам медленно закрыться...',
-      'Представьте себя идущим по тропинке в прекрасном саду...',
-      'Впереди вы видите маленького ребенка, сидящего одного...',
-      'Этот ребенок - это вы в детстве, нуждающийся в любви и понимании...',
-      'Подойдите к нему мягко, с любовью в сердце...',
-      'Посмотрите в его глаза и скажите: "Я здесь, ты в безопасности"...',
-      'Обнимите этого ребенка, почувствуйте его боль и одиночество...',
-      'Скажите ему: "Ты достойн любви, ты важен, ты имеешь значение"...',
-      'Почувствуйте, как его боль начинает исцеляться от вашей любви...',
-      'Этот ребенок больше не будет искать утешения в алкоголе...',
-      'Потому что он знает, что любовь и безопасность живут в вашем сердце...',
-      'Возьмите его за руку и пройдитесь с ним по саду...',
-      'Покажите ему красоту жизни без зависимости...',
-      'Скажите: "Мы вместе, и мы сильные"...',
-      'Медленно вернитесь в настоящее, неся этого исцеленного ребенка в своем сердце...'
-    ]
-  },
-  {
-    id: '6',
-    title: 'Мотивация к трезвости',
-    description: 'Усиление внутренней мотивации и напоминание о целях трезвой жизни',
-    duration: 2000, // 33 минуты
-    category: 'motivation',
-    level: 'intermediate',
-    script: [
-      'Примите удобную позу и медленно закройте глаза...',
-      'Представьте себя стоящим перед двумя дорогами...',
-      'Одна дорога ведет назад, к старым привычкам и зависимости...',
-      'Другая - вперед, к здоровой, трезвой жизни...',
-      'Посмотрите на дорогу назад - что вы там видите?...',
-      'Болезнь, разрушенные отношения, потерянные возможности...',
-      'Теперь посмотрите на дорогу вперед - она светится золотым светом...',
-      'Там ваши мечты, здоровье, любящие отношения, достижения...',
-      'Почувствуйте силу выбора в своих руках...',
-      'Каждый день вы выбираете, по какой дороге идти...',
-      'Вспомните свои самые важные причины быть трезвыми...',
-      'Ваши дети, ваши цели, ваше здоровье, ваше достоинство...',
-      'Эти причины горят в вашем сердце ярким пламенем...',
-      'Это пламя никогда не погаснет, оно ваш внутренний компас...',
-      'Сделайте шаг на светлую дорогу, почувствуйте решимость...',
-      'Вы выбираете жизнь, вы выбираете свободу, вы выбираете себя...'
-    ]
+      'Создайте вокруг себя защитную оболочку света...',
+      'Вы находитесь в полной безопасности...',
+      'Представьте себя маленьким ребенком...',
+      'Обнимите этого ребенка с любовью и пониманием...',
+      'Скажите ему: "Ты не виноват в том, что произошло"...',
+      'Прошлое не определяет ваше будущее...',
+      'Каждый день вы становитесь сильнее...',
+      'Вы имеете право на счастье и покой...',
+      'Позвольте исцеляющему свету проникнуть в каждую клетку...',
+      'Травма теряет свою власть над вами...',
+      'Вы целостны, здоровы и свободны...'
+    ],
+    backgroundSound: 'solfeggio-396',
+    benefits: ['Исцеление травм', 'Эмоциональное освобождение', 'Внутренний мир']
   }
 ];
 
-export class AudioService {
-  private static sound: Audio.Sound | null = null;
-  private static isPlaying: boolean = false;
-  
-  static async initializeAudio(): Promise<void> {
-    try {
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-        staysActiveInBackground: true,
-        playsInSilentModeIOS: true,
-        shouldDuckAndroid: true,
-        playThroughEarpieceAndroid: false
-      });
-    } catch (error) {
-      console.error('Error initializing audio:', error);
-    }
+// Улучшенный аудио плеер
+export class AdvancedAudioEngine {
+  private audioBuffers: Map<string, AudioBuffer> = new Map();
+  private audioSources: Map<string, AudioBufferSourceNode> = new Map();
+  private gainNodes: Map<string, GainNode> = new Map();
+  private context: AudioContext | null = null;
+
+  async initialize() {
+    this.context = await SoundGenerator.getAudioContext();
+    
+    // Предзагрузка основных звуков
+    await this.preloadEssentialSounds();
   }
-  
-  static async playRelaxingSound(soundId: string): Promise<void> {
-    try {
-      await this.stopAudio();
-      
-      const sound = relaxingSounds.find(s => s.id === soundId);
-      if (!sound) throw new Error('Sound not found');
-      
-      // В реальном приложении здесь будет загрузка из assets
-      // Для демо используем placeholder URL
-      const { sound: audioSound } = await Audio.Sound.createAsync(
-        { uri: `https://www.soundjay.com/misc/sounds/${sound.file}` },
-        { 
-          shouldPlay: true, 
-          isLooping: true,
-          volume: 0.7
+
+  private async preloadEssentialSounds() {
+    const essential = ['rain', 'ocean', 'white-noise', 'alpha-waves', 'solfeggio-528'];
+    
+    for (const soundId of essential) {
+      const sound = generatedSounds.find(s => s.id === soundId);
+      if (sound) {
+        try {
+          const buffer = await sound.generator();
+          this.audioBuffers.set(soundId, buffer);
+        } catch (error) {
+          console.warn(`Failed to preload sound: ${soundId}`, error);
         }
-      );
-      
-      this.sound = audioSound;
-      this.isPlaying = true;
-    } catch (error) {
-      console.error('Error playing sound:', error);
-      // Fallback для демо - просто показываем, что звук играет
-      this.isPlaying = true;
-    }
-  }
-  
-  static async playHypnotherapySession(sessionId: string): Promise<void> {
-    try {
-      await this.stopAudio();
-      
-      const session = hypnotherapySessions.find(s => s.id === sessionId);
-      if (!session) throw new Error('Session not found');
-      
-      // Здесь будет логика воспроизведения гипнотерапевтической сессии
-      this.isPlaying = true;
-    } catch (error) {
-      console.error('Error playing hypnotherapy session:', error);
-    }
-  }
-  
-  static async stopAudio(): Promise<void> {
-    try {
-      if (this.sound) {
-        await this.sound.unloadAsync();
-        this.sound = null;
       }
-      this.isPlaying = false;
-    } catch (error) {
-      console.error('Error stopping audio:', error);
     }
   }
-  
-  static async pauseAudio(): Promise<void> {
-    try {
-      if (this.sound) {
-        await this.sound.pauseAsync();
-        this.isPlaying = false;
+
+  async playSound(soundId: string, loop: boolean = true, volume: number = 0.5) {
+    if (!this.context) await this.initialize();
+    
+    // Остановка предыдущего звука
+    this.stopSound(soundId);
+    
+    let buffer = this.audioBuffers.get(soundId);
+    if (!buffer) {
+      const sound = generatedSounds.find(s => s.id === soundId);
+      if (!sound) throw new Error(`Sound not found: ${soundId}`);
+      
+      buffer = await sound.generator();
+      this.audioBuffers.set(soundId, buffer);
+    }
+
+    const source = this.context!.createBufferSource();
+    const gainNode = this.context!.createGain();
+    
+    source.buffer = buffer;
+    source.loop = loop;
+    gainNode.gain.value = volume;
+    
+    source.connect(gainNode);
+    gainNode.connect(this.context!.destination);
+    
+    this.audioSources.set(soundId, source);
+    this.gainNodes.set(soundId, gainNode);
+    
+    source.start(0);
+    return source;
+  }
+
+  stopSound(soundId: string) {
+    const source = this.audioSources.get(soundId);
+    if (source) {
+      try {
+        source.stop();
+      } catch (e) {
+        // Источник уже остановлен
       }
-    } catch (error) {
-      console.error('Error pausing audio:', error);
+      this.audioSources.delete(soundId);
+      this.gainNodes.delete(soundId);
     }
   }
-  
-  static async resumeAudio(): Promise<void> {
-    try {
-      if (this.sound) {
-        await this.sound.playAsync();
-        this.isPlaying = true;
-      }
-    } catch (error) {
-      console.error('Error resuming audio:', error);
+
+  setVolume(soundId: string, volume: number) {
+    const gainNode = this.gainNodes.get(soundId);
+    if (gainNode) {
+      gainNode.gain.setValueAtTime(volume, this.context!.currentTime);
     }
   }
-  
-  static getPlaybackStatus(): boolean {
-    return this.isPlaying;
+
+  fadeIn(soundId: string, duration: number = 2) {
+    const gainNode = this.gainNodes.get(soundId);
+    if (gainNode) {
+      gainNode.gain.setValueAtTime(0, this.context!.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.5, this.context!.currentTime + duration);
+    }
+  }
+
+  fadeOut(soundId: string, duration: number = 2) {
+    const gainNode = this.gainNodes.get(soundId);
+    if (gainNode) {
+      gainNode.gain.setValueAtTime(gainNode.gain.value, this.context!.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0, this.context!.currentTime + duration);
+      
+      setTimeout(() => {
+        this.stopSound(soundId);
+      }, duration * 1000);
+    }
+  }
+
+  stopAll() {
+    for (const soundId of this.audioSources.keys()) {
+      this.stopSound(soundId);
+    }
   }
 }
+
+// Экземпляр аудио движка
+export const audioEngine = new AdvancedAudioEngine();
