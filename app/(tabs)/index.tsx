@@ -164,6 +164,12 @@ function HomePage() {
   }
 
 
+  // Мемоизированные вычисления - ДОЛЖНЫ БЫТЬ ПЕРЕД handleLogDay
+  const streakDays = useMemo(() => getStreakDays(), [getStreakDays]);
+  const totalSoberDays = useMemo(() => getTotalSoberDays(), [getTotalSoberDays]);
+  const todayStatus = useMemo(() => getDayStatus(selectedDate), [getDayStatus, selectedDate]);
+  const calendarMarks = useMemo(() => getCalendarMarks(), [getCalendarMarks]);
+
   const handleLogDay = useCallback(async (status: 'sober' | 'relapse') => {
     try {
       // Проверяем, можем ли отметить день (только один раз в день)
@@ -272,11 +278,7 @@ function HomePage() {
 
   const healthMetrics = useMemo(() => getHealthMetrics(), [getHealthMetrics]);
 
-  // Мемоизированные вычисления
-  const streakDays = useMemo(() => getStreakDays(), [getStreakDays]);
-  const totalSoberDays = useMemo(() => getTotalSoberDays(), [getTotalSoberDays]);
-  const todayStatus = useMemo(() => getDayStatus(selectedDate), [getDayStatus, selectedDate]);
-  const calendarMarks = useMemo(() => getCalendarMarks(), [getCalendarMarks]);
+
 
   return (
     <ScrollView style={[styles.container, { paddingTop: insets.top }]}>
