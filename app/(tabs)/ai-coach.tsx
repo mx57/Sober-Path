@@ -4,7 +4,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, withRepeat, withTiming } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import { AICoachService, AICoachMessage, PredictiveInsight, PersonalizedPlan, TriggerPattern } from '../services/aiCoachService';
+import { AICoachService, AICoachMessage, PredictiveInsight, PersonalizedPlan, TriggerPattern } from '../../services/aiCoachService';
 
 const { width: screenWidth } = Dimensions.get('window');
 
