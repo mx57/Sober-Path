@@ -1,20 +1,36 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Alert, Platform, Modal } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, 
+  TextInput, KeyboardAvoidingView, Platform, Alert, Modal,
+  Dimensions 
+} from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring, withRepeat, withTiming } from 'react-native-reanimated';
-import { LinearGradient } from 'expo-linear-gradient';
-import { AICoachService, AICoachMessage, PredictiveInsight, PersonalizedPlan, TriggerPattern } from '../../services/aiCoachService';
+import { useRecovery } from '../../hooks/useRecovery';
+import { LocalAICoach, AIResponse, ConversationContext } from '../../services/localAICoach';
+import NotificationService from '../../services/notificationService';
 
 const { width: screenWidth } = Dimensions.get('window');
 
-export default function AICoachDashboard() {
+interface ChatMessage {
+  id: string;
+  text: string;
+  isUser: boolean;
+  timestamp: Date;
+  aiResponse?: AIResponse;
+}
+
+export default function EnhancedAICoach() {
   const insets = useSafeAreaInsets();
-  const [messages, setMessages] = useState<AICoachMessage[]>([]);
-  const [insights, setInsights] = useState<PredictiveInsight[]>([]);
-  const [currentPlan, setCurrentPlan] = useState<PersonalizedPlan | null>(null);
-  const [triggerPatterns, setTriggerPatterns] = useState<TriggerPattern[]>([]);
-  const [activeTab, setActiveTab] = useState<'coach' | 'insights' | 'plan' | 'patterns'>('coach');
+  const { soberDays, userProfile, getStreakDays } = useRecovery();
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [inputText, setInputText] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [aiCoach] = useState(() => new LocalAICoach());
+  const [activeTab, setActiveTab] = useState<'chat' | 'insights' | 'notifications'>('chat');
+  const [insights, setInsights] = useState<{ patterns: string[]; recommendations: string[] } | null>(null);
+  const [notifications, setNotifications] = useState(NotificationService.getNotifications());
+  const scrollViewRef = useRef<ScrollView>(null);
 
   // Web alert state
   const [alertConfig, setAlertConfig] = useState<{
@@ -32,312 +48,407 @@ export default function AICoachDashboard() {
     }
   };
 
-  // Анимация
-  const pulseAnimation = useSharedValue(0);
-  const slideAnimation = useSharedValue(0);
-
   useEffect(() => {
-    loadAIData();
-    
-    pulseAnimation.value = withRepeat(
-      withTiming(1, { duration: 2000 }),
-      -1,
-      true
-    );
-
-    slideAnimation.value = withSpring(1);
+    initializeAI();
+    initializeNotifications();
+    loadInsights();
   }, []);
 
-  const loadAIData = () => {
-    // Симуляция данных пользователя
-    const userData = {
-      mood: 3,
-      cravingLevel: 2,
-      stressLevel: 3,
-      healthMetrics: {
-        sleepQuality: 4 as 1 | 2 | 3 | 4 | 5,
-        stressLevel: 3 as 1 | 2 | 3 | 4 | 5,
-        energyLevel: 4 as 1 | 2 | 3 | 4 | 5,
-      },
-      recentEvents: ['work_stress', 'social_event']
+  const initializeAI = async () => {
+    const welcomeMessage: ChatMessage = {
+      id: Date.now().toString(),
+      text: `Привет! Я ваш AI-коуч по восстановлению. ${soberDays > 0 ? `Поздравляю с ${soberDays} днями трезвости!` : 'Готов поддержать вас на пути к трезвости.'} Как дела сегодня?`,
+      isUser: false,
+      timestamp: new Date()
+    };
+    setMessages([welcomeMessage]);
+  };
+
+  const initializeNotifications = async () => {
+    try {
+      await NotificationService.initialize();
+      
+      // Адаптивные уведомления на основе прогресса
+      if (soberDays >= 0) {
+        await NotificationService.scheduleAdaptiveNotifications(soberDays);
+      }
+    } catch (error) {
+      console.error('Failed to initialize notifications:', error);
+    }
+  };
+
+  const loadInsights = () => {
+    const aiInsights = aiCoach.getInsights();
+    setInsights(aiInsights);
+  };
+
+  const getCurrentTimeOfDay = (): ConversationContext['timeOfDay'] => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return 'morning';
+    if (hour >= 12 && hour < 17) return 'afternoon';
+    if (hour >= 17 && hour < 22) return 'evening';
+    return 'night';
+  };
+
+  const sendMessage = async () => {
+    if (!inputText.trim()) return;
+
+    const userMessage: ChatMessage = {
+      id: Date.now().toString(),
+      text: inputText.trim(),
+      isUser: true,
+      timestamp: new Date()
     };
 
-    const coachMessages = AICoachService.analyzeUserBehavior(userData);
-    const predictiveInsights = AICoachService.generatePredictiveInsights(userData);
-    const plan = AICoachService.createPersonalizedPlan(userData, 'stabilization');
-    const patterns = AICoachService.detectTriggerPatterns([]);
+    setMessages(prev => [...prev, userMessage]);
+    setInputText('');
+    setIsTyping(true);
 
-    setMessages(coachMessages);
-    setInsights(predictiveInsights);
-    setCurrentPlan(plan);
-    setTriggerPatterns(patterns);
-  };
+    try {
+      const context: ConversationContext = {
+        userMood: 3, // Базовое настроение, можно улучшить анализом
+        soberDays: soberDays,
+        recentChallenges: [], // Можно добавить из профиля
+        preferredTechniques: [], // Можно добавить из настроек
+        timeOfDay: getCurrentTimeOfDay(),
+        urgency: 'low' // Определяется AI
+      };
 
-  const handleMessageAction = (action: string) => {
-    switch (action) {
-      case 'emergency_techniques':
-        showWebAlert('Экстренные техники', 'Переходим к техникам экстренной помощи...');
-        break;
-      case 'breathing_exercise':
-        showWebAlert('Дыхательное упражнение', 'Начинаем дыхательную технику 4-7-8...');
-        break;
-      case 'contact_support':
-        showWebAlert('Поддержка', 'Соединяем с системой поддержки...');
-        break;
-      default:
-        showWebAlert('Действие', `Выполняется: ${action}`);
+      const aiResponse = await aiCoach.getResponse(inputText.trim(), context);
+
+      const aiMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        text: aiResponse.message,
+        isUser: false,
+        timestamp: new Date(),
+        aiResponse
+      };
+
+      setMessages(prev => [...prev, aiMessage]);
+      
+      // Обновляем инсайты
+      loadInsights();
+      
+      // Отправляем уведомление при высоком уровне поддержки
+      if (context.urgency === 'crisis' || inputText.toLowerCase().includes('помогите')) {
+        await NotificationService.sendEmergencyNotification(
+          'Помните: вы сильнее, чем думаете. Каждый момент трезвости - это победа.'
+        );
+      }
+
+    } catch (error) {
+      console.error('AI Response Error:', error);
+      const errorMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        text: 'Извините, возникла техническая проблема. Попробуйте еще раз или воспользуйтесь экстренной помощью.',
+        isUser: false,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsTyping(false);
     }
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'critical': return '#FF3B30';
-      case 'high': return '#FF9500';
-      case 'medium': return '#007AFF';
-      case 'low': return '#34C759';
-      default: return '#8E8E93';
+  const getQuickSupport = async () => {
+    setIsTyping(true);
+    
+    try {
+      const quickResponse = await aiCoach.getQuickSupport('crisis');
+      
+      const supportMessage: ChatMessage = {
+        id: Date.now().toString(),
+        text: quickResponse.message,
+        isUser: false,
+        timestamp: new Date(),
+        aiResponse: quickResponse
+      };
+
+      setMessages(prev => [...prev, supportMessage]);
+      
+      // Экстренное уведомление
+      await NotificationService.sendEmergencyNotification();
+      
+    } catch (error) {
+      showWebAlert('Экстренная поддержка', 'Дышите глубоко. Это чувство временно. Обратитесь за профессиональной помощью при необходимости.');
+    } finally {
+      setIsTyping(false);
     }
   };
 
-  const getMessageIcon = (type: string) => {
-    switch (type) {
-      case 'crisis': return 'emergency';
-      case 'warning': return 'warning';
-      case 'celebration': return 'celebration';
-      case 'guidance': return 'lightbulb';
-      default: return 'psychology';
+  const toggleNotification = async (notificationId: string, enabled: boolean) => {
+    try {
+      await NotificationService.toggleNotification(notificationId, enabled);
+      setNotifications(NotificationService.getNotifications());
+      showWebAlert('Настройки', `Уведомление ${enabled ? 'включено' : 'выключено'}`);
+    } catch (error) {
+      showWebAlert('Ошибка', 'Не удалось изменить настройки уведомлений');
     }
   };
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: slideAnimation.value * 0 }],
-    opacity: slideAnimation.value,
-  }));
-
-  const pulseStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: 1 + pulseAnimation.value * 0.1 }],
-  }));
-
-  const renderCoachTab = () => (
-    <ScrollView contentContainerStyle={styles.tabContent}>
-      {/* AI Coach Header */}
-      <View style={styles.coachHeader}>
-        <Animated.View style={[styles.coachAvatar, pulseStyle]}>
-          <MaterialIcons name="psychology" size={40} color="#2E7D4A" />
-        </Animated.View>
-        <View style={styles.coachInfo}>
-          <Text style={styles.coachName}>Ваш AI-Коуч</Text>
-          <Text style={styles.coachStatus}>Анализирую ваш прогресс...</Text>
-        </View>
-      </View>
-
-      {/* Сообщения от коуча */}
-      <View style={styles.messagesContainer}>
-        <Text style={styles.sectionTitle}>Персональные рекомендации</Text>
-        {messages.map((message) => (
-          <View key={message.id} style={[styles.messageCard, { borderLeftColor: getPriorityColor(message.priority) }]}>
-            <View style={styles.messageHeader}>
-              <MaterialIcons 
-                name={getMessageIcon(message.type) as any} 
-                size={24} 
-                color={getPriorityColor(message.priority)} 
-              />
-              <Text style={[styles.messageTime, { color: getPriorityColor(message.priority) }]}>
-                {message.timestamp.toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })}
-              </Text>
-            </View>
-            <Text style={styles.messageText}>{message.message}</Text>
-            {message.actions && (
-              <View style={styles.messageActions}>
-                {message.actions.map((action, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={[styles.actionButton, { backgroundColor: getPriorityColor(message.priority) }]}
-                    onPress={() => handleMessageAction(action.action)}
+  const renderMessage = (message: ChatMessage) => (
+    <View key={message.id} style={[styles.messageContainer, message.isUser && styles.userMessageContainer]}>
+      <View style={[styles.messageBubble, message.isUser ? styles.userBubble : styles.aiBubble]}>
+        {!message.isUser && (
+          <View style={styles.aiHeader}>
+            <MaterialIcons name="psychology" size={16} color="#2E7D4A" />
+            <Text style={styles.aiLabel}>AI-Коуч</Text>
+          </View>
+        )}
+        
+        <Text style={[styles.messageText, message.isUser ? styles.userMessageText : styles.aiMessageText]}>
+          {message.text}
+        </Text>
+        
+        {message.aiResponse && (
+          <View style={styles.aiExtras}>
+            {/* Предложения действий */}
+            {message.aiResponse.suggestions.length > 0 && (
+              <View style={styles.suggestions}>
+                <Text style={styles.suggestionsTitle}>💡 Рекомендации:</Text>
+                {message.aiResponse.suggestions.map((suggestion, index) => (
+                  <TouchableOpacity 
+                    key={index} 
+                    style={styles.suggestionButton}
+                    onPress={() => showWebAlert('Рекомендация', suggestion)}
                   >
-                    <Text style={styles.actionButtonText}>{action.text}</Text>
+                    <Text style={styles.suggestionText}>• {suggestion}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+            
+            {/* Ресурсы */}
+            {message.aiResponse.resources.length > 0 && (
+              <View style={styles.resources}>
+                <Text style={styles.resourcesTitle}>📚 Полезные ресурсы:</Text>
+                {message.aiResponse.resources.map((resource, index) => (
+                  <TouchableOpacity 
+                    key={index} 
+                    style={styles.resourceButton}
+                    onPress={() => showWebAlert('Ресурс', `Открываем: ${resource}`)}
+                  >
+                    <MaterialIcons name="open-in-new" size={14} color="#007AFF" />
+                    <Text style={styles.resourceText}>{resource}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
             )}
           </View>
-        ))}
+        )}
+        
+        <Text style={styles.timestamp}>
+          {message.timestamp.toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })}
+        </Text>
       </View>
+    </View>
+  );
+
+  const renderChatTab = () => (
+    <View style={styles.chatContainer}>
+      <ScrollView 
+        ref={scrollViewRef}
+        style={styles.messagesContainer}
+        contentContainerStyle={styles.messagesContent}
+        onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+      >
+        {messages.map(renderMessage)}
+        
+        {isTyping && (
+          <View style={styles.typingIndicator}>
+            <View style={styles.typingBubble}>
+              <MaterialIcons name="psychology" size={16} color="#2E7D4A" />
+              <Text style={styles.typingText}>Коуч печатает...</Text>
+            </View>
+          </View>
+        )}
+      </ScrollView>
 
       {/* Быстрые действия */}
-      <View style={styles.quickActions}>
-        <Text style={styles.sectionTitle}>Быстрые действия</Text>
-        <View style={styles.actionGrid}>
-          <TouchableOpacity style={styles.quickActionCard}>
-            <MaterialIcons name="emergency" size={32} color="#FF3B30" />
-            <Text style={styles.quickActionText}>SOS</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.quickActionCard}>
-            <MaterialIcons name="self-improvement" size={32} color="#007AFF" />
-            <Text style={styles.quickActionText}>Медитация</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.quickActionCard}>
-            <MaterialIcons name="chat" size={32} color="#34C759" />
-            <Text style={styles.quickActionText}>Поддержка</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.quickActionCard}>
-            <MaterialIcons name="analytics" size={32} color="#FF9500" />
-            <Text style={styles.quickActionText}>Прогресс</Text>
-          </TouchableOpacity>
-        </View>
+      <View style={styles.quickActionsBar}>
+        <TouchableOpacity style={styles.emergencyButton} onPress={getQuickSupport}>
+          <MaterialIcons name="emergency" size={20} color="white" />
+          <Text style={styles.emergencyText}>SOS</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.motivationButton}
+          onPress={async () => {
+            const motivation = await aiCoach.getMotivationalMessage(soberDays);
+            const motMessage: ChatMessage = {
+              id: Date.now().toString(),
+              text: motivation,
+              isUser: false,
+              timestamp: new Date()
+            };
+            setMessages(prev => [...prev, motMessage]);
+          }}
+        >
+          <MaterialIcons name="auto-awesome" size={20} color="white" />
+          <Text style={styles.motivationText}>Мотивация</Text>
+        </TouchableOpacity>
       </View>
-    </ScrollView>
+
+      {/* Ввод сообщения */}
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.inputContainer}
+      >
+        <TextInput
+          style={styles.textInput}
+          value={inputText}
+          onChangeText={setInputText}
+          placeholder="Напишите сообщение..."
+          placeholderTextColor="#999"
+          multiline
+          maxLength={500}
+          returnKeyType="send"
+          onSubmitEditing={sendMessage}
+        />
+        <TouchableOpacity style={styles.sendButton} onPress={sendMessage} disabled={!inputText.trim()}>
+          <MaterialIcons name="send" size={24} color={inputText.trim() ? "#2E7D4A" : "#CCC"} />
+        </TouchableOpacity>
+      </KeyboardAvoidingView>
+    </View>
   );
 
   const renderInsightsTab = () => (
     <ScrollView contentContainerStyle={styles.tabContent}>
       <View style={styles.insightsHeader}>
-        <MaterialIcons name="trending-up" size={32} color="#2E7D4A" />
-        <Text style={styles.insightsTitle}>Предиктивная аналитика</Text>
+        <MaterialIcons name="analytics" size={32} color="#2E7D4A" />
+        <Text style={styles.insightsTitle}>Анализ поведения</Text>
       </View>
 
-      {insights.map((insight) => (
-        <View key={insight.id} style={styles.insightCard}>
-          <View style={styles.insightHeader}>
-            <Text style={styles.insightTitle}>{insight.title}</Text>
-            <View style={styles.confidenceBadge}>
-              <Text style={styles.confidenceText}>{insight.confidence}%</Text>
-            </View>
-          </View>
-          
-          <Text style={styles.insightDescription}>{insight.description}</Text>
-          
-          <View style={styles.recommendationContainer}>
-            <MaterialIcons name="lightbulb" size={20} color="#FF9500" />
-            <Text style={styles.recommendationText}>{insight.recommendation}</Text>
-          </View>
-
-          <View style={styles.insightMeta}>
-            <Text style={styles.insightType}>
-              {insight.type === 'risk_prediction' ? 'Прогноз риска' :
-               insight.type === 'success_probability' ? 'Вероятность успеха' :
-               insight.type === 'trigger_alert' ? 'Предупреждение о триггере' : 'Оптимальное время'}
-            </Text>
-            <Text style={styles.validUntil}>
-              Актуально до: {insight.validUntil.toLocaleDateString('ru')}
-            </Text>
-          </View>
-        </View>
-      ))}
-    </ScrollView>
-  );
-
-  const renderPlanTab = () => (
-    <ScrollView contentContainerStyle={styles.tabContent}>
-      {currentPlan && (
+      {insights && (
         <>
-          <View style={styles.planHeader}>
-            <MaterialIcons name="assignment" size={32} color="#2E7D4A" />
-            <View>
-              <Text style={styles.planTitle}>{currentPlan.name}</Text>
-              <Text style={styles.planPhase}>Фаза: {currentPlan.phase}</Text>
-            </View>
-          </View>
-
-          {/* Прогресс плана */}
-          <View style={styles.planProgress}>
-            <Text style={styles.progressTitle}>Прогресс выполнения</Text>
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: '35%' }]} />
-            </View>
-            <Text style={styles.progressText}>День 8 из {currentPlan.duration}</Text>
-          </View>
-
-          {/* Ежедневные задачи */}
-          <View style={styles.dailyTasks}>
-            <Text style={styles.sectionTitle}>Сегодняшние задачи</Text>
-            
-            {Object.entries(currentPlan.dailyTasks).map(([period, tasks]) => (
-              <View key={period} style={styles.taskPeriod}>
-                <Text style={styles.periodTitle}>
-                  {period === 'morning' ? 'Утро' : period === 'afternoon' ? 'День' : 'Вечер'}
-                </Text>
-                {tasks.map((task, index) => (
-                  <TouchableOpacity key={index} style={styles.taskItem}>
-                    <MaterialIcons name="check-box-outline-blank" size={20} color="#2E7D4A" />
-                    <Text style={styles.taskText}>{task}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+          <View style={styles.insightCard}>
+            <Text style={styles.cardTitle}>📊 Обнаруженные паттерны</Text>
+            {insights.patterns.map((pattern, index) => (
+              <Text key={index} style={styles.patternText}>• {pattern}</Text>
             ))}
           </View>
 
-          {/* Контрольные точки */}
-          <View style={styles.checkpoints}>
-            <Text style={styles.sectionTitle}>Ближайшие достижения</Text>
-            {currentPlan.checkpoints.map((checkpoint) => (
-              <View key={checkpoint.day} style={styles.checkpointItem}>
-                <View style={styles.checkpointDay}>
-                  <Text style={styles.checkpointDayText}>День {checkpoint.day}</Text>
-                </View>
-                <View style={styles.checkpointInfo}>
-                  <Text style={styles.checkpointMilestone}>{checkpoint.milestone}</Text>
-                  <Text style={styles.checkpointReward}>Награда: {checkpoint.reward}</Text>
-                </View>
-              </View>
+          <View style={styles.insightCard}>
+            <Text style={styles.cardTitle}>💡 Персональные рекомендации</Text>
+            {insights.recommendations.map((recommendation, index) => (
+              <Text key={index} style={styles.recommendationText}>• {recommendation}</Text>
             ))}
           </View>
         </>
       )}
+
+      <View style={styles.statsCard}>
+        <Text style={styles.cardTitle}>📈 Статистика общения</Text>
+        <View style={styles.statRow}>
+          <Text style={styles.statLabel}>Всего сообщений:</Text>
+          <Text style={styles.statValue}>{messages.filter(m => m.isUser).length}</Text>
+        </View>
+        <View style={styles.statRow}>
+          <Text style={styles.statLabel}>Дней трезвости:</Text>
+          <Text style={styles.statValue}>{soberDays}</Text>
+        </View>
+        <View style={styles.statRow}>
+          <Text style={styles.statLabel}>Текущая серия:</Text>
+          <Text style={styles.statValue}>{getStreakDays()}</Text>
+        </View>
+      </View>
+
+      <TouchableOpacity 
+        style={styles.clearButton}
+        onPress={() => {
+          aiCoach.clearHistory();
+          loadInsights();
+          showWebAlert('История очищена', 'История разговоров удалена');
+        }}
+      >
+        <MaterialIcons name="clear-all" size={20} color="white" />
+        <Text style={styles.clearButtonText}>Очистить историю</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 
-  const renderPatternsTab = () => (
+  const renderNotificationsTab = () => (
     <ScrollView contentContainerStyle={styles.tabContent}>
-      <View style={styles.patternsHeader}>
-        <MaterialIcons name="pattern" size={32} color="#FF6B6B" />
-        <Text style={styles.patternsTitle}>Анализ триггеров</Text>
+      <View style={styles.notificationsHeader}>
+        <MaterialIcons name="notifications" size={32} color="#FF9500" />
+        <Text style={styles.notificationsTitle}>Уведомления поддержки</Text>
       </View>
 
-      {triggerPatterns.map((pattern) => (
-        <View key={pattern.id} style={styles.patternCard}>
-          <View style={styles.patternHeader}>
-            <Text style={styles.patternName}>{pattern.name}</Text>
-            <View style={[styles.severityBadge, { 
-              backgroundColor: pattern.severity >= 4 ? '#FF6B6B' : pattern.severity >= 3 ? '#FF9500' : '#34C759'
-            }]}>
-              <Text style={styles.severityText}>{pattern.severity}/5</Text>
+      <View style={styles.notificationInfo}>
+        <MaterialIcons name="info" size={20} color="#007AFF" />
+        <Text style={styles.infoText}>
+          Персонализированные уведомления помогут поддерживать мотивацию и напоминать о важных моментах
+        </Text>
+      </View>
+
+      {notifications.map((notification) => (
+        <View key={notification.id} style={styles.notificationCard}>
+          <View style={styles.notificationHeader}>
+            <View style={styles.notificationInfo}>
+              <Text style={styles.notificationTitle}>{notification.title}</Text>
+              <Text style={styles.notificationBody}>{notification.body}</Text>
+              <Text style={styles.notificationSchedule}>
+                {notification.trigger.type === 'daily' 
+                  ? `Ежедневно в ${notification.trigger.hour?.toString().padStart(2, '0')}:${notification.trigger.minute?.toString().padStart(2, '0')}` 
+                  : notification.trigger.type === 'weekly'
+                  ? `Еженедельно (день ${notification.trigger.weekday})`
+                  : 'По расписанию'}
+              </Text>
             </View>
+            
+            <TouchableOpacity
+              style={[styles.toggleButton, notification.enabled && styles.toggleButtonActive]}
+              onPress={() => toggleNotification(notification.id, !notification.enabled)}
+            >
+              <MaterialIcons 
+                name={notification.enabled ? "notifications-active" : "notifications-off"} 
+                size={24} 
+                color={notification.enabled ? "white" : "#999"} 
+              />
+            </TouchableOpacity>
           </View>
-
-          <Text style={styles.patternDescription}>{pattern.description}</Text>
-          <Text style={styles.patternFrequency}>Частота: {pattern.frequency} раз в месяц</Text>
-
-          <View style={styles.countermeasures}>
-            <Text style={styles.countermeasuresTitle}>Способы преодоления:</Text>
-            {pattern.countermeasures.map((measure, index) => (
-              <View key={index} style={styles.countermeasureItem}>
-                <MaterialIcons name="lightbulb" size={16} color="#FF9500" />
-                <Text style={styles.countermeasureText}>{measure}</Text>
-              </View>
-            ))}
+          
+          <View style={styles.categoryBadge}>
+            <Text style={styles.categoryText}>
+              {notification.category === 'motivation' && '💪 Мотивация'}
+              {notification.category === 'reminder' && '⏰ Напоминание'}
+              {notification.category === 'emergency' && '🆘 Экстренная'}
+              {notification.category === 'celebration' && '🎉 Праздник'}
+              {notification.category === 'exercise' && '🧘 Упражнение'}
+            </Text>
           </View>
         </View>
       ))}
+
+      <TouchableOpacity 
+        style={styles.testNotificationButton}
+        onPress={async () => {
+          await NotificationService.sendEmergencyNotification('Это тестовое уведомление поддержки. Вы делаете отличную работу! 💪');
+          showWebAlert('Тест', 'Тестовое уведомление отправлено');
+        }}
+      >
+        <MaterialIcons name="notification-important" size={20} color="white" />
+        <Text style={styles.testButtonText}>Отправить тестовое уведомление</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>AI-Коуч</Text>
-        <TouchableOpacity onPress={loadAIData}>
-          <MaterialIcons name="refresh" size={24} color="#2E7D4A" />
-        </TouchableOpacity>
+        <Text style={styles.title}>AI-Коуч 2.0</Text>
+        <View style={styles.headerStats}>
+          <MaterialIcons name="psychology" size={20} color="#2E7D4A" />
+          <Text style={styles.headerStatsText}>Дней: {soberDays}</Text>
+        </View>
       </View>
 
       {/* Табы */}
       <View style={styles.tabBar}>
         {[
-          { key: 'coach', icon: 'psychology', label: 'Коуч' },
-          { key: 'insights', icon: 'insights', label: 'Анализ' },
-          { key: 'plan', icon: 'assignment', label: 'План' },
-          { key: 'patterns', icon: 'pattern', label: 'Триггеры' }
+          { key: 'chat', icon: 'chat', label: 'Чат' },
+          { key: 'insights', icon: 'analytics', label: 'Анализ' },
+          { key: 'notifications', icon: 'notifications', label: 'Уведомления' }
         ].map((tab) => (
           <TouchableOpacity
             key={tab.key}
@@ -356,12 +467,11 @@ export default function AICoachDashboard() {
         ))}
       </View>
 
-      <Animated.View style={[styles.content, animatedStyle]}>
-        {activeTab === 'coach' && renderCoachTab()}
+      <View style={styles.content}>
+        {activeTab === 'chat' && renderChatTab()}
         {activeTab === 'insights' && renderInsightsTab()}
-        {activeTab === 'plan' && renderPlanTab()}
-        {activeTab === 'patterns' && renderPatternsTab()}
-      </Animated.View>
+        {activeTab === 'notifications' && renderNotificationsTab()}
+      </View>
 
       {/* Web Alert Modal */}
       {Platform.OS === 'web' && (
@@ -406,6 +516,16 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#2E7D4A'
   },
+  headerStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6
+  },
+  headerStatsText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#2E7D4A'
+  },
   tabBar: {
     flexDirection: 'row',
     backgroundColor: 'white',
@@ -417,16 +537,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
+    paddingVertical: 12,
     marginHorizontal: 2,
-    borderRadius: 15,
-    gap: 4
+    borderRadius: 20,
+    gap: 6
   },
   activeTab: {
     backgroundColor: '#2E7D4A'
   },
   tabLabel: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#2E7D4A'
   },
@@ -436,111 +556,189 @@ const styles = StyleSheet.create({
   content: {
     flex: 1
   },
+  chatContainer: {
+    flex: 1
+  },
+  messagesContainer: {
+    flex: 1
+  },
+  messagesContent: {
+    padding: 15,
+    gap: 10
+  },
+  messageContainer: {
+    alignItems: 'flex-start'
+  },
+  userMessageContainer: {
+    alignItems: 'flex-end'
+  },
+  messageBubble: {
+    maxWidth: screenWidth * 0.8,
+    padding: 12,
+    borderRadius: 16,
+    marginBottom: 4
+  },
+  userBubble: {
+    backgroundColor: '#2E7D4A',
+    borderBottomRightRadius: 4
+  },
+  aiBubble: {
+    backgroundColor: 'white',
+    borderBottomLeftRadius: 4,
+    borderWidth: 1,
+    borderColor: '#E0E0E0'
+  },
+  aiHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 6
+  },
+  aiLabel: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#2E7D4A'
+  },
+  messageText: {
+    fontSize: 16,
+    lineHeight: 20
+  },
+  userMessageText: {
+    color: 'white'
+  },
+  aiMessageText: {
+    color: '#333'
+  },
+  aiExtras: {
+    marginTop: 12,
+    gap: 8
+  },
+  suggestions: {
+    backgroundColor: '#F0F8F0',
+    padding: 10,
+    borderRadius: 8
+  },
+  suggestionsTitle: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#2E7D4A',
+    marginBottom: 6
+  },
+  suggestionButton: {
+    paddingVertical: 2
+  },
+  suggestionText: {
+    fontSize: 13,
+    color: '#4A6741',
+    lineHeight: 18
+  },
+  resources: {
+    backgroundColor: '#F0F5FF',
+    padding: 10,
+    borderRadius: 8
+  },
+  resourcesTitle: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#007AFF',
+    marginBottom: 6
+  },
+  resourceButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 2,
+    gap: 4
+  },
+  resourceText: {
+    fontSize: 13,
+    color: '#007AFF'
+  },
+  timestamp: {
+    fontSize: 11,
+    color: '#999',
+    marginTop: 6,
+    textAlign: 'right'
+  },
+  typingIndicator: {
+    alignItems: 'flex-start'
+  },
+  typingBubble: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F0F0',
+    padding: 12,
+    borderRadius: 16,
+    gap: 6
+  },
+  typingText: {
+    fontSize: 14,
+    fontStyle: 'italic',
+    color: '#666'
+  },
+  quickActionsBar: {
+    flexDirection: 'row',
+    padding: 10,
+    backgroundColor: 'white',
+    gap: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0'
+  },
+  emergencyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FF6B6B',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    gap: 6
+  },
+  emergencyText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold'
+  },
+  motivationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    gap: 6
+  },
+  motivationText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold'
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    padding: 15,
+    backgroundColor: 'white',
+    gap: 10
+  },
+  textInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    fontSize: 16,
+    maxHeight: 100
+  },
+  sendButton: {
+    padding: 10
+  },
   tabContent: {
     padding: 20,
     gap: 20
   },
-  coachHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 15,
-    gap: 15
-  },
-  coachAvatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#E8F5E8',
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  coachInfo: {
-    flex: 1
-  },
-  coachName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2E7D4A',
-    marginBottom: 4
-  },
-  coachStatus: {
-    fontSize: 14,
-    color: '#666'
-  },
-  messagesContainer: {
-    gap: 15
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#2E7D4A',
-    marginBottom: 10
-  },
-  messageCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 15,
-    borderLeftWidth: 4
-  },
-  messageHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10
-  },
-  messageTime: {
-    fontSize: 12,
-    fontWeight: 'bold'
-  },
-  messageText: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: '#333',
-    marginBottom: 15
-  },
-  messageActions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8
-  },
-  actionButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 15
-  },
-  actionButtonText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: 'white'
-  },
-  quickActions: {
-    gap: 15
-  },
-  actionGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10
-  },
-  quickActionCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 20,
-    alignItems: 'center',
-    width: (screenWidth - 60) / 2,
-    gap: 8
-  },
-  quickActionText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333'
-  },
   insightsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginBottom: 20
+    gap: 10
   },
   insightsTitle: {
     fontSize: 24,
@@ -551,239 +749,157 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 20,
-    marginBottom: 15
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3
   },
-  insightHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10
-  },
-  insightTitle: {
+  cardTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#2E7D4A',
-    flex: 1,
-    marginRight: 10
+    marginBottom: 12
   },
-  confidenceBadge: {
-    backgroundColor: '#E8F5E8',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 10
-  },
-  confidenceText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#2E7D4A'
-  },
-  insightDescription: {
-    fontSize: 16,
+  patternText: {
+    fontSize: 15,
     color: '#333',
     lineHeight: 22,
-    marginBottom: 15
-  },
-  recommendationContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#FFF3CD',
-    padding: 12,
-    borderRadius: 8,
-    gap: 8,
-    marginBottom: 10
+    marginBottom: 6
   },
   recommendationText: {
-    fontSize: 14,
-    color: '#856404',
-    flex: 1,
-    lineHeight: 20
-  },
-  insightMeta: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center'
-  },
-  insightType: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#666'
-  },
-  validUntil: {
-    fontSize: 12,
-    color: '#999'
-  },
-  planHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 15,
-    gap: 15
-  },
-  planTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#2E7D4A'
-  },
-  planPhase: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4
-  },
-  planProgress: {
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 15
-  },
-  progressTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#2E7D4A',
-    marginBottom: 10
-  },
-  progressBar: {
-    height: 8,
-    backgroundColor: '#E0E0E0',
-    borderRadius: 4,
-    marginBottom: 8
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#2E7D4A',
-    borderRadius: 4
-  },
-  progressText: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center'
-  },
-  dailyTasks: {
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 15
-  },
-  taskPeriod: {
-    marginBottom: 20
-  },
-  periodTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#2E7D4A',
-    marginBottom: 10
-  },
-  taskItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    gap: 10
-  },
-  taskText: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#333',
-    flex: 1
+    lineHeight: 22,
+    marginBottom: 6
   },
-  checkpoints: {
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 15
-  },
-  checkpointItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
-    gap: 15
-  },
-  checkpointDay: {
-    backgroundColor: '#2E7D4A',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20
-  },
-  checkpointDayText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: 'white'
-  },
-  checkpointInfo: {
-    flex: 1
-  },
-  checkpointMilestone: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#2E7D4A',
-    marginBottom: 4
-  },
-  checkpointReward: {
-    fontSize: 14,
-    color: '#666'
-  },
-  patternsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 20
-  },
-  patternsTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FF6B6B'
-  },
-  patternCard: {
+  statsCard: {
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 20,
-    marginBottom: 15
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3
   },
-  patternHeader: {
+  statRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10
+    paddingVertical: 8
   },
-  patternName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FF6B6B',
-    flex: 1,
-    marginRight: 10
-  },
-  severityBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 10
-  },
-  severityText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: 'white'
-  },
-  patternDescription: {
+  statLabel: {
     fontSize: 16,
-    color: '#333',
-    lineHeight: 22,
-    marginBottom: 8
+    color: '#666'
   },
-  patternFrequency: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 15
-  },
-  countermeasures: {
-    gap: 8
-  },
-  countermeasuresTitle: {
-    fontSize: 14,
+  statValue: {
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#FF9500',
-    marginBottom: 8
+    color: '#2E7D4A'
   },
-  countermeasureItem: {
+  clearButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FF6B6B',
+    paddingVertical: 12,
+    borderRadius: 25,
     gap: 8
   },
-  countermeasureText: {
-    fontSize: 13,
+  clearButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold'
+  },
+  notificationsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10
+  },
+  notificationsTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FF9500'
+  },
+  notificationInfo: {
+    flexDirection: 'row',
+    backgroundColor: '#E3F2FD',
+    padding: 15,
+    borderRadius: 12,
+    gap: 10
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#1976D2',
+    lineHeight: 20
+  },
+  notificationCard: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3
+  },
+  notificationHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 15
+  },
+  notificationTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2E7D4A',
+    marginBottom: 6
+  },
+  notificationBody: {
+    fontSize: 14,
     color: '#333',
-    flex: 1
+    lineHeight: 20,
+    marginBottom: 6
+  },
+  notificationSchedule: {
+    fontSize: 12,
+    color: '#999',
+    marginBottom: 10
+  },
+  toggleButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#F0F0F0'
+  },
+  toggleButtonActive: {
+    backgroundColor: '#2E7D4A'
+  },
+  categoryBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#F8F9FA',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 5
+  },
+  categoryText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#666'
+  },
+  testNotificationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FF9500',
+    paddingVertical: 15,
+    borderRadius: 25,
+    gap: 8
+  },
+  testButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold'
   }
 });
