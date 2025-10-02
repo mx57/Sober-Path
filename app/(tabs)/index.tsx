@@ -54,7 +54,7 @@ const MemoizedNavCard = React.memo(({ item, onPress }: { item: any; onPress: () 
 ));
 
 function HomePage() {
-  // Все хуки должны быть в самом начале компонента
+  // ВСЕ ХУКИ ДОЛЖНЫ БЫТЬ ЗДЕСЬ, ДО ЛЮБЫХ УСЛОВНЫХ RETURN'ОВ
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { 
@@ -70,7 +70,7 @@ function HomePage() {
   } = useRecovery();
   const { addMoodEntry } = useAnalytics();
   
-  // Все useState хуки
+  // ВСЕ useState хуки
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [mood, setMood] = useState<1 | 2 | 3 | 4 | 5>(3);
   const [showMoodSelector, setShowMoodSelector] = useState(false);
@@ -83,18 +83,17 @@ function HomePage() {
     onOk?: () => void;
   }>({ visible: false, title: '', message: '' });
 
-  // Анимации - ВСЕ анимационные хуки должны быть здесь
+  // ВСЕ анимационные хуки
   const pulseValue = useSharedValue(0);
   const scaleValue = useSharedValue(1);
   
-  // Анимированные стили - ОБЯЗАТЕЛЬНО здесь, до любых условий
+  // ВСЕ анимированные стили
   const pulseAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: 1 + pulseValue.value * 0.05 }]
   }));
 
-  // useEffect хуки
+  // ВСЕ useEffect хуки
   useEffect(() => {
-    // Анимация пульсации для статистики
     pulseValue.value = withRepeat(
       withTiming(1, { duration: 2000 }),
       -1,
@@ -102,7 +101,7 @@ function HomePage() {
     );
   }, []);
 
-  // Мемоизированные функции для оптимизации
+  // ВСЕ useCallback хуки
   const showWebAlert = useCallback((title: string, message: string, onOk?: () => void) => {
     if (Platform.OS === 'web') {
       setAlertConfig({ visible: true, title, message, onOk });
@@ -118,106 +117,12 @@ function HomePage() {
     });
   }, [router, scaleValue]);
 
-  // Условные рендеры только после всех хуков
-  if (loading) {
-    return (
-      <View style={[styles.container, styles.loadingContainer, { paddingTop: insets.top }]}>
-        <MaterialIcons name="hourglass-empty" size={50} color="#2E7D4A" />
-        <Text style={styles.loadingText}>Загрузка...</Text>
-      </View>
-    );
-  }
-
-  if (!userProfile) {
-    return (
-      <LinearGradient 
-        colors={['#E8F5E8', '#F8F9FA']} 
-        style={[styles.container, { paddingTop: insets.top }]}
-      >
-        <View style={styles.welcomeContainer}>
-          <Animated.View style={[{ transform: [{ scale: scaleValue }] }]}>
-            <MaterialIcons name="eco" size={100} color="#2E7D4A" />
-          </Animated.View>
-          <Text style={styles.welcomeTitle}>Путь к Трезвости</Text>
-          <Text style={styles.welcomeSubtitle}>Ваш персональный помощник</Text>
-          <Text style={styles.welcomeText}>
-            Начните свой путь к здоровой жизни без алкоголя. 
-            Получите поддержку, отслеживайте прогресс и достигайте целей.
-          </Text>
-          <TouchableOpacity 
-            style={styles.startButton}
-            onPress={() => {
-              scaleValue.value = withSpring(0.95, {}, () => {
-                scaleValue.value = withSpring(1);
-              });
-              router.push('/onboarding' as any);
-            }}
-          >
-            <LinearGradient colors={['#2E7D4A', '#4CAF50']} style={styles.startButtonGradient}>
-              <MaterialIcons name="play-arrow" size={24} color="white" />
-              <Text style={styles.startButtonText}>Начать путь</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
-      </LinearGradient>
-    );
-  }
-
-
-  // Мемоизированные вычисления - ДОЛЖНЫ БЫТЬ ПЕРЕД handleLogDay
+  // ВСЕ useMemo хуки - КРИТИЧНО: должны быть ДО handleLogDay
   const streakDays = useMemo(() => getStreakDays(), [getStreakDays]);
   const totalSoberDays = useMemo(() => getTotalSoberDays(), [getTotalSoberDays]);
   const todayStatus = useMemo(() => getDayStatus(selectedDate), [getDayStatus, selectedDate]);
   const calendarMarks = useMemo(() => getCalendarMarks(), [getCalendarMarks]);
 
-  const handleLogDay = useCallback(async (status: 'sober' | 'relapse') => {
-    try {
-      // Проверяем, можем ли отметить день (только один раз в день)
-      if (todayStatus !== 'no-entry') {
-        showWebAlert(
-          'День уже отмечен', 
-          'Вы уже отметили этот день. Каждый день можно отметить только один раз.'
-        );
-        setShowMoodSelector(false);
-        return;
-      }
-
-      await addProgressEntry({
-        date: selectedDate,
-        status,
-        mood
-      });
-
-      if (addMoodEntry) {
-        await addMoodEntry({
-          date: selectedDate,
-          mood,
-          cravingLevel: status === 'relapse' ? 5 : (Math.floor(Math.random() * 3) + 1) as 1 | 2 | 3 | 4 | 5,
-          stressLevel: (Math.floor(Math.random() * 5) + 1) as 1 | 2 | 3 | 4 | 5,
-          sleepQuality: (Math.floor(Math.random() * 5) + 1) as 1 | 2 | 3 | 4 | 5
-        });
-      }
-
-      if (status === 'relapse') {
-        showWebAlert(
-          '💪 Не сдавайтесь!',
-          'Срыв - это не конец пути, а новый урок. Каждый новый день - новая возможность стать сильнее.',
-          () => setShowCrisisIntervention(true)
-        );
-      } else {
-        showWebAlert(
-          '🎉 Отлично!', 
-          `Ещё один трезвый день! Ваша серия: ${streakDays + 1} дней. Продолжайте в том же духе!`
-        );
-      }
-    } catch (error) {
-      showWebAlert('Ошибка', 'Не удалось сохранить данные. Попробуйте снова.');
-    } finally {
-      setShowMoodSelector(false);
-    }
-  }, [selectedDate, todayStatus, mood, addProgressEntry, addMoodEntry, streakDays, showWebAlert]);
-
-  // Мемоизированные навигационные элементы
   const navigationItems = useMemo(() => [
     {
       title: 'AI-Коуч',
@@ -264,7 +169,6 @@ function HomePage() {
     }
   ], []);
 
-  // Мемоизированные метрики здоровья
   const getHealthMetrics = useCallback(() => {
     const metrics = [];
     if (soberDays >= 1) metrics.push({ icon: 'bedtime', text: 'Сон улучшается', color: '#4CAF50', days: 1 });
@@ -277,6 +181,100 @@ function HomePage() {
   }, [soberDays]);
 
   const healthMetrics = useMemo(() => getHealthMetrics(), [getHealthMetrics]);
+
+  const handleLogDay = useCallback(async (status: 'sober' | 'relapse') => {
+    try {
+      if (todayStatus !== 'no-entry') {
+        showWebAlert(
+          'День уже отмечен', 
+          'Вы уже отметили этот день. Каждый день можно отметить только один раз.'
+        );
+        setShowMoodSelector(false);
+        return;
+      }
+
+      await addProgressEntry({
+        date: selectedDate,
+        status,
+        mood
+      });
+
+      if (addMoodEntry) {
+        await addMoodEntry({
+          date: selectedDate,
+          mood,
+          cravingLevel: status === 'relapse' ? 5 : (Math.floor(Math.random() * 3) + 1) as 1 | 2 | 3 | 4 | 5,
+          stressLevel: (Math.floor(Math.random() * 5) + 1) as 1 | 2 | 3 | 4 | 5,
+          sleepQuality: (Math.floor(Math.random() * 5) + 1) as 1 | 2 | 3 | 4 | 5
+        });
+      }
+
+      if (status === 'relapse') {
+        showWebAlert(
+          '💪 Не сдавайтесь!',
+          'Срыв - это не конец пути, а новый урок. Каждый новый день - новая возможность стать сильнее.',
+          () => setShowCrisisIntervention(true)
+        );
+      } else {
+        showWebAlert(
+          '🎉 Отлично!', 
+          `Ещё один трезвый день! Ваша серия: ${streakDays + 1} дней. Продолжайте в том же духе!`
+        );
+      }
+    } catch (error) {
+      showWebAlert('Ошибка', 'Не удалось сохранить данные. Попробуйте снова.');
+    } finally {
+      setShowMoodSelector(false);
+    }
+  }, [selectedDate, todayStatus, mood, addProgressEntry, addMoodEntry, streakDays, showWebAlert]);
+
+  // ТЕПЕРЬ МОЖНО ДЕЛАТЬ УСЛОВНЫЕ РЕНДЕРЫ - ВСЕ ХУКИ УЖЕ ВЫЗВАНЫ
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.loadingContainer, { paddingTop: insets.top }]}>
+        <MaterialIcons name="hourglass-empty" size={50} color="#2E7D4A" />
+        <Text style={styles.loadingText}>Загрузка...</Text>
+      </View>
+    );
+  }
+
+  if (!userProfile) {
+    return (
+      <LinearGradient 
+        colors={['#E8F5E8', '#F8F9FA']} 
+        style={[styles.container, { paddingTop: insets.top }]}
+      >
+        <View style={styles.welcomeContainer}>
+          <Animated.View style={[{ transform: [{ scale: scaleValue }] }]}>
+            <MaterialIcons name="eco" size={100} color="#2E7D4A" />
+          </Animated.View>
+          <Text style={styles.welcomeTitle}>Путь к Трезвости</Text>
+          <Text style={styles.welcomeSubtitle}>Ваш персональный помощник</Text>
+          <Text style={styles.welcomeText}>
+            Начните свой путь к здоровой жизни без алкоголя. 
+            Получите поддержку, отслеживайте прогресс и достигайте целей.
+          </Text>
+          <TouchableOpacity 
+            style={styles.startButton}
+            onPress={() => {
+              scaleValue.value = withSpring(0.95, {}, () => {
+                scaleValue.value = withSpring(1);
+              });
+              router.push('/onboarding' as any);
+            }}
+          >
+            <LinearGradient colors={['#2E7D4A', '#4CAF50']} style={styles.startButtonGradient}>
+              <MaterialIcons name="play-arrow" size={24} color="white" />
+              <Text style={styles.startButtonText}>Начать путь</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      </LinearGradient>
+    );
+  }
+
+
+
 
 
 
