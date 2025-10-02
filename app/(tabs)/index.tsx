@@ -17,13 +17,13 @@ import Animated, {
   useAnimatedStyle, 
   withSpring, 
   withTiming,
-  interpolateColor,
   withRepeat 
 } from 'react-native-reanimated';
 
 const { width: screenWidth } = Dimensions.get('window');
 
 export default function HomePage() {
+  // Все хуки должны быть в самом начале компонента
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { 
@@ -39,17 +39,12 @@ export default function HomePage() {
   } = useRecovery();
   const { addMoodEntry } = useAnalytics();
   
+  // Все useState хуки
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [mood, setMood] = useState<1 | 2 | 3 | 4 | 5>(3);
   const [showMoodSelector, setShowMoodSelector] = useState(false);
   const [showCrisisIntervention, setShowCrisisIntervention] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
-
-  // Animations
-  const pulseValue = useSharedValue(0);
-  const scaleValue = useSharedValue(1);
-
-  // Web alert state
   const [alertConfig, setAlertConfig] = useState<{
     visible: boolean;
     title: string;
@@ -57,14 +52,11 @@ export default function HomePage() {
     onOk?: () => void;
   }>({ visible: false, title: '', message: '' });
 
-  const showWebAlert = (title: string, message: string, onOk?: () => void) => {
-    if (Platform.OS === 'web') {
-      setAlertConfig({ visible: true, title, message, onOk });
-    } else {
-      Alert.alert(title, message, onOk ? [{ text: 'OK', onPress: onOk }] : undefined);
-    }
-  };
+  // Анимации
+  const pulseValue = useSharedValue(0);
+  const scaleValue = useSharedValue(1);
 
+  // useEffect хуки
   useEffect(() => {
     // Анимация пульсации для статистики
     pulseValue.value = withRepeat(
@@ -74,6 +66,16 @@ export default function HomePage() {
     );
   }, []);
 
+  // Функции и остальная логика
+  const showWebAlert = (title: string, message: string, onOk?: () => void) => {
+    if (Platform.OS === 'web') {
+      setAlertConfig({ visible: true, title, message, onOk });
+    } else {
+      Alert.alert(title, message, onOk ? [{ text: 'OK', onPress: onOk }] : undefined);
+    }
+  };
+
+  // Условные рендеры только после всех хуков
   if (loading) {
     return (
       <View style={[styles.container, styles.loadingContainer, { paddingTop: insets.top }]}>
@@ -118,6 +120,7 @@ export default function HomePage() {
     );
   }
 
+  // Вычисляемые значения
   const streakDays = getStreakDays();
   const totalSoberDays = getTotalSoberDays();
   const todayStatus = getDayStatus(selectedDate);
@@ -140,13 +143,15 @@ export default function HomePage() {
         mood
       });
 
-      await addMoodEntry({
-        date: selectedDate,
-        mood,
-        cravingLevel: status === 'relapse' ? 5 : (Math.floor(Math.random() * 3) + 1) as 1 | 2 | 3 | 4 | 5,
-        stressLevel: (Math.floor(Math.random() * 5) + 1) as 1 | 2 | 3 | 4 | 5,
-        sleepQuality: (Math.floor(Math.random() * 5) + 1) as 1 | 2 | 3 | 4 | 5
-      });
+      if (addMoodEntry) {
+        await addMoodEntry({
+          date: selectedDate,
+          mood,
+          cravingLevel: status === 'relapse' ? 5 : (Math.floor(Math.random() * 3) + 1) as 1 | 2 | 3 | 4 | 5,
+          stressLevel: (Math.floor(Math.random() * 5) + 1) as 1 | 2 | 3 | 4 | 5,
+          sleepQuality: (Math.floor(Math.random() * 5) + 1) as 1 | 2 | 3 | 4 | 5
+        });
+      }
 
       if (status === 'relapse') {
         showWebAlert(
