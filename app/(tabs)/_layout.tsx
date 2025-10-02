@@ -1,41 +1,52 @@
+
 import { Tabs } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import React from 'react';
 
-export default function TabLayout() {
+// Мемоизация ляуаута для оптимизации
+function TabLayout() {
   const insets = useSafeAreaInsets();
 
+  // Мемоизированные настройки табов
+  const screenOptions = React.useMemo(() => ({
+    headerShown: false,
+    tabBarActiveTintColor: '#2E7D4A',
+    tabBarInactiveTintColor: '#666',
+    tabBarStyle: {
+      height: Platform.select({
+        ios: insets.bottom + 70,
+        android: insets.bottom + 70,
+        default: 80
+      }),
+      paddingTop: 8,
+      paddingBottom: Platform.select({
+        ios: insets.bottom + 8,
+        android: insets.bottom + 8,
+        default: 8
+      }),
+      paddingHorizontal: 4,
+      elevation: 8,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: -2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8
+    },
+    tabBarLabelStyle: {
+      fontSize: 10,
+      fontWeight: '600',
+      marginTop: -2
+    },
+    tabBarIconStyle: {
+      marginBottom: 2
+    },
+    lazy: true, // Ленивая загрузка табов
+    unmountOnBlur: false // Оставляем в памяти для быстрого переключения
+  }), [insets.bottom]);
+
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: '#2E7D4A',
-        tabBarInactiveTintColor: '#666',
-        tabBarStyle: {
-          height: Platform.select({
-            ios: insets.bottom + 70,
-            android: insets.bottom + 70,
-            default: 80
-          }),
-          paddingTop: 8,
-          paddingBottom: Platform.select({
-            ios: insets.bottom + 8,
-            android: insets.bottom + 8,
-            default: 8
-          }),
-          paddingHorizontal: 4
-        },
-        tabBarLabelStyle: {
-          fontSize: 10,
-          fontWeight: '500',
-          marginTop: -2
-        },
-        tabBarIconStyle: {
-          marginBottom: 2
-        }
-      }}
-    >
+    <Tabs screenOptions={screenOptions}>
       <Tabs.Screen
         name="index"
         options={{
@@ -122,3 +133,5 @@ export default function TabLayout() {
     </Tabs>
   );
 }
+
+export default React.memo(TabLayout);

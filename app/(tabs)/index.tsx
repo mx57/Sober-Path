@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   View, Text, ScrollView, StyleSheet, TouchableOpacity, 
-  Alert, Platform, Modal, Dimensions 
+  Alert, Platform, Modal, Dimensions, ActivityIndicator 
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,20 +10,50 @@ import { useRouter } from 'expo-router';
 import { Calendar, DateData } from 'react-native-calendars';
 import { useRecovery } from '../../hooks/useRecovery';
 import { useAnalytics } from '../../hooks/useAnalytics';
-import AchievementSystem from '../../components/AchievementSystem';
-import CrisisIntervention from '../../components/CrisisIntervention';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
   withSpring, 
   withTiming,
-  withRepeat 
+  withRepeat,
+  runOnJS 
 } from 'react-native-reanimated';
+
+// Ленивые компоненты для улучшения производительности
+const AchievementSystem = React.lazy(() => import('../../components/AchievementSystem'));
+const CrisisIntervention = React.lazy(() => import('../../components/CrisisIntervention'));
 
 const { width: screenWidth } = Dimensions.get('window');
 
-export default function HomePage() {
+// Мемоизированные компоненты для оптимизации
+const MemoizedHealthMetric = React.memo(({ metric, index }: { metric: any; index: number }) => (
+  <View key={index} style={[styles.healthMetric, { borderColor: metric.color }]}>
+    <MaterialIcons name={metric.icon} size={24} color={metric.color} />
+    <Text style={styles.healthText}>{metric.text}</Text>
+    <Text style={styles.healthDays}>День {metric.days}+</Text>
+  </View>
+));
+
+const MemoizedNavCard = React.memo(({ item, onPress }: { item: any; onPress: () => void }) => (
+  <TouchableOpacity style={styles.navCard} onPress={onPress}>
+    <View style={[styles.navIcon, { backgroundColor: item.color }]}>
+      <MaterialIcons name={item.icon} size={28} color="white" />
+      {item.isNew && (
+        <View style={styles.newBadge}>
+          <Text style={styles.newBadgeText}>NEW</Text>
+        </View>
+      )}
+    </View>
+    <View style={styles.navContent}>
+      <Text style={styles.navTitle}>{item.title}</Text>
+      <Text style={styles.navDescription}>{item.description}</Text>
+    </View>
+    <MaterialIcons name="chevron-right" size={24} color="#999" />
+  </TouchableOpacity>
+));
+
+function HomePage() {
   // Все хуки должны быть в самом начале компонента
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -71,14 +102,21 @@ export default function HomePage() {
     );
   }, []);
 
-  // Функции и остальная логика
-  const showWebAlert = (title: string, message: string, onOk?: () => void) => {
+  // Мемоизированные функции для оптимизации
+  const showWebAlert = useCallback((title: string, message: string, onOk?: () => void) => {
     if (Platform.OS === 'web') {
       setAlertConfig({ visible: true, title, message, onOk });
     } else {
       Alert.alert(title, message, onOk ? [{ text: 'OK', onPress: onOk }] : undefined);
     }
-  };
+  }, []);
+
+  const handleNavigation = useCallback((route: string) => {
+    scaleValue.value = withSpring(0.98, {}, () => {
+      scaleValue.value = withSpring(1);
+      runOnJS(router.push)(route as any);
+    });
+  }, [router, scaleValue]);
 
   // Условные рендеры только после всех хуков
   if (loading) {
@@ -125,12 +163,8 @@ export default function HomePage() {
     );
   }
 
-  // Вычисляемые значения
-  const streakDays = getStreakDays();
-  const totalSoberDays = getTotalSoberDays();
-  const todayStatus = getDayStatus(selectedDate);
 
-  const handleLogDay = async (status: 'sober' | 'relapse') => {
+  const handleLogDay = useCallback(async (status: 'sober' | 'relapse') => {
     try {
       // Проверяем, можем ли отметить день (только один раз в день)
       if (todayStatus !== 'no-entry') {
@@ -175,10 +209,10 @@ export default function HomePage() {
     } finally {
       setShowMoodSelector(false);
     }
-  };
+  }, [selectedDate, todayStatus, mood, addProgressEntry, addMoodEntry, streakDays, showWebAlert]);
 
-  // Навигационные элементы
-  const navigationItems = [
+  // Мемоизированные навигационные элементы
+  const navigationItems = useMemo(() => [
     {
       title: 'AI-Коуч',
       description: 'Персональный помощник 24/7',
@@ -222,10 +256,10 @@ export default function HomePage() {
       color: '#FF6B6B',
       route: '/(tabs)/gamification'
     }
-  ];
+  ], []);
 
-  // Метрики здоровья
-  const getHealthMetrics = () => {
+  // Мемоизированные метрики здоровья
+  const getHealthMetrics = useCallback(() => {
     const metrics = [];
     if (soberDays >= 1) metrics.push({ icon: 'bedtime', text: 'Сон улучшается', color: '#4CAF50', days: 1 });
     if (soberDays >= 3) metrics.push({ icon: 'fitness-center', text: 'Больше энергии', color: '#FF9800', days: 3 });
@@ -234,9 +268,15 @@ export default function HomePage() {
     if (soberDays >= 30) metrics.push({ icon: 'shield', text: 'Сильный иммунитет', color: '#607D8B', days: 30 });
     if (soberDays >= 90) metrics.push({ icon: 'auto-awesome', text: 'Новая жизнь!', color: '#E91E63', days: 90 });
     return metrics;
-  };
+  }, [soberDays]);
 
-  const healthMetrics = getHealthMetrics();
+  const healthMetrics = useMemo(() => getHealthMetrics(), [getHealthMetrics]);
+
+  // Мемоизированные вычисления
+  const streakDays = useMemo(() => getStreakDays(), [getStreakDays]);
+  const totalSoberDays = useMemo(() => getTotalSoberDays(), [getTotalSoberDays]);
+  const todayStatus = useMemo(() => getDayStatus(selectedDate), [getDayStatus, selectedDate]);
+  const calendarMarks = useMemo(() => getCalendarMarks(), [getCalendarMarks]);
 
   return (
     <ScrollView style={[styles.container, { paddingTop: insets.top }]}>
@@ -285,11 +325,7 @@ export default function HomePage() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={styles.healthMetrics}>
               {healthMetrics.map((metric, index) => (
-                <View key={index} style={[styles.healthMetric, { borderColor: metric.color }]}>
-                  <MaterialIcons name={metric.icon as any} size={24} color={metric.color} />
-                  <Text style={styles.healthText}>{metric.text}</Text>
-                  <Text style={styles.healthDays}>День {metric.days}+</Text>
-                </View>
+                <MemoizedHealthMetric key={index} metric={metric} index={index} />
               ))}
             </View>
           </ScrollView>
@@ -347,31 +383,24 @@ export default function HomePage() {
         <Text style={styles.sectionTitle}>🛠 Инструменты восстановления</Text>
         <View style={styles.navigationGrid}>
           {navigationItems.map((item, index) => (
-            <TouchableOpacity
-              key={index}
-              style={styles.navCard}
-              onPress={() => router.push(item.route as any)}
-            >
-              <View style={[styles.navIcon, { backgroundColor: item.color }]}>
-                <MaterialIcons name={item.icon as any} size={28} color="white" />
-                {item.isNew && (
-                  <View style={styles.newBadge}>
-                    <Text style={styles.newBadgeText}>NEW</Text>
-                  </View>
-                )}
-              </View>
-              <View style={styles.navContent}>
-                <Text style={styles.navTitle}>{item.title}</Text>
-                <Text style={styles.navDescription}>{item.description}</Text>
-              </View>
-              <MaterialIcons name="chevron-right" size={24} color="#999" />
-            </TouchableOpacity>
+            <MemoizedNavCard 
+              key={index} 
+              item={item} 
+              onPress={() => handleNavigation(item.route)}
+            />
           ))}
         </View>
       </View>
 
-      {/* Система достижений */}
-      <AchievementSystem />
+      {/* Система достижений с ленивой загрузкой */}
+      <React.Suspense fallback={
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#2E7D4A" />
+          <Text style={styles.loadingText}>Загрузка достижений...</Text>
+        </View>
+      }>
+        <AchievementSystem />
+      </React.Suspense>
 
       {/* Calendar Modal */}
       <Modal visible={showCalendar} animationType="slide">
@@ -386,9 +415,9 @@ export default function HomePage() {
           <Calendar
             onDayPress={(day: DateData) => setSelectedDate(day.dateString)}
             markedDates={{
-              ...getCalendarMarks(),
+              ...calendarMarks,
               [selectedDate]: {
-                ...getCalendarMarks()[selectedDate],
+                ...calendarMarks[selectedDate],
                 selected: true,
                 selectedColor: '#2E7D4A'
               }
@@ -523,11 +552,22 @@ export default function HomePage() {
         </Modal>
       )}
 
-      {/* Crisis Intervention Modal */}
-      <CrisisIntervention 
-        visible={showCrisisIntervention}
-        onClose={() => setShowCrisisIntervention(false)}
-      />
+      {/* Crisis Intervention Modal с ленивой загрузкой */}
+      {showCrisisIntervention && (
+        <React.Suspense fallback={
+          <Modal visible={showCrisisIntervention} transparent>
+            <View style={[styles.modalOverlay, { justifyContent: 'center', alignItems: 'center' }]}>
+              <ActivityIndicator size="large" color="#2E7D4A" />
+              <Text style={[styles.loadingText, { color: 'white' }]}>Загрузка помощи...</Text>
+            </View>
+          </Modal>
+        }>
+          <CrisisIntervention 
+            visible={showCrisisIntervention}
+            onClose={() => setShowCrisisIntervention(false)}
+          />
+        </React.Suspense>
+      )}
     </ScrollView>
   );
 }
@@ -980,3 +1020,6 @@ const styles = StyleSheet.create({
     fontSize: 16
   }
 });
+
+// Экспорт с мемоизацией
+export default React.memo(HomePage);
