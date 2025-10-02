@@ -52,9 +52,14 @@ export default function HomePage() {
     onOk?: () => void;
   }>({ visible: false, title: '', message: '' });
 
-  // Анимации
+  // Анимации - ВСЕ анимационные хуки должны быть здесь
   const pulseValue = useSharedValue(0);
   const scaleValue = useSharedValue(1);
+  
+  // Анимированные стили - ОБЯЗАТЕЛЬНО здесь, до любых условий
+  const pulseAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: 1 + pulseValue.value * 0.05 }]
+  }));
 
   // useEffect хуки
   useEffect(() => {
@@ -232,10 +237,6 @@ export default function HomePage() {
   };
 
   const healthMetrics = getHealthMetrics();
-
-  const pulseAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: 1 + pulseValue.value * 0.05 }]
-  }));
 
   return (
     <ScrollView style={[styles.container, { paddingTop: insets.top }]}>
