@@ -42,29 +42,29 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="psychology"
+        name="ai-coach"
         options={{
-          title: 'Советы',
+          title: 'AI-Коуч',
           tabBarIcon: ({ color, size }) => (
             <MaterialIcons name="psychology" size={size} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="therapy"
+        name="gamification"
         options={{
-          title: 'Терапия',
+          title: 'Награды',
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="healing" size={size} color={color} />
+            <MaterialIcons name="emoji-events" size={size} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="exercises"
+        name="advanced-therapy"
         options={{
-          title: 'НЛП',
+          title: 'Терапия',
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="self-improvement" size={size} color={color} />
+            <MaterialIcons name="science" size={size} color={color} />
           ),
         }}
       />
@@ -77,40 +77,42 @@ export default function TabLayout() {
           ),
         }}
       />
+      
+      {/* Скрытые табы */}
+      <Tabs.Screen
+        name="psychology"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="therapy"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="exercises"
+        options={{
+          href: null,
+        }}
+      />
       <Tabs.Screen
         name="community"
         options={{
-          title: 'Сообщество',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="group" size={size} color={color} />
-          ),
-        }}
-      />
-                    <Tabs.Screen
-        name="advanced-therapy"
-        options={{
-          title: 'Продвинутая',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="science" size={size} color={color} />
-          ),
+          href: null,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Профиль',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="person" size={size} color={color} />
-          ),
+          href: null,
         }}
       />
       <Tabs.Screen
         name="analytics"
         options={{
-          title: 'Аналитика',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="analytics" size={size} color={color} />
-          ),
+          href: null,
         }}
       />
     </Tabs>
