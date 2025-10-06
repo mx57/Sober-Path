@@ -3,7 +3,7 @@
 export interface NLPTechnique {
   id: string;
   name: string;
-  category: 'anchoring' | 'reframing' | 'timeline' | 'submodalities' | 'swish' | 'phobia' | 'belief_change';
+  category: 'anchoring' | 'reframing' | 'timeline' | 'submodalities' | 'swish' | 'phobia' | 'belief_change' | 'parts_integration' | 'meta_program' | 'perceptual_positions';
   description: string;
   difficulty: 'beginner' | 'intermediate' | 'advanced' | 'expert';
   duration: number; // в минутах
@@ -11,6 +11,8 @@ export interface NLPTechnique {
   benefits: string[];
   precautions?: string[];
   contraindications?: string[];
+  energyLevel?: 'low' | 'medium' | 'high'; // требуемый уровень энергии
+  emotionalSafety?: 'safe' | 'moderate' | 'intense'; // эмоциональная безопасность
 }
 
 export interface NLPStep {
@@ -18,8 +20,9 @@ export interface NLPStep {
   title: string;
   instruction: string;
   duration?: number;
-  type: 'preparation' | 'visualization' | 'physical' | 'mental' | 'integration';
+  type: 'preparation' | 'visualization' | 'physical' | 'mental' | 'integration' | 'breathing' | 'movement';
   tips?: string[];
+  warnings?: string[];
 }
 
 export const advancedNLPTechniques: NLPTechnique[] = [

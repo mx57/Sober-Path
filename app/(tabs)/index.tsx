@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { Link } from 'expo-router';
 import { Calendar, DateData } from 'react-native-calendars';
 import { useRecovery } from '../../hooks/useRecovery';
 import { useAnalytics } from '../../hooks/useAnalytics';
@@ -56,7 +56,6 @@ const MemoizedNavCard = React.memo(({ item, onPress }: { item: any; onPress: () 
 function HomePage() {
   // ВСЕ ХУКИ ДОЛЖНЫ БЫТЬ ЗДЕСЬ, ДО ЛЮБЫХ УСЛОВНЫХ RETURN'ОВ
   const insets = useSafeAreaInsets();
-  const router = useRouter();
   const { 
     soberDays, 
     getStreakDays, 
@@ -113,9 +112,12 @@ function HomePage() {
   const handleNavigation = useCallback((route: string) => {
     scaleValue.value = withSpring(0.98, {}, () => {
       scaleValue.value = withSpring(1);
-      runOnJS(router.push)(route as any);
     });
-  }, [router, scaleValue]);
+    
+    // Простая навигация без использования router
+    // Поскольку мы в таб-структуре, ссылки будут работать автоматически
+    console.log('Переход на:', route);
+  }, [scaleValue]);
 
   // ВСЕ useMemo хуки - КРИТИЧНО: должны быть ДО handleLogDay
   const streakDays = useMemo(() => getStreakDays(), [getStreakDays]);
@@ -254,20 +256,21 @@ function HomePage() {
             Начните свой путь к здоровой жизни без алкоголя. 
             Получите поддержку, отслеживайте прогресс и достигайте целей.
           </Text>
-          <TouchableOpacity 
-            style={styles.startButton}
-            onPress={() => {
-              scaleValue.value = withSpring(0.95, {}, () => {
-                scaleValue.value = withSpring(1);
-              });
-              router.push('/onboarding' as any);
-            }}
-          >
-            <LinearGradient colors={['#2E7D4A', '#4CAF50']} style={styles.startButtonGradient}>
-              <MaterialIcons name="play-arrow" size={24} color="white" />
-              <Text style={styles.startButtonText}>Начать путь</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+            <Link href="/onboarding" asChild>
+              <TouchableOpacity 
+                style={styles.startButton}
+                onPress={() => {
+                  scaleValue.value = withSpring(0.95, {}, () => {
+                    scaleValue.value = withSpring(1);
+                  });
+                }}
+              >
+                <LinearGradient colors={['#2E7D4A', '#4CAF50']} style={styles.startButtonGradient}>
+                  <MaterialIcons name="play-arrow" size={24} color="white" />
+                  <Text style={styles.startButtonText}>Начать путь</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </Link>
         </View>
       </LinearGradient>
     );
@@ -383,11 +386,23 @@ function HomePage() {
         <Text style={styles.sectionTitle}>🛠 Инструменты восстановления</Text>
         <View style={styles.navigationGrid}>
           {navigationItems.map((item, index) => (
-            <MemoizedNavCard 
-              key={index} 
-              item={item} 
-              onPress={() => handleNavigation(item.route)}
-            />
+            <Link key={index} href={item.route as any} asChild>
+              <TouchableOpacity style={styles.navCard}>
+                <View style={[styles.navIcon, { backgroundColor: item.color }]}>
+                  <MaterialIcons name={item.icon} size={28} color="white" />
+                  {item.isNew && (
+                    <View style={styles.newBadge}>
+                      <Text style={styles.newBadgeText}>NEW</Text>
+                    </View>
+                  )}
+                </View>
+                <View style={styles.navContent}>
+                  <Text style={styles.navTitle}>{item.title}</Text>
+                  <Text style={styles.navDescription}>{item.description}</Text>
+                </View>
+                <MaterialIcons name="chevron-right" size={24} color="#999" />
+              </TouchableOpacity>
+            </Link>
           ))}
         </View>
       </View>

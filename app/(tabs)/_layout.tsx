@@ -66,7 +66,7 @@ function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="advanced-therapy"
+        name="enhanced-exercises"
         options={{
           title: 'Техники',
           tabBarIcon: ({ color, size }) => (
