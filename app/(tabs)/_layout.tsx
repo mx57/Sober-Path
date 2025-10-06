@@ -84,11 +84,11 @@ function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="gamification"
+        name="advanced-analytics"
         options={{
-          title: 'Награды',
+          title: 'ИИ-Анализ',
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="emoji-events" size={size - 2} color={color} />
+            <MaterialIcons name="psychology" size={size - 2} color={color} />
           ),
         }}
       />
