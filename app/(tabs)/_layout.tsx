@@ -84,16 +84,34 @@ function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="advanced-analytics"
+        name="personalized-recommendations"
         options={{
-          title: 'ИИ-Анализ',
+          title: 'Рекомендации',
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="psychology" size={size - 2} color={color} />
+            <MaterialIcons name="auto-awesome" size={size - 2} color={color} />
           ),
         }}
       />
       
       {/* Скрытые страницы - доступны через навигацию, но не отображаются в табах */}
+      <Tabs.Screen
+        name="advanced-analytics"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="enhanced-settings"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="gamification"
+        options={{
+          href: null,
+        }}
+      />
       <Tabs.Screen
         name="psychology"
         options={{
