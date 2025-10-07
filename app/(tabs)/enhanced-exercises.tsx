@@ -296,15 +296,18 @@ export default function EnhancedExercisesPage() {
           <Text style={styles.filterTitle}>Категории</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={styles.filtersContainer}>
-              {categories.map((category) => (
-                <MemoizedFilterChip
-                  key={category}
-                  label={category}
-                  selected={selectedCategory === category}
-                  onPress={() => setSelectedCategory(category)}
-                  color={getCategoryColor(category)}
-                />
-              ))}
+              {categories.map((category) => {
+                const categoryKey = `category-${category}`;
+                return (
+                  <MemoizedFilterChip
+                    key={categoryKey}
+                    label={category}
+                    selected={selectedCategory === category}
+                    onPress={() => setSelectedCategory(category)}
+                    color={getCategoryColor(category)}
+                  />
+                );
+              })}
             </View>
           </ScrollView>
         </View>
@@ -322,9 +325,10 @@ export default function EnhancedExercisesPage() {
                   'advanced': '#FF5722',
                   'expert': '#9C27B0'
                 };
+                const difficultyKey = `difficulty-${difficulty}`;
                 return (
                   <MemoizedFilterChip
-                    key={difficulty}
+                    key={difficultyKey}
                     label={difficulty === 'Все' ? 'Все' : 
                            difficulty === 'beginner' ? 'Начинающий' :
                            difficulty === 'intermediate' ? 'Средний' :
@@ -411,7 +415,7 @@ export default function EnhancedExercisesPage() {
                       <View style={styles.benefitsSection}>
                         <Text style={styles.sectionSubtitle}>✨ Преимущества:</Text>
                         {selectedTechnique.benefits.map((benefit, index) => (
-                          <Text key={index} style={styles.benefitItem}>
+                          <Text key={`benefit-${selectedTechnique.id}-${index}`} style={styles.benefitItem}>
                             • {benefit}
                           </Text>
                         ))}
@@ -423,7 +427,7 @@ export default function EnhancedExercisesPage() {
                       <View style={styles.warningsSection}>
                         <Text style={styles.sectionSubtitle}>⚠️ Предосторожности:</Text>
                         {selectedTechnique.precautions.map((precaution, index) => (
-                          <Text key={index} style={styles.warningItem}>
+                          <Text key={`precaution-${selectedTechnique.id}-${index}`} style={styles.warningItem}>
                             • {precaution}
                           </Text>
                         ))}
@@ -435,7 +439,7 @@ export default function EnhancedExercisesPage() {
                       <View style={styles.contraindicationsSection}>
                         <Text style={styles.sectionSubtitle}>🚫 Противопоказания:</Text>
                         {selectedTechnique.contraindications.map((contraindication, index) => (
-                          <Text key={index} style={styles.contraindicationItem}>
+                          <Text key={`contraindication-${selectedTechnique.id}-${index}`} style={styles.contraindicationItem}>
                             • {contraindication}
                           </Text>
                         ))}
@@ -496,7 +500,7 @@ export default function EnhancedExercisesPage() {
                           <View style={styles.tipsSection}>
                             <Text style={styles.tipsTitle}>💡 Советы:</Text>
                             {selectedTechnique.steps[currentStep].tips.map((tip: string, index: number) => (
-                              <Text key={index} style={styles.tipItem}>• {tip}</Text>
+                              <Text key={`tip-${selectedTechnique.id}-${currentStep}-${index}`} style={styles.tipItem}>• {tip}</Text>
                             ))}
                           </View>
                         )}
