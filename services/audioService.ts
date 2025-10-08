@@ -551,5 +551,68 @@ export class AdvancedAudioEngine {
   }
 }
 
-// Экземпляр аудио движка
-export const audioEngine = new AdvancedAudioEngine();
+// Экспорт для обратной совместимости
+export interface RelaxingSound {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  duration: number;
+  benefits: string[];
+}
+
+// Адаптер для старого API
+export class AudioService {
+  private static engine = new AdvancedAudioEngine();
+  private static initialized = false;
+
+  static async initialize() {
+    if (!this.initialized) {
+      await this.engine.initialize();
+      this.initialized = true;
+    }
+  }
+
+  static async playRelaxingSound(soundId: string, volume: number = 0.5) {
+    await this.initialize();
+    return await this.engine.playSound(soundId, true, volume);
+  }
+
+  static async pauseAudio() {
+    // Реализация паузы через остановку
+    this.engine.stopAll();
+  }
+
+  static async stopAudio() {
+    this.engine.stopAll();
+  }
+
+  static setVolume(soundId: string, volume: number) {
+    this.engine.setVolume(soundId, volume);
+  }
+
+  static fadeIn(soundId: string, duration: number = 2) {
+    this.engine.fadeIn(soundId, duration);
+  }
+
+  static fadeOut(soundId: string, duration: number = 2) {
+    this.engine.fadeOut(soundId, duration);
+  }
+
+  // Получение списка звуков в старом формате
+  static getRelaxingSounds(): RelaxingSound[] {
+    return generatedSounds.map(sound => ({
+      id: sound.id,
+      name: sound.name,
+      description: sound.description,
+      category: sound.category,
+      duration: sound.duration,
+      benefits: sound.benefits
+    }));
+  }
+
+  // Получение гипнотерапевтических сессий
+  static getHypnotherapySessions(): HypnotherapySession[] {
+    return hypnotherapySessions;
+  }
+}
