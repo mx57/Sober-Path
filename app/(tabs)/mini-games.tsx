@@ -538,7 +538,204 @@ const DecisionChallengeGame = ({ onGameComplete }: { onGameComplete: (score: num
   );
 };
 
-// Игра "Виртуальный антистресс"
+// Игра "Сад эмоций"
+const EmotionGardenGame = ({ onGameComplete }: { onGameComplete: (score: number) => void }) => {
+  const [score, setScore] = useState(0);
+  const [gameActive, setGameActive] = useState(false);
+  const [plants, setPlants] = useState<{id: string, type: string, growth: number, x: number, y: number}[]>([]);
+  const [selectedEmotion, setSelectedEmotion] = useState<string>('');
+  const [waterCount, setWaterCount] = useState(0);
+
+  const emotions = [
+    { name: 'Спокойствие', icon: '🌱', color: '#4CAF50' },
+    { name: 'Радость', icon: '🌻', color: '#FFD700' },
+    { name: 'Мир', icon: '🌿', color: '#81C784' },
+    { name: 'Любовь', icon: '🌹', color: '#F48FB1' },
+    { name: 'Мудрость', icon: '🌲', color: '#8D6E63' },
+    { name: 'Надежда', icon: '🌸', color: '#BA68C8' }
+  ];
+
+  const startGame = () => {
+    setGameActive(true);
+    setScore(0);
+    setPlants([]);
+    setWaterCount(0);
+  };
+
+  const plantEmotion = (emotion: any) => {
+    if (plants.length >= 12) return;
+    
+    const newPlant = {
+      id: Date.now().toString(),
+      type: emotion.icon,
+      growth: 0,
+      x: Math.random() * 250 + 20,
+      y: Math.random() * 200 + 50
+    };
+    
+    setPlants(prev => [...prev, newPlant]);
+    setScore(prev => prev + 5);
+  };
+
+  const waterPlant = (plantId: string) => {
+    setPlants(prev => prev.map(plant => 
+      plant.id === plantId 
+        ? { ...plant, growth: Math.min(plant.growth + 1, 3) }
+        : plant
+    ));
+    setWaterCount(prev => prev + 1);
+    setScore(prev => prev + 3);
+  };
+
+  const endGame = () => {
+    setGameActive(false);
+    const growthBonus = plants.reduce((sum, plant) => sum + plant.growth * 2, 0);
+    onGameComplete(score + growthBonus);
+  };
+
+  return (
+    <View style={styles.gameContainer}>
+      <View style={styles.gameHeader}>
+        <Text style={styles.scoreText}>Счет: {score}</Text>
+        <Text style={styles.levelText}>Растений: {plants.length}/12</Text>
+      </View>
+      
+      <Text style={styles.instructionText}>Выбирайте эмоции для посадки в саду</Text>
+      
+      <View style={styles.gardenContainer}>
+        {plants.map(plant => (
+          <TouchableOpacity
+            key={plant.id}
+            style={[styles.plant, { left: plant.x, top: plant.y }]}
+            onPress={() => waterPlant(plant.id)}
+          >
+            <Text style={[styles.plantIcon, { 
+              fontSize: 16 + plant.growth * 4,
+              opacity: 0.7 + plant.growth * 0.1 
+            }]}>
+              {plant.type}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      
+      <View style={styles.emotionsGrid}>
+        {emotions.map(emotion => (
+          <TouchableOpacity
+            key={emotion.name}
+            style={[styles.emotionButton, { borderColor: emotion.color }]}
+            onPress={() => plantEmotion(emotion)}
+          >
+            <Text style={styles.emotionIcon}>{emotion.icon}</Text>
+            <Text style={styles.emotionName}>{emotion.name}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      
+      {!gameActive ? (
+        <TouchableOpacity style={styles.startButton} onPress={startGame}>
+          <Text style={styles.startButtonText}>Начать садоводство</Text>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity style={styles.stopButton} onPress={endGame}>
+          <Text style={styles.stopButtonText}>Завершить</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+};
+
+// Игра "Охота за благодарностью"
+const GratitudeHuntGame = ({ onGameComplete }: { onGameComplete: (score: number) => void }) => {
+  const [score, setScore] = useState(0);
+  const [gameActive, setGameActive] = useState(false);
+  const [currentPrompt, setCurrentPrompt] = useState('');
+  const [foundItems, setFoundItems] = useState<string[]>([]);
+  const [promptIndex, setPromptIndex] = useState(0);
+
+  const prompts = [
+    'Найдите что-то красивое вокруг себя',
+    'Найдите что-то, что приносит вам комфорт',
+    'Найдите что-то, за что вы благодарны своим близким',
+    'Найдите что-то, что помогает вам учиться',
+    'Найдите что-то, что дает вам энергию',
+    'Найдите что-то, что вызывает у вас улыбку',
+    'Найдите что-то, что связывает вас с хорошими воспоминаниями',
+    'Найдите что-то, что помогает вам чувствовать себя в безопасности',
+    'Найдите что-то, что вдохновляет вас',
+    'Найдите что-то, что олицетворяет вашу силу'
+  ];
+
+  const startGame = () => {
+    setGameActive(true);
+    setScore(0);
+    setFoundItems([]);
+    setPromptIndex(0);
+    setCurrentPrompt(prompts[0]);
+  };
+
+  const foundItem = () => {
+    setScore(prev => prev + 10);
+    setFoundItems(prev => [...prev, `Пункт ${prev.length + 1}`]);
+    
+    if (promptIndex < prompts.length - 1) {
+      setPromptIndex(prev => prev + 1);
+      setCurrentPrompt(prompts[promptIndex + 1]);
+    } else {
+      endGame();
+    }
+  };
+
+  const endGame = () => {
+    setGameActive(false);
+    onGameComplete(score);
+  };
+
+  return (
+    <View style={styles.gameContainer}>
+      <View style={styles.gameHeader}>
+        <Text style={styles.scoreText}>Благодарностей: {foundItems.length}</Text>
+        <Text style={styles.levelText}>Счет: {score}</Text>
+      </View>
+      
+      {gameActive && (
+        <View style={styles.huntContainer}>
+          <View style={styles.promptContainer}>
+            <Text style={styles.promptText}>{currentPrompt}</Text>
+          </View>
+          
+          <TouchableOpacity style={styles.foundButton} onPress={foundItem}>
+            <MaterialIcons name="camera-alt" size={24} color="white" />
+            <Text style={styles.foundButtonText}>📸 Нашел!</Text>
+          </TouchableOpacity>
+          
+          <View style={styles.foundItemsList}>
+            {foundItems.map((item, index) => (
+              <View key={index} style={styles.foundItemBadge}>
+                <Text style={styles.foundItemText}>✔ {item}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
+      
+      {!gameActive ? (
+        <View style={styles.gratitudeIntro}>
+          <Text style={styles.introText}>
+            🔍 Отправьтесь на охоту за 10 вещами, за которые вы благодарны!
+          </Text>
+          <TouchableOpacity style={styles.startButton} onPress={startGame}>
+            <Text style={styles.startButtonText}>Начать охоту</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <TouchableOpacity style={styles.stopButton} onPress={endGame}>
+          <Text style={styles.stopButtonText}>Завершить</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+};
 const StressBallGame = ({ onGameComplete }: { onGameComplete: (score: number) => void }) => {
   const [score, setScore] = useState(0);
   const [gameActive, setGameActive] = useState(false);
@@ -854,6 +1051,10 @@ const MiniGamesPage: React.FC<MiniGamesPageProps> = ({
         return <MindfulMazeGame onGameComplete={completeGame} />;
       case 'rapid_decision_challenge':
         return <DecisionChallengeGame onGameComplete={completeGame} />;
+      case 'emotion_regulation_garden':
+        return <EmotionGardenGame onGameComplete={completeGame} />;
+      case 'gratitude_photo_hunt':
+        return <GratitudeHuntGame onGameComplete={completeGame} />;
       case 'stress_ball_squeeze':
         return <StressBallGame onGameComplete={completeGame} />;
       case 'color_sequence_memory':
@@ -863,6 +1064,27 @@ const MiniGamesPage: React.FC<MiniGamesPageProps> = ({
           <View style={styles.gameContainer}>
             <Text style={styles.gameTitle}>{selectedGame.name}</Text>
             <Text style={styles.gameDescription}>{selectedGame.description}</Text>
+            <View style={styles.comingSoonContainer}>
+              <MaterialIcons name="construction" size={48} color="#FF9800" />
+              <Text style={styles.comingSoonText}>
+                Эта игра находится в разработке
+              </Text>
+              <Text style={styles.comingSoonSubtext}>
+                Скоро будет добавлена полная интерактивная версия!
+              </Text>
+            </View>
+            <TouchableOpacity 
+              style={styles.demoButton}
+              onPress={() => completeGame(Math.floor(Math.random() * 50) + 25)}
+            >
+              <Text style={styles.demoButtonText}>Попробовать демо-версию</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.backFromGameButton}
+              onPress={() => setSelectedGame(null)}
+            >
+              <Text style={styles.backFromGameButtonText}>Вернуться к списку игр</Text>
+            </TouchableOpacity>
           </View>
         );
     }
@@ -1471,6 +1693,161 @@ const styles = StyleSheet.create({
   },
   ballEmoji: {
     fontSize: 30
+  },
+  // Стили для игр в разработке
+  comingSoonContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+    padding: 40
+  },
+  comingSoonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 16,
+    marginBottom: 8
+  },
+  comingSoonSubtext: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
+    lineHeight: 20
+  },
+  demoButton: {
+    backgroundColor: '#FF9800',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 20,
+    alignItems: 'center',
+    alignSelf: 'center',
+    marginVertical: 10
+  },
+  demoButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600'
+  },
+  backFromGameButton: {
+    backgroundColor: '#E0E0E0',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 15,
+    alignItems: 'center',
+    alignSelf: 'center',
+    marginTop: 10
+  },
+  backFromGameButtonText: {
+    color: '#666',
+    fontSize: 14,
+    fontWeight: '500'
+  },
+  // Стили для сада эмоций
+  gardenContainer: {
+    height: 250,
+    backgroundColor: '#E8F5E8',
+    borderRadius: 15,
+    marginVertical: 20,
+    position: 'relative',
+    borderWidth: 2,
+    borderColor: '#4CAF50'
+  },
+  plant: {
+    position: 'absolute',
+    padding: 5
+  },
+  plantIcon: {
+    fontSize: 20
+  },
+  emotionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 8
+  },
+  emotionButton: {
+    width: '30%',
+    padding: 10,
+    borderRadius: 10,
+    borderWidth: 2,
+    alignItems: 'center',
+    backgroundColor: '#FFF'
+  },
+  emotionIcon: {
+    fontSize: 20,
+    marginBottom: 5
+  },
+  emotionName: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#333',
+    textAlign: 'center'
+  },
+  // Стили для охоты за благодарностью
+  huntContainer: {
+    flex: 1,
+    padding: 20
+  },
+  promptContainer: {
+    backgroundColor: '#F0F8FF',
+    padding: 20,
+    borderRadius: 15,
+    marginBottom: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: '#2196F3'
+  },
+  promptText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    textAlign: 'center'
+  },
+  foundButton: {
+    backgroundColor: '#4CAF50',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 15,
+    borderRadius: 25,
+    marginBottom: 20,
+    gap: 8
+  },
+  foundButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold'
+  },
+  foundItemsList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8
+  },
+  foundItemBadge: {
+    backgroundColor: '#E8F5E8',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: '#4CAF50'
+  },
+  foundItemText: {
+    color: '#2E7D4A',
+    fontSize: 12,
+    fontWeight: '600'
+  },
+  gratitudeIntro: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20
+  },
+  introText: {
+    fontSize: 16,
+    color: '#333',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 30
   }
 });
 
