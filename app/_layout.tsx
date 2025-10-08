@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
 import { RecoveryProvider } from '../contexts/RecoveryContext';
-import { AnalyticsProvider } from '../contexts/AnalyticsProvider';
+import { AnalyticsProvider } from '../contexts/AnalyticsContext';
 import { PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
