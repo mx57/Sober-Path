@@ -23,7 +23,12 @@ import Animated, {
   withTiming,
   runOnJS
 } from 'react-native-reanimated';
-import { advancedNLPTechniques } from '../../services/enhancedNLPService';
+import { 
+  advancedNLPTechniques, 
+  additionalNLPTechniques,
+  beliefWorkTechniques,
+  integrativeNLPTechniques
+} from '../../services/enhancedNLPService';
 import { advancedCBTTechniques } from '../../services/advancedCBTService';
 import { traumaInformedTechniques } from '../../services/traumaTherapyService';
 import { integrativeTherapyTechniques } from '../../services/integrativeTherapyService';
@@ -32,9 +37,12 @@ const { width: screenWidth } = Dimensions.get('window');
 
 // Объединенная библиотека всех техник
 const allTechniques = [
-  ...advancedNLPTechniques.map(tech => ({ ...tech, category: 'НЛП', color: '#FF9800' })),
+  ...advancedNLPTechniques.map(tech => ({ ...tech, category: 'НЛП Базовые', color: '#FF9800' })),
+  ...additionalNLPTechniques.map(tech => ({ ...tech, category: 'НЛП Продвинутые', color: '#FF5722' })),
+  ...beliefWorkTechniques.map(tech => ({ ...tech, category: 'Работа с убеждениями', color: '#E91E63' })),
+  ...integrativeNLPTechniques.map(tech => ({ ...tech, category: 'НЛП Интегративные', color: '#9C27B0' })),
   ...advancedCBTTechniques.map(tech => ({ ...tech, category: 'КПТ', color: '#2196F3' })),
-  ...traumaInformedTechniques.map(tech => ({ ...tech, category: 'Работа с травмой', color: '#9C27B0' })),
+  ...traumaInformedTechniques.map(tech => ({ ...tech, category: 'Работа с травмой', color: '#673AB7' })),
   ...integrativeTherapyTechniques.map(tech => ({ ...tech, category: 'Интегративные методы', color: '#4CAF50' }))
 ];
 
@@ -251,9 +259,12 @@ export default function EnhancedExercisesPage() {
 
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case 'НЛП': return '#FF9800';
+      case 'НЛП Базовые': return '#FF9800';
+      case 'НЛП Продвинутые': return '#FF5722';
+      case 'Работа с убеждениями': return '#E91E63';
+      case 'НЛП Интегративные': return '#9C27B0';
       case 'КПТ': return '#2196F3';
-      case 'Работа с травмой': return '#9C27B0';
+      case 'Работа с травмой': return '#673AB7';
       case 'Интегративные методы': return '#4CAF50';
       default: return '#666';
     }
@@ -267,7 +278,7 @@ export default function EnhancedExercisesPage() {
           <MaterialIcons name="self-improvement" size={32} color="white" />
           <Text style={styles.headerTitle}>Техники и упражнения</Text>
           <Text style={styles.headerSubtitle}>
-            {allTechniques.length} проверенных методов восстановления
+            {allTechniques.length} проверенных методов восстановления • Расширенная библиотека НЛП
           </Text>
         </View>
       </LinearGradient>

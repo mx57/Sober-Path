@@ -475,8 +475,452 @@ export const mindfulnessExercises: MindfulnessExercise[] = [
   }
 ];
 
+// Дополнительные НЛП техники для расширения библиотеки
+export const additionalNLPTechniques: NLPTechnique[] = [
+  {
+    id: 'meta-mirror',
+    name: 'Мета-зеркало',
+    category: 'meta_program',
+    description: 'Техника изменения метапрограмм через работу с внутренним зеркалом',
+    difficulty: 'expert',
+    duration: 40,
+    steps: [
+      {
+        id: 'setup-mirror',
+        title: 'Установка зеркала',
+        instruction: 'Представьте большое зеркало перед собой',
+        duration: 3,
+        type: 'visualization',
+        tips: ['Сделайте зеркало четким и ярким']
+      },
+      {
+        id: 'observe-self',
+        title: 'Наблюдение за собой',
+        instruction: 'Посмотрите на свое отражение и заметьте, как выглядит человек с зависимостью',
+        duration: 5,
+        type: 'visualization',
+        tips: ['Будьте честны, но сострадательны к себе']
+      },
+      {
+        id: 'meta-position',
+        title: 'Мета-позиция',
+        instruction: 'Выйдите из своего тела и посмотрите на себя со стороны',
+        duration: 7,
+        type: 'mental',
+        tips: ['Почувствуйте себя мудрым наблюдателем']
+      },
+      {
+        id: 'change-reflection',
+        title: 'Изменение отражения',
+        instruction: 'Измените отражение на образ здорового, трезвого человека',
+        duration: 10,
+        type: 'visualization',
+        tips: ['Сделайте новый образ ярким и привлекательным']
+      },
+      {
+        id: 'integrate-change',
+        title: 'Интеграция изменений',
+        instruction: 'Войдите в новое отражение и почувствуйте себя этим человеком',
+        duration: 8,
+        type: 'integration',
+        tips: ['Позвольте новой идентичности заполнить все ваше существо']
+      },
+      {
+        id: 'anchor-identity',
+        title: 'Закрепление идентичности',
+        instruction: 'Создайте якорь для новой идентичности',
+        duration: 7,
+        type: 'physical',
+        tips: ['Используйте жест или слово для активации новой идентичности']
+      }
+    ],
+    benefits: ['Глубокое изменение самовосприятия', 'Новая идентичность', 'Устойчивые изменения'],
+    contraindications: ['Нестабильная психика', 'Диссоциативные расстройства'],
+    precautions: ['Работайте медленно и осторожно', 'При дискомфорте остановитесь']
+  },
+
+  {
+    id: 'neuro-mapping',
+    name: 'Нейрокартирование привычек',
+    category: 'submodalities',
+    description: 'Картирование и перепрограммирование нейронных путей привычек',
+    difficulty: 'advanced',
+    duration: 35,
+    steps: [
+      {
+        id: 'map-trigger',
+        title: 'Картирование триггера',
+        instruction: 'Определите главный триггер желания выпить',
+        duration: 5,
+        type: 'mental',
+        tips: ['Найдите самый сильный триггер']
+      },
+      {
+        id: 'trace-pathway',
+        title: 'Отслеживание пути',
+        instruction: 'Проследите путь от триггера к действию по шагам',
+        duration: 8,
+        type: 'mental',
+        tips: ['Найдите каждый микро-шаг в цепочке']
+      },
+      {
+        id: 'find-junction',
+        title: 'Поиск развилки',
+        instruction: 'Найдите точку выбора в этой цепочке',
+        duration: 5,
+        type: 'mental',
+        tips: ['Ищите момент, где можно выбрать другой путь']
+      },
+      {
+        id: 'create-detour',
+        title: 'Создание обходного пути',
+        instruction: 'Создайте новый, здоровый путь от точки выбора',
+        duration: 10,
+        type: 'visualization',
+        tips: ['Сделайте новый путь ярким и привлекательным']
+      },
+      {
+        id: 'strengthen-detour',
+        title: 'Укрепление нового пути',
+        instruction: 'Мысленно пройдите новый путь 20 раз подряд',
+        duration: 7,
+        type: 'integration',
+        tips: ['Каждый раз делайте путь ярче и легче']
+      }
+    ],
+    benefits: ['Переформатирование привычек', 'Новые здоровые автоматизмы', 'Нейропластичность'],
+    precautions: ['Работайте с одной привычкой за раз']
+  },
+
+  {
+    id: 'quantum-healing',
+    name: 'Квантовое исцеление',
+    category: 'timeline',
+    description: 'Работа с квантовыми возможностями для исцеления зависимости',
+    difficulty: 'expert',
+    duration: 50,
+    steps: [
+      {
+        id: 'quantum-field',
+        title: 'Вход в квантовое поле',
+        instruction: 'Представьте себя в поле бесконечных возможностей',
+        duration: 8,
+        type: 'visualization',
+        tips: ['Почувствуйте безграничность возможностей']
+      },
+      {
+        id: 'parallel-selves',
+        title: 'Встреча с параллельными я',
+        instruction: 'Встретьтесь с версиями себя, которые никогда не имели зависимости',
+        duration: 12,
+        type: 'visualization',
+        tips: ['Изучите их опыт и мудрость']
+      },
+      {
+        id: 'resource-exchange',
+        title: 'Обмен ресурсами',
+        instruction: 'Получите от них ресурсы здоровья и трезвости',
+        duration: 10,
+        type: 'integration',
+        tips: ['Позвольте их энергии влиться в вас']
+      },
+      {
+        id: 'timeline-merge',
+        title: 'Слияние временных линий',
+        instruction: 'Объедините их опыт со своим',
+        duration: 12,
+        type: 'integration',
+        tips: ['Почувствуйте, как меняется ваша история']
+      },
+      {
+        id: 'new-reality',
+        title: 'Новая реальность',
+        instruction: 'Закрепите новую реальность трезвости',
+        duration: 8,
+        type: 'integration',
+        tips: ['Сделайте новую реальность единственно возможной']
+      }
+    ],
+    benefits: ['Фундаментальное изменение реальности', 'Доступ к новым ресурсам', 'Квантовые изменения'],
+    contraindications: ['Психотические состояния', 'Острые психические расстройства'],
+    precautions: ['Работайте только в стабильном состоянии', 'Имейте поддержку специалиста']
+  },
+
+  {
+    id: 'energy-shield',
+    name: 'Энергетический щит',
+    category: 'anchoring',
+    description: 'Создание защитного энергетического щита от негативных влияний',
+    difficulty: 'intermediate',
+    duration: 25,
+    steps: [
+      {
+        id: 'center-energy',
+        title: 'Центрирование энергии',
+        instruction: 'Сосредоточьте всю свою энергию в центре груди',
+        duration: 5,
+        type: 'breathing',
+        tips: ['Дышите в центр груди']
+      },
+      {
+        id: 'expand-light',
+        title: 'Расширение света',
+        instruction: 'Представьте, как из центра исходит яркий свет',
+        duration: 5,
+        type: 'visualization',
+        tips: ['Выберите цвет, который ассоциируется с защитой']
+      },
+      {
+        id: 'form-shield',
+        title: 'Формирование щита',
+        instruction: 'Сформируйте из света защитный щит вокруг себя',
+        duration: 7,
+        type: 'visualization',
+        tips: ['Сделайте щит прочным и непроницаемым для негатива']
+      },
+      {
+        id: 'program-shield',
+        title: 'Программирование щита',
+        instruction: 'Запрограммируйте щит отражать искушения и негативные влияния',
+        duration: 5,
+        type: 'mental',
+        tips: ['Четко определите, от чего защищает щит']
+      },
+      {
+        id: 'activation-word',
+        title: 'Слово активации',
+        instruction: 'Выберите слово для мгновенной активации щита',
+        duration: 3,
+        type: 'integration',
+        tips: ['Выберите короткое, мощное слово']
+      }
+    ],
+    benefits: ['Защита от негативных влияний', 'Повышение устойчивости', 'Уверенность в себе'],
+    precautions: ['Не используйте как единственную защиту']
+  },
+
+  {
+    id: 'cellular-reprogramming',
+    name: 'Клеточное перепрограммирование',
+    category: 'submodalities',
+    description: 'Программирование клеток на отторжение алкоголя',
+    difficulty: 'advanced',
+    duration: 45,
+    steps: [
+      {
+        id: 'body-scan',
+        title: 'Сканирование тела',
+        instruction: 'Просканируйте все тело, обращая внимание на каждую клетку',
+        duration: 8,
+        type: 'physical',
+        tips: ['Почувствуйте миллиарды клеток в теле']
+      },
+      {
+        id: 'cellular-communication',
+        title: 'Общение с клетками',
+        instruction: 'Обратитесь к клеткам с просьбой о помощи',
+        duration: 7,
+        type: 'mental',
+        tips: ['Говорите с любовью и уважением']
+      },
+      {
+        id: 'program-rejection',
+        title: 'Программирование отторжения',
+        instruction: 'Попросите клетки отторгать алкоголь как яд',
+        duration: 10,
+        type: 'visualization',
+        tips: ['Представьте, как клетки защищаются от алкоголя']
+      },
+      {
+        id: 'strengthen-immunity',
+        title: 'Укрепление иммунитета',
+        instruction: 'Направьте энергию исцеления в каждую клетку',
+        duration: 12,
+        type: 'visualization',
+        tips: ['Представьте белый исцеляющий свет']
+      },
+      {
+        id: 'cellular-commitment',
+        title: 'Клеточное обязательство',
+        instruction: 'Получите обязательство от клеток поддерживать трезвость',
+        duration: 8,
+        type: 'integration',
+        tips: ['Почувствуйте согласие всего тела']
+      }
+    ],
+    benefits: ['Физическое отторжение алкоголя', 'Укрепление иммунитета', 'Холистическое исцеление'],
+    precautions: ['Не заменяет медицинское лечение']
+  }
+];
+
+// Продвинутые техники работы с убеждениями
+export const beliefWorkTechniques: NLPTechnique[] = [
+  {
+    id: 'belief-archeology',
+    name: 'Археология убеждений',
+    category: 'belief_change',
+    description: 'Раскопка и переформатирование глубинных убеждений о зависимости',
+    difficulty: 'expert',
+    duration: 60,
+    steps: [
+      {
+        id: 'surface-beliefs',
+        title: 'Поверхностные убеждения',
+        instruction: 'Определите очевидные убеждения об алкоголе',
+        duration: 8,
+        type: 'mental'
+      },
+      {
+        id: 'dig-deeper',
+        title: 'Копаем глубже',
+        instruction: 'Спрашивайте "почему" для каждого убеждения',
+        duration: 15,
+        type: 'mental',
+        tips: ['Задавайте вопрос "почему" минимум 5 раз']
+      },
+      {
+        id: 'core-belief',
+        title: 'Ядерное убеждение',
+        instruction: 'Найдите самое глубокое убеждение о себе',
+        duration: 10,
+        type: 'mental',
+        tips: ['Обычно связано с самооценкой или безопасностью']
+      },
+      {
+        id: 'belief-origin',
+        title: 'Происхождение убеждения',
+        instruction: 'Найдите источник этого убеждения в прошлом',
+        duration: 12,
+        type: 'mental',
+        tips: ['Доверяйте первым воспоминаниям']
+      },
+      {
+        id: 'reframe-origin',
+        title: 'Переосмысление источника',
+        instruction: 'Переосмыслите первоначальное событие',
+        duration: 15,
+        type: 'integration',
+        tips: ['Найдите позитивные аспекты опыта']
+      }
+    ],
+    benefits: ['Глубокое понимание себя', 'Исцеление прошлых травм', 'Новые убеждения'],
+    contraindications: ['Недавние травмы', 'ПТСР без работы со специалистом']
+  },
+
+  {
+    id: 'identity-transformation',
+    name: 'Трансформация идентичности',
+    category: 'belief_change',
+    description: 'Полное переформатирование личностной идентичности',
+    difficulty: 'expert',
+    duration: 55,
+    steps: [
+      {
+        id: 'old-identity',
+        title: 'Старая идентичность',
+        instruction: 'Четко определите свою текущую идентичность с зависимостью',
+        duration: 10,
+        type: 'mental'
+      },
+      {
+        id: 'identity-funeral',
+        title: 'Похороны идентичности',
+        instruction: 'Проведите символические похороны старой идентичности',
+        duration: 15,
+        type: 'visualization',
+        tips: ['Поблагодарите старую идентичность за службу']
+      },
+      {
+        id: 'new-identity-birth',
+        title: 'Рождение новой идентичности',
+        instruction: 'Создайте полностью новую идентичность здорового человека',
+        duration: 15,
+        type: 'visualization',
+        tips: ['Будьте конкретны в деталях']
+      },
+      {
+        id: 'identity-embodiment',
+        title: 'Воплощение идентичности',
+        instruction: 'Войдите в новую идентичность всем существом',
+        duration: 10,
+        type: 'integration',
+        tips: ['Почувствуйте изменения в теле и энергии']
+      },
+      {
+        id: 'identity-declaration',
+        title: 'Декларация идентичности',
+        instruction: 'Публично (про себя) объявите о новой идентичности',
+        duration: 5,
+        type: 'integration',
+        tips: ['Используйте утвердительные формулировки']
+      }
+    ],
+    benefits: ['Кардинальное изменение самовосприятия', 'Новая жизненная позиция', 'Устойчивые изменения'],
+    precautions: ['Убедитесь в готовности к кардинальным изменениям']
+  }
+];
+
+// Интегративные техники НЛП
+export const integrativeNLPTechniques: NLPTechnique[] = [
+  {
+    id: 'holistic-integration',
+    name: 'Холистическая интеграция',
+    category: 'parts_integration',
+    description: 'Интеграция всех аспектов личности для поддержки трезвости',
+    difficulty: 'expert',
+    duration: 70,
+    steps: [
+      {
+        id: 'map-parts',
+        title: 'Картирование частей',
+        instruction: 'Определите все части себя, связанные с алкоголем',
+        duration: 15,
+        type: 'mental',
+        tips: ['Включите части "за" и "против" алкоголя']
+      },
+      {
+        id: 'negotiate-parts',
+        title: 'Переговоры между частями',
+        instruction: 'Проведите переговоры между конфликтующими частями',
+        duration: 20,
+        type: 'mental',
+        tips: ['Найдите общие интересы всех частей']
+      },
+      {
+        id: 'create-alliance',
+        title: 'Создание альянса',
+        instruction: 'Создайте союз всех частей для поддержки трезвости',
+        duration: 15,
+        type: 'integration',
+        tips: ['Каждая часть должна найти свою роль в трезвой жизни']
+      },
+      {
+        id: 'seal-agreement',
+        title: 'Закрепление соглашения',
+        instruction: 'Закрепите соглашение между частями',
+        duration: 10,
+        type: 'integration',
+        tips: ['Создайте ритуал или символ единства']
+      },
+      {
+        id: 'test-integration',
+        title: 'Тестирование интеграции',
+        instruction: 'Проверьте интеграцию в воображаемых сложных ситуациях',
+        duration: 10,
+        type: 'mental',
+        tips: ['Убедитесь, что все части работают согласованно']
+      }
+    ],
+    benefits: ['Внутренняя гармония', 'Устранение внутренних конфликтов', 'Целостность личности'],
+    precautions: ['Требует опыта работы с частями личности']
+  }
+];
+
 export default {
   advancedNLPTechniques,
+  additionalNLPTechniques,
+  beliefWorkTechniques,
+  integrativeNLPTechniques,
   submodalityTechniques,
   mindfulnessExercises
 };

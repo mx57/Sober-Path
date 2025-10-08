@@ -9,10 +9,9 @@ import {
   TouchableOpacity,
   Dimensions,
   Animated,
-  PanGestureHandler,
-  State,
   Alert,
-  Platform
+  Platform,
+  ScrollView
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -553,42 +552,49 @@ const MiniGamesPage: React.FC<MiniGamesPageProps> = ({
 
 
       <View style={styles.allGamesSection}>
-        <Text style={styles.sectionTitle}>🎮 Все игры</Text>
-        <View style={styles.gamesGrid}>
-          {addictionDistractiveGames.map(game => (
-            <TouchableOpacity
-              key={game.id}
-              style={styles.gameCard}
-              onPress={() => startGame(game)}
-            >
-              <View style={styles.gameCardHeader}>
-                <MaterialIcons 
-                  name={getGameIcon(game.category)} // Use getGameIcon directly
-                  size={24} 
-                  color="#4CAF50" 
-                />
-                <View style={[styles.difficultyBadge, { 
-                  backgroundColor: getDifficultyColor(game.difficulty) // Use getDifficultyColor directly
-                }]}>
-                  <Text style={styles.difficultyText}>
-                    {game.difficulty === 'easy' ? 'Л' : 
-                     game.difficulty === 'medium' ? 'С' : 'С'}
-                  </Text>
+        <Text style={styles.sectionTitle}>🎮 Все игры ({addictionDistractiveGames.length})</Text>
+        <ScrollView 
+          horizontal={false}
+          showsVerticalScrollIndicator={true}
+          nestedScrollEnabled={true}
+          style={styles.gamesScrollView}
+        >
+          <View style={styles.gamesGrid}>
+            {addictionDistractiveGames.map(game => (
+              <TouchableOpacity
+                key={game.id}
+                style={styles.gameCard}
+                onPress={() => startGame(game)}
+              >
+                <View style={styles.gameCardHeader}>
+                  <MaterialIcons 
+                    name={getGameIcon(game.category)}
+                    size={24} 
+                    color="#4CAF50" 
+                  />
+                  <View style={[styles.difficultyBadge, { 
+                    backgroundColor: getDifficultyColor(game.difficulty)
+                  }]}>
+                    <Text style={styles.difficultyText}>
+                      {game.difficulty === 'easy' ? 'Л' : 
+                       game.difficulty === 'medium' ? 'С' : 'Т'}
+                    </Text>
+                  </View>
                 </View>
-              </View>
-              
-              <Text style={styles.gameCardTitle}>{game.name}</Text>
-              <Text style={styles.gameCardDescription} numberOfLines={2}>
-                {game.description}
-              </Text>
-              
-              <View style={styles.gameCardFooter}>
-                <Text style={styles.gameCardDuration}>⏱ {game.duration} мин</Text>
-                <Text style={styles.gameCardCategory}>{getCategoryName(game.category)}</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
+                
+                <Text style={styles.gameCardTitle}>{game.name}</Text>
+                <Text style={styles.gameCardDescription} numberOfLines={3}>
+                  {game.description}
+                </Text>
+                
+                <View style={styles.gameCardFooter}>
+                  <Text style={styles.gameCardDuration}>⏱ {game.duration} мин</Text>
+                  <Text style={styles.gameCardCategory}>{getCategoryName(game.category)}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
       </View>
     </View>
   );
@@ -702,12 +708,18 @@ const styles = StyleSheet.create({
   },
   allGamesSection: {
     paddingHorizontal: 20,
-    paddingBottom: 20
+    paddingBottom: 20,
+    flex: 1
+  },
+  gamesScrollView: {
+    maxHeight: 600,
+    flex: 1
   },
   gamesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between'
+    justifyContent: 'space-between',
+    paddingBottom: 20
   },
   gameCard: {
     width: (screenWidth - 50) / 2,
@@ -715,6 +727,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 15,
     marginBottom: 15,
+    minHeight: 160,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
