@@ -213,7 +213,446 @@ const BreathBubbleGame = ({ onGameComplete }: { onGameComplete: (score: number) 
   );
 };
 
-// Компонент "Последовательность цветов"
+// Игра "Осознанный лабиринт"
+const MindfulMazeGame = ({ onGameComplete }: { onGameComplete: (score: number) => void }) => {
+  const [playerPosition, setPlayerPosition] = useState({ x: 1, y: 1 });
+  const [score, setScore] = useState(0);
+  const [gameActive, setGameActive] = useState(false);
+  const [maze, setMaze] = useState<number[][]>([]);
+  const [collectibles, setCollectibles] = useState<{x: number, y: number}[]>([]);
+  const [gameTime, setGameTime] = useState(0);
+  const gameTimerRef = useRef<any>();
+
+  const CELL_SIZE = 25;
+  const MAZE_SIZE = 15;
+
+  const generateMaze = () => {
+    // Простой лабиринт для демонстрации
+    const newMaze = Array(MAZE_SIZE).fill(0).map(() => Array(MAZE_SIZE).fill(0));
+    
+    // Создаем стены (1) и проходы (0)
+    for (let i = 0; i < MAZE_SIZE; i++) {
+      for (let j = 0; j < MAZE_SIZE; j++) {
+        if (i === 0 || j === 0 || i === MAZE_SIZE - 1 || j === MAZE_SIZE - 1) {
+          newMaze[i][j] = 1; // Внешние стены
+        } else if (i % 2 === 0 && j % 2 === 0) {
+          newMaze[i][j] = 1; // Внутренние стены
+        }
+      }
+    }
+    
+    // Добавляем случайные стены
+    for (let i = 0; i < 20; i++) {
+      const x = Math.floor(Math.random() * (MAZE_SIZE - 2)) + 1;
+      const y = Math.floor(Math.random() * (MAZE_SIZE - 2)) + 1;
+      if (!(x === 1 && y === 1) && !(x === MAZE_SIZE - 2 && y === MAZE_SIZE - 2)) {
+        newMaze[y][x] = 1;
+      }
+    }
+    
+    // Генерируем коллекционные предметы
+    const newCollectibles = [];
+    for (let i = 0; i < 8; i++) {
+      let x, y;
+      do {
+        x = Math.floor(Math.random() * (MAZE_SIZE - 2)) + 1;
+        y = Math.floor(Math.random() * (MAZE_SIZE - 2)) + 1;
+      } while (newMaze[y][x] === 1 || (x === 1 && y === 1));
+      
+      newCollectibles.push({ x, y });
+    }
+    
+    setMaze(newMaze);
+    setCollectibles(newCollectibles);
+  };
+
+  const startGame = () => {
+    setGameActive(true);
+    setScore(0);
+    setPlayerPosition({ x: 1, y: 1 });
+    setGameTime(0);
+    generateMaze();
+    
+    gameTimerRef.current = setInterval(() => {
+      setGameTime(prev => prev + 1);
+    }, 1000);
+  };
+
+  const movePlayer = (dx: number, dy: number) => {
+    const newX = playerPosition.x + dx;
+    const newY = playerPosition.y + dy;
+    
+    if (newX >= 0 && newX < MAZE_SIZE && newY >= 0 && newY < MAZE_SIZE && maze[newY][newX] === 0) {
+      setPlayerPosition({ x: newX, y: newY });
+      
+      // Проверяем сбор предметов
+      const collectibleIndex = collectibles.findIndex(c => c.x === newX && c.y === newY);
+      if (collectibleIndex !== -1) {
+        setScore(prev => prev + 10);
+        setCollectibles(prev => prev.filter((_, index) => index !== collectibleIndex));
+      }
+      
+      // Проверяем победу
+      if (newX === MAZE_SIZE - 2 && newY === MAZE_SIZE - 2) {
+        endGame();
+      }
+    }
+  };
+
+  const endGame = () => {
+    setGameActive(false);
+    clearInterval(gameTimerRef.current);
+    const finalScore = score + Math.max(0, 300 - gameTime);
+    onGameComplete(finalScore);
+  };
+
+  return (
+    <View style={styles.gameContainer}>
+      <View style={styles.gameHeader}>
+        <Text style={styles.scoreText}>Счет: {score}</Text>
+        <Text style={styles.levelText}>Время: {gameTime}с</Text>
+      </View>
+      
+      <Text style={styles.instructionText}>
+        Найдите все 🔹 и дойдите до выхода 🏁
+      </Text>
+      
+      <View style={styles.mazeContainer}>
+        {maze.map((row, y) => (
+          <View key={y} style={styles.mazeRow}>
+            {row.map((cell, x) => (
+              <View key={`${x}-${y}`} style={[
+                styles.mazeCell,
+                { backgroundColor: cell === 1 ? '#333' : '#FFF' }
+              ]}>
+                {playerPosition.x === x && playerPosition.y === y && (
+                  <Text style={styles.player}>🧘</Text>
+                )}
+                {collectibles.find(c => c.x === x && c.y === y) && (
+                  <Text style={styles.collectible}>🔹</Text>
+                )}
+                {x === MAZE_SIZE - 2 && y === MAZE_SIZE - 2 && (
+                  <Text style={styles.exit}>🏁</Text>
+                )}
+              </View>
+            ))}
+          </View>
+        ))}
+      </View>
+      
+      {gameActive && (
+        <View style={styles.controlsContainer}>
+          <View style={styles.controlRow}>
+            <TouchableOpacity style={styles.controlButton} onPress={() => movePlayer(0, -1)}>
+              <MaterialIcons name="keyboard-arrow-up" size={30} color="#4CAF50" />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.controlRow}>
+            <TouchableOpacity style={styles.controlButton} onPress={() => movePlayer(-1, 0)}>
+              <MaterialIcons name="keyboard-arrow-left" size={30} color="#4CAF50" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.controlButton} onPress={() => movePlayer(1, 0)}>
+              <MaterialIcons name="keyboard-arrow-right" size={30} color="#4CAF50" />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.controlRow}>
+            <TouchableOpacity style={styles.controlButton} onPress={() => movePlayer(0, 1)}>
+              <MaterialIcons name="keyboard-arrow-down" size={30} color="#4CAF50" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+      
+      {!gameActive ? (
+        <TouchableOpacity style={styles.startButton} onPress={startGame}>
+          <Text style={styles.startButtonText}>Начать игру</Text>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity style={styles.stopButton} onPress={endGame}>
+          <Text style={styles.stopButtonText}>Завершить</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+};
+
+// Игра "Вызов быстрых решений"
+const DecisionChallengeGame = ({ onGameComplete }: { onGameComplete: (score: number) => void }) => {
+  const [currentScenario, setCurrentScenario] = useState<any>(null);
+  const [score, setScore] = useState(0);
+  const [gameActive, setGameActive] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(10);
+  const [scenarioIndex, setScenarioIndex] = useState(0);
+  const timerRef = useRef<any>();
+
+  const scenarios = [
+    {
+      situation: "Вы на вечеринке, друзья предлагают выпить",
+      options: [
+        { text: "Выпить, чтобы не выделяться", healthy: false, points: -5 },
+        { text: "Вежливо отказаться и взять безалкогольный напиток", healthy: true, points: 15 },
+        { text: "Уйти с вечеринки", healthy: true, points: 10 },
+        { text: "Сказать, что вы водитель", healthy: true, points: 12 }
+      ]
+    },
+    {
+      situation: "Стрессовый день на работе, хочется расслабиться",
+      options: [
+        { text: "Купить бутылку вина по дороге домой", healthy: false, points: -10 },
+        { text: "Пойти в спортзал или на прогулку", healthy: true, points: 15 },
+        { text: "Принять горячую ванну с аромамаслами", healthy: true, points: 12 },
+        { text: "Позвонить другу или близкому", healthy: true, points: 14 }
+      ]
+    },
+    {
+      situation: "Праздничный ужин в семье, все поднимают бокалы",
+      options: [
+        { text: "Выпить немного, это же праздник", healthy: false, points: -8 },
+        { text: "Поднять бокал с соком или водой", healthy: true, points: 15 },
+        { text: "Предложить тост за здоровье", healthy: true, points: 16 },
+        { text: "Сосредоточиться на общении, а не на напитках", healthy: true, points: 13 }
+      ]
+    },
+    {
+      situation: "Плохое настроение, чувство одиночества",
+      options: [
+        { text: "Выпить, чтобы заглушить боль", healthy: false, points: -15 },
+        { text: "Включить любимую музыку и потанцевать", healthy: true, points: 12 },
+        { text: "Написать в дневнике или другу", healthy: true, points: 14 },
+        { text: "Заняться хобби или творчеством", healthy: true, points: 13 }
+      ]
+    },
+    {
+      situation: "Встреча с старыми друзьями в баре",
+      options: [
+        { text: "Заказать алкоголь, как раньше", healthy: false, points: -12 },
+        { text: "Заказать кофе или безалкогольный коктейль", healthy: true, points: 14 },
+        { text: "Предложить сменить место встречи", healthy: true, points: 16 },
+        { text: "Честно рассказать о своих изменениях", healthy: true, points: 18 }
+      ]
+    }
+  ];
+
+  const startGame = () => {
+    setGameActive(true);
+    setScore(0);
+    setScenarioIndex(0);
+    showNextScenario();
+  };
+
+  const showNextScenario = () => {
+    if (scenarioIndex >= scenarios.length) {
+      endGame();
+      return;
+    }
+    
+    setCurrentScenario(scenarios[scenarioIndex]);
+    setTimeLeft(10);
+    
+    timerRef.current = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          handleTimeout();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const handleTimeout = () => {
+    clearInterval(timerRef.current);
+    setScore(prev => prev - 5); // Штраф за просрочку
+    setTimeout(() => {
+      setScenarioIndex(prev => prev + 1);
+      showNextScenario();
+    }, 1000);
+  };
+
+  const selectOption = (option: any) => {
+    clearInterval(timerRef.current);
+    
+    const timeBonus = timeLeft; // Бонус за скорость
+    const totalPoints = option.points + timeBonus;
+    setScore(prev => prev + totalPoints);
+    
+    setTimeout(() => {
+      setScenarioIndex(prev => prev + 1);
+      showNextScenario();
+    }, 1000);
+  };
+
+  const endGame = () => {
+    setGameActive(false);
+    clearInterval(timerRef.current);
+    onGameComplete(Math.max(0, score));
+  };
+
+  return (
+    <View style={styles.gameContainer}>
+      <View style={styles.gameHeader}>
+        <Text style={styles.scoreText}>Счет: {score}</Text>
+        <Text style={styles.levelText}>Сценарий: {scenarioIndex + 1}/{scenarios.length}</Text>
+      </View>
+      
+      {currentScenario && (
+        <View style={styles.scenarioContainer}>
+          <View style={styles.timerContainer}>
+            <Text style={styles.timerText}>⏰ {timeLeft}</Text>
+          </View>
+          
+          <Text style={styles.scenarioText}>{currentScenario.situation}</Text>
+          
+          <View style={styles.optionsContainer}>
+            {currentScenario.options.map((option: any, index: number) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.optionButton,
+                  { backgroundColor: option.healthy ? '#E8F5E8' : '#FFE8E8' }
+                ]}
+                onPress={() => selectOption(option)}
+              >
+                <Text style={[
+                  styles.optionText,
+                  { color: option.healthy ? '#2E7D4A' : '#D32F2F' }
+                ]}>
+                  {option.text}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
+      
+      {!gameActive ? (
+        <TouchableOpacity style={styles.startButton} onPress={startGame}>
+          <Text style={styles.startButtonText}>Начать игру</Text>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity style={styles.stopButton} onPress={endGame}>
+          <Text style={styles.stopButtonText}>Завершить</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+};
+
+// Игра "Виртуальный антистресс"
+const StressBallGame = ({ onGameComplete }: { onGameComplete: (score: number) => void }) => {
+  const [score, setScore] = useState(0);
+  const [gameActive, setGameActive] = useState(false);
+  const [squeezeCount, setSqueezeCount] = useState(0);
+  const [ballSize, setBallSize] = useState(new Animated.Value(80));
+  const [ballColor, setBallColor] = useState('#4CAF50');
+  const [breathingPhase, setBreathingPhase] = useState<'inhale' | 'exhale'>('inhale');
+  const gameTimerRef = useRef<any>();
+
+  const startGame = () => {
+    setGameActive(true);
+    setScore(0);
+    setSqueezeCount(0);
+    setBallSize(new Animated.Value(80));
+    startBreathingCycle();
+    
+    gameTimerRef.current = setTimeout(() => {
+      endGame();
+    }, 60000); // 1 минута игры
+  };
+
+  const startBreathingCycle = () => {
+    const cycle = () => {
+      // Вдох (4 секунды)
+      setBreathingPhase('inhale');
+      setTimeout(() => {
+        // Выдох (4 секунды)
+        setBreathingPhase('exhale');
+        setTimeout(() => {
+          if (gameActive) cycle();
+        }, 4000);
+      }, 4000);
+    };
+    cycle();
+  };
+
+  const squeezeBall = () => {
+    if (!gameActive) return;
+    
+    const correctTiming = breathingPhase === 'exhale';
+    const points = correctTiming ? 5 : 2;
+    
+    setScore(prev => prev + points);
+    setSqueezeCount(prev => prev + 1);
+    
+    // Анимация сжатия
+    Animated.sequence([
+      Animated.timing(ballSize, {
+        toValue: 60,
+        duration: 150,
+        useNativeDriver: false
+      }),
+      Animated.timing(ballSize, {
+        toValue: 80,
+        duration: 150,
+        useNativeDriver: false
+      })
+    ]).start();
+    
+    // Изменение цвета в зависимости от правильности
+    setBallColor(correctTiming ? '#4CAF50' : '#FF9800');
+    setTimeout(() => setBallColor('#4CAF50'), 200);
+  };
+
+  const endGame = () => {
+    setGameActive(false);
+    clearTimeout(gameTimerRef.current);
+    onGameComplete(score);
+  };
+
+  return (
+    <View style={styles.gameContainer}>
+      <View style={styles.gameHeader}>
+        <Text style={styles.scoreText}>Счет: {score}</Text>
+        <Text style={styles.levelText}>Нажатий: {squeezeCount}</Text>
+      </View>
+      
+      <View style={styles.breathingIndicator}>
+        <Text style={styles.breathingText}>
+          {breathingPhase === 'inhale' ? '🫁 Вдох...' : '💨 Выдох - Нажимайте!'}
+        </Text>
+      </View>
+      
+      <View style={styles.ballContainer}>
+        <TouchableOpacity onPress={squeezeBall} style={styles.ballTouchArea}>
+          <Animated.View style={[
+            styles.stressBall,
+            {
+              width: ballSize,
+              height: ballSize,
+              backgroundColor: ballColor
+            }
+          ]}>
+            <Text style={styles.ballEmoji}>⚪</Text>
+          </Animated.View>
+        </TouchableOpacity>
+      </View>
+      
+      <Text style={styles.instructionText}>
+        Нажимайте на мячик в такт дыханию для лучшего результата
+      </Text>
+      
+      {!gameActive ? (
+        <TouchableOpacity style={styles.startButton} onPress={startGame}>
+          <Text style={styles.startButtonText}>Начать игру (60 сек)</Text>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity style={styles.stopButton} onPress={endGame}>
+          <Text style={styles.stopButtonText}>Завершить</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+};
 const ColorSequenceGame = ({ onGameComplete }: { onGameComplete: (score: number) => void }) => {
   const [sequence, setSequence] = useState<string[]>([]);
   const [userSequence, setUserSequence] = useState<string[]>([]);
@@ -411,6 +850,12 @@ const MiniGamesPage: React.FC<MiniGamesPageProps> = ({
     switch (selectedGame.id) {
       case 'breath_bubble_pop':
         return <BreathBubbleGame onGameComplete={completeGame} />;
+      case 'mindful_maze':
+        return <MindfulMazeGame onGameComplete={completeGame} />;
+      case 'rapid_decision_challenge':
+        return <DecisionChallengeGame onGameComplete={completeGame} />;
+      case 'stress_ball_squeeze':
+        return <StressBallGame onGameComplete={completeGame} />;
       case 'color_sequence_memory':
         return <ColorSequenceGame onGameComplete={completeGame} />;
       default:
@@ -418,12 +863,6 @@ const MiniGamesPage: React.FC<MiniGamesPageProps> = ({
           <View style={styles.gameContainer}>
             <Text style={styles.gameTitle}>{selectedGame.name}</Text>
             <Text style={styles.gameDescription}>{selectedGame.description}</Text>
-            <TouchableOpacity 
-              style={styles.startButton}
-              onPress={() => completeGame(Math.floor(Math.random() * 100))}
-            >
-              <Text style={styles.startButtonText}>Симулировать игру</Text>
-            </TouchableOpacity>
           </View>
         );
     }
@@ -919,6 +1358,119 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginVertical: 20,
     lineHeight: 20
+  },
+  // Стили для лабиринта
+  mazeContainer: {
+    alignSelf: 'center',
+    backgroundColor: '#000',
+    padding: 2,
+    borderRadius: 5,
+    marginVertical: 20
+  },
+  mazeRow: {
+    flexDirection: 'row'
+  },
+  mazeCell: {
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 0.5,
+    borderColor: '#DDD'
+  },
+  player: {
+    fontSize: 16
+  },
+  collectible: {
+    fontSize: 12
+  },
+  exit: {
+    fontSize: 14
+  },
+  controlsContainer: {
+    alignItems: 'center',
+    marginTop: 20
+  },
+  controlRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginVertical: 5
+  },
+  controlButton: {
+    backgroundColor: '#F0F0F0',
+    padding: 10,
+    borderRadius: 8,
+    marginHorizontal: 5
+  },
+  // Стили для игры принятия решений
+  scenarioContainer: {
+    flex: 1,
+    padding: 20
+  },
+  timerContainer: {
+    alignItems: 'center',
+    marginBottom: 20
+  },
+  timerText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FF5722'
+  },
+  scenarioText: {
+    fontSize: 18,
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 30,
+    lineHeight: 26,
+    fontWeight: '500'
+  },
+  optionsContainer: {
+    gap: 15
+  },
+  optionButton: {
+    padding: 15,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0'
+  },
+  optionText: {
+    fontSize: 16,
+    textAlign: 'center',
+    fontWeight: '500'
+  },
+  // Стили для антистресс игры
+  breathingIndicator: {
+    alignItems: 'center',
+    marginVertical: 20,
+    padding: 15,
+    backgroundColor: '#F0F8FF',
+    borderRadius: 12
+  },
+  breathingText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2196F3'
+  },
+  ballContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  ballTouchArea: {
+    padding: 20
+  },
+  stressBall: {
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4
+  },
+  ballEmoji: {
+    fontSize: 30
   }
 });
 
