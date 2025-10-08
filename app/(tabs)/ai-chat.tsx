@@ -104,7 +104,7 @@ const MessageBubble = React.memo(({ message, onSuggestionPress }: {
         </Text>
       </LinearGradient>
 
-      {/* Предложенные действия */}
+
       {message.metadata?.suggestions && message.metadata.suggestions.length > 0 && (
         <View style={styles.suggestionsContainer}>
           {message.metadata.suggestions.map(suggestion => (
@@ -409,7 +409,7 @@ const AIAssistantPage: React.FC<AIAssistantPageProps> = ({ initialContext }) => 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
-      {/* Header */}
+
       <LinearGradient colors={['#4CAF50', '#388E3C']} style={styles.header}>
         <View style={styles.headerContent}>
           <View style={styles.aiAvatarLarge}>
@@ -425,7 +425,7 @@ const AIAssistantPage: React.FC<AIAssistantPageProps> = ({ initialContext }) => 
         </View>
       </LinearGradient>
 
-      {/* Контекстная панель */}
+
       <View style={styles.contextPanel}>
         <View style={styles.contextItem}>
           <MaterialIcons name="mood" size={16} color="#4CAF50" />
@@ -441,7 +441,7 @@ const AIAssistantPage: React.FC<AIAssistantPageProps> = ({ initialContext }) => 
         </View>
       </View>
 
-      {/* Сообщения */}
+
       <ScrollView
         ref={scrollViewRef}
         style={styles.messagesContainer}
@@ -460,13 +460,13 @@ const AIAssistantPage: React.FC<AIAssistantPageProps> = ({ initialContext }) => 
         {isTyping && <TypingIndicator />}
       </ScrollView>
 
-      {/* Быстрые ответы */}
+
       <QuickResponses 
         onSelect={sendMessage}
         currentMood={currentContext.mood}
       />
 
-      {/* Поле ввода */}
+
       <View style={[styles.inputContainer, { paddingBottom: insets.bottom + 10 }]}>
         <View style={styles.inputWrapper}>
           <TextInput
