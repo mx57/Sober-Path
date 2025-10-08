@@ -133,7 +133,7 @@ export default function ExercisesPage() {
             </View>
           </View>
 
-          {/* Преимущества */}
+
           <View style={styles.benefitsContainer}>
             <Text style={styles.benefitsTitle}>Преимущества:</Text>
             <View style={styles.benefitsList}>
@@ -143,7 +143,7 @@ export default function ExercisesPage() {
             </View>
           </View>
 
-          {/* Предупреждения */}
+
           {technique.contraindications && (
             <View style={styles.warningBox}>
               <MaterialIcons name="warning" size={16} color="#FF9800" />
@@ -201,7 +201,7 @@ export default function ExercisesPage() {
             </View>
           </View>
 
-          {/* Преимущества */}
+
           <View style={styles.benefitsContainer}>
             <Text style={styles.benefitsTitle}>Преимущества:</Text>
             <View style={styles.benefitsList}>
@@ -211,7 +211,7 @@ export default function ExercisesPage() {
             </View>
           </View>
 
-          {/* Противопоказания */}
+
           {technique.contraindications && (
             <View style={styles.warningBox}>
               <MaterialIcons name="warning" size={16} color="#FF9800" />
@@ -364,7 +364,7 @@ export default function ExercisesPage() {
         </Text>
       </View>
 
-      {/* Категории */}
+
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesContainer}>
         {['nlp', 'therapy', 'mindfulness', 'micro'].map((category) => (
           <TouchableOpacity
@@ -391,7 +391,7 @@ export default function ExercisesPage() {
         {renderContent()}
       </ScrollView>
 
-      {/* Technique Detail Modal */}
+
       {selectedTechnique && (
         <Modal
           visible={showDetailModal}
@@ -439,7 +439,7 @@ export default function ExercisesPage() {
         </Modal>
       )}
 
-      {/* Web Alert Modal */}
+
       {Platform.OS === 'web' && (
         <Modal visible={alertConfig.visible} transparent animationType="fade">
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>

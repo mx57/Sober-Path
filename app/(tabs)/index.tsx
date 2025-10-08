@@ -281,7 +281,7 @@ function HomePage() {
 
   return (
     <ScrollView style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header */}
+
       <LinearGradient colors={['white', '#F8F9FA']} style={styles.header}>
         <View style={styles.headerContent}>
           <View>
@@ -297,7 +297,7 @@ function HomePage() {
         </View>
       </LinearGradient>
 
-      {/* Статистика прогресса */}
+
       <View style={styles.statsContainer}>
         <Animated.View style={[styles.statCard, styles.primaryStatCard, pulseAnimatedStyle]}>
           <MaterialIcons name="timeline" size={40} color="white" />
@@ -319,7 +319,7 @@ function HomePage() {
         </View>
       </View>
 
-      {/* Метрики здоровья */}
+
       {healthMetrics.length > 0 && (
         <View style={styles.healthContainer}>
           <Text style={styles.sectionTitle}>💚 Ваши достижения в здоровье</Text>
@@ -333,7 +333,7 @@ function HomePage() {
         </View>
       )}
 
-      {/* Быстрые действия */}
+
       <View style={styles.quickActionsContainer}>
         <Text style={styles.sectionTitle}>⚡ Быстрые действия</Text>
         <View style={styles.quickActionsGrid}>
@@ -379,7 +379,7 @@ function HomePage() {
         </View>
       </View>
 
-      {/* Навигация по инструментам */}
+
       <View style={styles.navigationContainer}>
         <Text style={styles.sectionTitle}>🛠 Инструменты восстановления</Text>
         <View style={styles.navigationGrid}>
@@ -405,7 +405,7 @@ function HomePage() {
         </View>
       </View>
 
-      {/* Система достижений с ленивой загрузкой */}
+
       <React.Suspense fallback={
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#2E7D4A" />
@@ -415,7 +415,7 @@ function HomePage() {
         <AchievementSystem />
       </React.Suspense>
 
-      {/* Calendar Modal */}
+
       <Modal visible={showCalendar} animationType="slide">
         <View style={[styles.modalContainer, { paddingTop: insets.top }]}>
           <View style={styles.calendarHeader}>
@@ -484,7 +484,7 @@ function HomePage() {
         </View>
       </Modal>
 
-      {/* Mood Selector Modal */}
+
       <Modal visible={showMoodSelector} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.moodModalContent}>
@@ -544,7 +544,7 @@ function HomePage() {
         </View>
       </Modal>
 
-      {/* Web Alert Modal */}
+
       {Platform.OS === 'web' && (
         <Modal visible={alertConfig.visible} transparent animationType="fade">
           <View style={styles.webAlertOverlay}>
@@ -565,7 +565,7 @@ function HomePage() {
         </Modal>
       )}
 
-      {/* Crisis Intervention Modal с ленивой загрузкой */}
+
       {showCrisisIntervention && (
         <React.Suspense fallback={
           <Modal visible={showCrisisIntervention} transparent>

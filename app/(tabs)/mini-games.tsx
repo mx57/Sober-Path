@@ -482,7 +482,7 @@ const MiniGamesPage: React.FC<MiniGamesPageProps> = ({
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header */}
+
       <LinearGradient colors={['#4CAF50', '#45A049']} style={styles.header}>
         <View style={styles.headerContent}>
           <MaterialIcons name="games" size={32} color="white" />
@@ -493,7 +493,7 @@ const MiniGamesPage: React.FC<MiniGamesPageProps> = ({
         </View>
       </LinearGradient>
 
-      {/* Рекомендованная игра */}
+
       {recommendedGame && (
         <View style={styles.recommendedSection}>
           <Text style={styles.sectionTitle}>🎯 Рекомендуется сейчас</Text>
@@ -526,7 +526,7 @@ const MiniGamesPage: React.FC<MiniGamesPageProps> = ({
         </View>
       )}
 
-      {/* Статистика */}
+
       {userStats && (
         <View style={styles.statsSection}>
           <Text style={styles.sectionTitle}>📊 Ваша статистика</Text>
@@ -551,7 +551,7 @@ const MiniGamesPage: React.FC<MiniGamesPageProps> = ({
         </View>
       )}
 
-      {/* Все игры */}
+
       <View style={styles.allGamesSection}>
         <Text style={styles.sectionTitle}>🎮 Все игры</Text>
         <View style={styles.gamesGrid}>
@@ -584,7 +584,7 @@ const MiniGamesPage: React.FC<MiniGamesPageProps> = ({
               
               <View style={styles.gameCardFooter}>
                 <Text style={styles.gameCardDuration}>⏱ {game.duration} мин</Text>
-                <Text style={styles.gameCardCategory}>{getCategoryName(game.category)}</Text> {/* Use getCategoryName directly */}
+                <Text style={styles.gameCardCategory}>{getCategoryName(game.category)}</Text>
               </View>
             </TouchableOpacity>
           ))}
