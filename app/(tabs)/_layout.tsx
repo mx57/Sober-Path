@@ -5,11 +5,9 @@ import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React from 'react';
 
-// Мемоизация ляуаута для оптимизации
 function TabLayout() {
   const insets = useSafeAreaInsets();
 
-  // Мемоизированные настройки табов
   const screenOptions = React.useMemo(() => ({
     headerShown: false,
     tabBarActiveTintColor: '#2E7D4A',
@@ -41,8 +39,8 @@ function TabLayout() {
     tabBarIconStyle: {
       marginBottom: 2
     },
-    lazy: true, // Ленивая загрузка табов
-    unmountOnBlur: false // Оставляем в памяти для быстрого переключения
+    lazy: true,
+    unmountOnBlur: false
   }), [insets.bottom]);
 
   return (
@@ -102,7 +100,6 @@ function TabLayout() {
         }}
       />
       
-      {/* Скрытые страницы - доступны через навигацию, но не отображаются в табах */}
       <Tabs.Screen
         name="personalized-recommendations"
         options={{
