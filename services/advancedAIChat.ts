@@ -117,6 +117,73 @@ export class AdvancedAIChat {
     };
   }
 
+  // Обнаружение триггеров
+  private detectTriggers(content: string): string[] {
+    const triggerKeywords = {
+      alcohol: ['выпить', 'алкоголь', 'водка', 'пиво', 'вино', 'бухать'],
+      drugs: ['наркотики', 'покурить', 'употребить', 'дозу'],
+      stress: ['стресс', 'напряжение', 'давление', 'проблемы'],
+      social: ['друзья пьют', 'вечеринка', 'бар', 'клуб'],
+      emotional: ['депрессия', 'одиночество', 'скука', 'злость'],
+      work: ['работа', 'начальник', 'коллеги', 'увольнение'],
+      family: ['семья', 'родители', 'развод', 'конфликт']
+    };
+
+    const detectedTriggers: string[] = [];
+    const lowerContent = content.toLowerCase();
+
+    Object.entries(triggerKeywords).forEach(([trigger, keywords]) => {
+      if (keywords.some(keyword => lowerContent.includes(keyword))) {
+        detectedTriggers.push(trigger);
+      }
+    });
+
+    return detectedTriggers;
+  }
+
+  // Извлечение тем из сообщения
+  private extractThemes(content: string): string[] {
+    const themes: string[] = [];
+    const lowerContent = content.toLowerCase();
+
+    const themeKeywords = {
+      recovery: ['выздоровление', 'трезвость', 'лечение'],
+      relationships: ['отношения', 'семья', 'друзья', 'партнер'],
+      work: ['работа', 'карьера', 'коллеги'],
+      health: ['здоровье', 'самочувствие', 'физическое'],
+      emotions: ['чувства', 'эмоции', 'настроение'],
+      goals: ['цели', 'планы', 'будущее', 'мечты'],
+      spirituality: ['духовность', 'вера', 'смысл']
+    };
+
+    Object.entries(themeKeywords).forEach(([theme, keywords]) => {
+      if (keywords.some(keyword => lowerContent.includes(keyword))) {
+        themes.push(theme);
+      }
+    });
+
+    return themes;
+  }
+
+  // Оценка потребности в поддержке
+  private assessSupportNeed(content: string, emotionAnalysis: any): boolean {
+    const supportIndicators = [
+      'помогите', 'не знаю что делать', 'трудно', 'тяжело',
+      'не справляюсь', 'одинок', 'никто не понимает',
+      'хочется сдаться', 'нет сил'
+    ];
+
+    const lowerContent = content.toLowerCase();
+    const hasIndicators = supportIndicators.some(indicator => 
+      lowerContent.includes(indicator)
+    );
+
+    const highEmotionIntensity = emotionAnalysis.intensity > 0.7;
+    const negativeEmotion = ['sad', 'angry', 'anxious', 'frustrated'].includes(emotionAnalysis.primaryEmotion);
+
+    return hasIndicators || (highEmotionIntensity && negativeEmotion);
+  }
+
   // Генерация ответа ИИ
   private async generateAIResponse(
     userId: string, 
@@ -299,23 +366,62 @@ export class AdvancedAIChat {
     }
   }
 
-  private async generateAdviceResponse(content: string, userProfile: UserChatProfile): Promise<string> {
-    // Анализируем, о чем спрашивает пользователь
-    const topics = {
-      'работа': 'Работа может быть источником стресса в выздоровлении. Важно найти баланс и четкие границы.',
-      'отношения': 'Отношения часто меняются в процессе выздоровления. Честное общение и границы - ключ к здоровым отношениям.',
-      'семья': 'Семейные отношения требуют времени и терпения для восстановления. Начните с малых шагов к доверию.',
-      'триггеры': 'Триггеры - нормальная часть выздоровления. Важно их распознавать и иметь план действий.',
-      'мотивация': 'Мотивация приходит и уходит. Важнее создать систему поддержки и рутины, которые работают независимо от настроения.'
-    };
+  private async generateCasualResponse(content: string): Promise<string> {
+    const casualResponses = [
+      "Как хорошо, что вы решили поговорить! Что у вас на душе?",
+      "Рад нашему общению! Как прошел день?",
+      "Всегда готов выслушать и поддержать. О чем думаете?",
+      "Спасибо, что поделились! Расскажите больше.",
+      "Интересно! А как вы к этому относитесь?"
+    ];
 
-    const topic = Object.keys(topics).find(key => content.toLowerCase().includes(key));
-    
-    if (topic) {
-      return `${topics[topic as keyof typeof topics]} Что конкретно вас больше всего беспокоит в этой области?`;
+    return casualResponses[Math.floor(Math.random() * casualResponses.length)];
+  }
+
+  private async generateDefaultResponse(content: string, analysis: MessageAnalysis): Promise<string> {
+    const defaultResponses = [
+      "Понимаю, что вы хотите сказать. Расскажите больше об этом.",
+      "Это важная тема. Как вы себя чувствуете по этому поводу?",
+      "Спасибо, что поделились. Что для вас самое важное в этой ситуации?",
+      "Я слышу вас. Как бы вы хотели, чтобы все сложилось?",
+      "Это звучит значимо для вас. Какая поддержка вам нужна?"
+    ];
+
+    let response = defaultResponses[Math.floor(Math.random() * defaultResponses.length)];
+
+    // Адаптируем ответ на основе анализа
+    if (analysis.triggers.length > 0) {
+      response += " Я заметил, что вы упомянули что-то, что может быть триггером. Хотите поговорить об этом?";
     }
 
-    return "Это важный вопрос. Чтобы дать вам наилучший совет, расскажите больше о ситуации. Какие варианты вы уже рассматривали?";
+    if (analysis.emotionIntensity > 0.7) {
+      response += " Чувствую, что эмоции сейчас довольно сильные. Важно их признать.";
+    }
+
+    return response;
+  }
+
+  private async generateStruggleResponse(analysis: MessageAnalysis): Promise<string> {
+    const struggleResponses = [
+      "Борьба - это часть пути к выздоровлению. Вы не одни в этом.",
+      "То, что вы продолжаете бороться, показывает вашу силу. Каждый день борьбы - это победа.",
+      "Трудные моменты временны, но ваша решимость постоянна. Что помогает вам держаться?",
+      "В борьбе нет стыда. Есть только мужество продолжать. Как я могу поддержать вас?",
+      "Каждый, кто идет по пути выздоровления, знает эту борьбу. Вы сильнее, чем думаете."
+    ];
+
+    let response = struggleResponses[Math.floor(Math.random() * struggleResponses.length)];
+
+    // Добавляем персонализированные элементы
+    if (analysis.triggers.includes('stress')) {
+      response += " Стресс может усложнять ситуацию. Давайте найдем способы с ним справиться.";
+    }
+
+    if (analysis.emotionIntensity > 0.8) {
+      response += " Дышите глубже. Это сложно сейчас, но пройдет.";
+    }
+
+    return response;
   }
 
   // Обнаружение намерений
@@ -484,10 +590,20 @@ class EmotionDetector {
 
 class ResponseGenerator {
   // Методы генерации ответов
+  generateResponse(context: any): string {
+    return "Сгенерированный ответ на основе контекста";
+  }
 }
 
 class ContextAnalyzer {
   // Методы анализа контекста
+  analyzeContext(message: any): any {
+    return {
+      sentiment: 'neutral',
+      topics: [],
+      urgency: 'low'
+    };
+  }
 }
 
 // Интерфейсы
