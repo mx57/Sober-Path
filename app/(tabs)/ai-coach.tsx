@@ -472,13 +472,9 @@ function EnhancedAICoach() {
           </Text>
         </View>
 
-        {/* Removed the `notificationInfo` component from inside the map item, as it's typically for the whole section */}
         {notifications.slice(0, 5).map((notification) => (
           <View key={notification.id} style={styles.notificationCard}>
-            {/* The outer View with style notificationInfo is incorrect,
-                it should be a separate header/info section or applied differently */}
-            {/* Fixed the structure here: Assuming `notification.title` and `notification.body` are direct children */}
-            <View style={styles.notificationContentWrapper}> {/* Added a wrapper for content and toggle */}
+            <View style={styles.notificationContentWrapper}>
               <View style={styles.notificationTextContent}>
                 <Text style={styles.notificationTitle}>{notification.title}</Text>
                 <Text style={styles.notificationBody}>{notification.body}</Text>
@@ -487,9 +483,6 @@ function EnhancedAICoach() {
               <TouchableOpacity
                 style={[styles.toggleButton, notification.enabled && styles.toggleButtonActive]}
                 onPress={() => {
-                  // Toggle логика
-                  // This part typically involves updating the state for `notifications`
-                  // For now, it just shows an alert.
                   showWebAlert('Настройки', `Уведомление ${notification.enabled ? 'выключено' : 'включено'}`);
                 }}
               >
