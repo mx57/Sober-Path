@@ -401,27 +401,249 @@ export class AdvancedAIChat {
     return response;
   }
 
-  private async generateStruggleResponse(analysis: MessageAnalysis): Promise<string> {
-    const struggleResponses = [
-      "Борьба - это часть пути к выздоровлению. Вы не одни в этом.",
-      "То, что вы продолжаете бороться, показывает вашу силу. Каждый день борьбы - это победа.",
-      "Трудные моменты временны, но ваша решимость постоянна. Что помогает вам держаться?",
-      "В борьбе нет стыда. Есть только мужество продолжать. Как я могу поддержать вас?",
-      "Каждый, кто идет по пути выздоровления, знает эту борьбу. Вы сильнее, чем думаете."
+  // Генерация предложений действий
+  private async generateActionSuggestions(userId: string, analysis: MessageAnalysis): Promise<ActionSuggestion[]> {
+    const suggestions: ActionSuggestion[] = [];
+
+    // Предложения на основе эмоций
+    if (analysis.emotion === 'anxious' && analysis.emotionIntensity > 0.6) {
+      suggestions.push({
+        id: 'anxiety_breathing',
+        type: 'technique',
+        title: 'Дыхательная техника 4-7-8',
+        description: 'Быстрое успокоение при тревоге',
+        action: 'start_breathing_exercise'
+      });
+    }
+
+    if (analysis.emotion === 'sad' && analysis.emotionIntensity > 0.5) {
+      suggestions.push({
+        id: 'mood_lifting',
+        type: 'exercise',
+        title: 'Техника благодарности',
+        description: 'Улучшение настроения через благодарность',
+        action: 'start_gratitude_exercise'
+      });
+    }
+
+    // Предложения на основе триггеров
+    if (analysis.triggers.includes('stress')) {
+      suggestions.push({
+        id: 'stress_management',
+        type: 'technique',
+        title: 'Техника прогрессивной релаксации',
+        description: 'Снятие физического напряжения',
+        action: 'start_relaxation'
+      });
+    }
+
+    if (analysis.triggers.includes('alcohol') || analysis.triggers.includes('drugs')) {
+      suggestions.push({
+        id: 'craving_management',
+        type: 'technique',
+        title: 'SURF техника',
+        description: 'Проживание тяги без действия',
+        action: 'start_surf_technique'
+      });
+
+      suggestions.push({
+        id: 'distraction_game',
+        type: 'distraction',
+        title: 'Отвлекающая игра',
+        description: 'Переключение внимания через игру',
+        action: 'open_mini_games'
+      });
+    }
+
+    // Предложения на основе намерений
+    if (analysis.intent === 'seeking_support' && analysis.needsSupport) {
+      suggestions.push({
+        id: 'connect_support',
+        type: 'contact',
+        title: 'Связаться с поддержкой',
+        description: 'Получить помощь от консультанта',
+        action: 'open_support_contacts'
+      });
+    }
+
+    if (analysis.urgency === 'high' || analysis.urgency === 'critical') {
+      suggestions.push({
+        id: 'emergency_help',
+        type: 'emergency',
+        title: 'Экстренная помощь',
+        description: 'Немедленная профессиональная поддержка',
+        action: 'call_emergency_line'
+      });
+    }
+
+    // Общие предложения для поддержания мотивации
+    if (suggestions.length === 0) {
+      suggestions.push(
+        {
+          id: 'daily_check',
+          type: 'technique',
+          title: 'Проверка настроения',
+          description: 'Отследить текущее состояние',
+          action: 'open_mood_tracker'
+        },
+        {
+          id: 'motivational_content',
+          type: 'technique',
+          title: 'Вдохновляющий контент',
+          description: 'Мотивационные цитаты и истории',
+          action: 'show_motivation'
+        }
+      );
+    }
+
+    return suggestions.slice(0, 3); // Максимум 3 предложения
+  }
+
+  // Создание сообщения с предложениями
+  private async createSuggestionMessage(userId: string, suggestions: ActionSuggestion[]): Promise<ChatMessage> {
+    return {
+      id: `suggestions_${Date.now()}`,
+      senderId: 'ai_coach',
+      senderType: 'ai',
+      content: 'Вот что может помочь сейчас:',
+      timestamp: new Date(),
+      messageType: 'suggestion',
+      metadata: {
+        suggestions: suggestions
+      }
+    };
+  }
+
+  // Генерация срочного ответа поддержки
+  private async generateUrgentSupportResponse(userId: string, analysis: MessageAnalysis): Promise<ChatMessage> {
+    const urgentResponses = [
+      "Понимаю, что сейчас очень сложно. Важно помнить, что эти чувства временны, и вы не одни.",
+      "Сейчас самое главное - ваша безопасность и благополучие. Давайте найдем способ справиться с этим моментом.",
+      "То, что вы обратились за помощью, показывает вашу силу. Давайте вместе найдем решение.",
+      "Я здесь, чтобы поддержать вас. Этот момент пройдет, и мы найдем способы сделать его легче."
     ];
 
-    let response = struggleResponses[Math.floor(Math.random() * struggleResponses.length)];
+    const response = urgentResponses[Math.floor(Math.random() * urgentResponses.length)];
 
-    // Добавляем персонализированные элементы
-    if (analysis.triggers.includes('stress')) {
-      response += " Стресс может усложнять ситуацию. Давайте найдем способы с ним справиться.";
+    return {
+      id: `urgent_support_${Date.now()}`,
+      senderId: 'ai_coach',
+      senderType: 'ai',
+      content: response,
+      timestamp: new Date(),
+      messageType: 'text',
+      metadata: {
+        urgency: 'high',
+        suggestions: [
+          {
+            id: 'immediate_grounding',
+            type: 'technique',
+            title: 'Техника заземления',
+            description: 'Быстрая стабилизация состояния',
+            action: 'start_grounding'
+          },
+          {
+            id: 'crisis_support',
+            type: 'contact',
+            title: 'Кризисная поддержка',
+            description: 'Связаться с консультантом',
+            action: 'call_crisis_line'
+          }
+        ]
+      }
+    };
+  }
+
+  // Генерация поддерживающего ответа
+  private async generateSupportiveResponse(userId: string, analysis: MessageAnalysis): Promise<ChatMessage> {
+    const supportiveResponses = [
+      "Ваши чувства понятны и нормальны. Путь к выздоровлению не всегда прямой, но каждый шаг имеет значение.",
+      "Спасибо за доверие. Рассказывать о своих переживаниях требует мужества.",
+      "Я вижу, что вы прикладываете усилия. Это не всегда легко заметить, но прогресс есть.",
+      "Помните: вы заслуживаете поддержки и понимания. Ваши усилия не напрасны.",
+      "Каждый день, когда вы не сдаетесь, - это победа. Я верю в вашу силу."
+    ];
+
+    const response = supportiveResponses[Math.floor(Math.random() * supportiveResponses.length)];
+
+    return {
+      id: `supportive_${Date.now()}`,
+      senderId: 'ai_coach',
+      senderType: 'ai',
+      content: response,
+      timestamp: new Date(),
+      messageType: 'text',
+      metadata: {
+        emotion: analysis.emotion,
+        supportType: 'emotional'
+      }
+    };
+  }
+
+  // Генерация ответа для управления триггерами
+  private async generateTriggerManagementResponse(userId: string, triggers: string[]): Promise<ChatMessage> {
+    const triggerResponses: { [key: string]: string } = {
+      alcohol: "Заметил упоминание алкоголя. Триггеры - нормальная часть выздоровления. У вас есть план действий для таких моментов?",
+      drugs: "Понимаю, что могли столкнуться с триггером. Важно иметь стратегии для таких ситуаций.",
+      stress: "Стресс может усложнять ситуацию. Давайте найдем способы его снизить.",
+      social: "Социальные ситуации бывают сложными. Как обычно справляетесь с таким давлением?",
+      emotional: "Сильные эмоции могут быть триггером. Важно их признать и найти здоровые способы выражения.",
+      work: "Рабочий стресс влияет на многих в восстановлении. Есть ли способы создать более здоровую рабочую среду?",
+      family: "Семейная динамика может быть сложной. Границы и общение - ключевые навыки."
+    };
+
+    const primaryTrigger = triggers[0] || 'general';
+    const response = triggerResponses[primaryTrigger] || 
+      "Вижу, что столкнулись с потенциальными триггерами. Это нормально, и важно иметь план действий.";
+
+    const triggerSuggestions: ActionSuggestion[] = [
+      {
+        id: 'trigger_plan',
+        type: 'technique',
+        title: 'План действий при триггерах',
+        description: 'Пошаговая стратегия преодоления',
+        action: 'create_trigger_plan'
+      },
+      {
+        id: 'mindful_pause',
+        type: 'technique',
+        title: 'Осознанная пауза',
+        description: 'Остановиться и оценить ситуацию',
+        action: 'start_mindful_pause'
+      }
+    ];
+
+    return {
+      id: `trigger_management_${Date.now()}`,
+      senderId: 'ai_coach',
+      senderType: 'ai',
+      content: response,
+      timestamp: new Date(),
+      messageType: 'text',
+      metadata: {
+        triggers: triggers,
+        suggestions: triggerSuggestions
+      }
+    };
+  }
+
+  private async generateAdviceResponse(content: string, userProfile: UserChatProfile): Promise<string> {
+    // Анализируем, о чем спрашивает пользователь
+    const topics = {
+      'работа': 'Работа может быть источником стресса в выздоровлении. Важно найти баланс и четкие границы.',
+      'отношения': 'Отношения часто меняются в процессе выздоровления. Честное общение и границы - ключ к здоровым отношениям.',
+      'семья': 'Семейные отношения требуют времени и терпения для восстановления. Начните с малых шагов к доверию.',
+      'триггеры': 'Триггеры - нормальная часть выздоровления. Важно их распознавать и иметь план действий.',
+      'мотивация': 'Мотивация приходит и уходит. Важнее создать систему поддержки и рутины, которые работают независимо от настроения.'
+    };
+
+    const topic = Object.keys(topics).find(key => content.toLowerCase().includes(key));
+    
+    if (topic) {
+      return `${topics[topic as keyof typeof topics]} Что конкретно вас больше всего беспокоит в этой области?`;
     }
 
-    if (analysis.emotionIntensity > 0.8) {
-      response += " Дышите глубже. Это сложно сейчас, но пройдет.";
-    }
-
-    return response;
+    return "Это важный вопрос. Чтобы дать вам наилучший совет, расскажите больше о ситуации. Какие варианты вы уже рассматривали?";
   }
 
   // Обнаружение намерений
