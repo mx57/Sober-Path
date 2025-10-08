@@ -84,16 +84,31 @@ function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="personalized-recommendations"
+        name="ai-chat"
         options={{
-          title: 'Рекомендации',
+          title: 'ИИ-Чат',
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="auto-awesome" size={size - 2} color={color} />
+            <MaterialIcons name="chat" size={size - 2} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="mini-games"
+        options={{
+          title: 'Игры',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="games" size={size - 2} color={color} />
           ),
         }}
       />
       
       {/* Скрытые страницы - доступны через навигацию, но не отображаются в табах */}
+      <Tabs.Screen
+        name="personalized-recommendations"
+        options={{
+          href: null,
+        }}
+      />
       <Tabs.Screen
         name="advanced-analytics"
         options={{
