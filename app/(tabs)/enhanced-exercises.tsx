@@ -32,6 +32,7 @@ import {
 import { advancedCBTTechniques } from '../../services/advancedCBTService';
 import { traumaInformedTechniques } from '../../services/traumaTherapyService';
 import { integrativeTherapyTechniques } from '../../services/integrativeTherapyService';
+import { allExpandedTechniques } from '../../services/expandedNLPTechniques';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -43,7 +44,8 @@ const allTechniques = [
   ...integrativeNLPTechniques.map(tech => ({ ...tech, category: 'НЛП Интегративные', color: '#9C27B0' })),
   ...advancedCBTTechniques.map(tech => ({ ...tech, category: 'КПТ', color: '#2196F3' })),
   ...traumaInformedTechniques.map(tech => ({ ...tech, category: 'Работа с травмой', color: '#673AB7' })),
-  ...integrativeTherapyTechniques.map(tech => ({ ...tech, category: 'Интегративные методы', color: '#4CAF50' }))
+  ...integrativeTherapyTechniques.map(tech => ({ ...tech, category: 'Интегративные методы', color: '#4CAF50' })),
+  ...allExpandedTechniques.map(tech => ({ ...tech, category: 'НЛП Расширенные', color: '#00BCD4' }))
 ];
 
 interface Technique {
@@ -278,7 +280,7 @@ export default function EnhancedExercisesPage() {
           <MaterialIcons name="self-improvement" size={32} color="white" />
           <Text style={styles.headerTitle}>Техники и упражнения</Text>
           <Text style={styles.headerSubtitle}>
-            {allTechniques.length} проверенных методов восстановления • Расширенная библиотека НЛП
+            {allTechniques.length}+ проверенных методов восстановления • Полная библиотека НЛП техник
           </Text>
         </View>
       </LinearGradient>

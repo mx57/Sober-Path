@@ -256,19 +256,21 @@ function HomePage() {
             Начните свой путь к здоровой жизни без алкоголя. 
             Получите поддержку, отслеживайте прогресс и достигайте целей.
           </Text>
-          <TouchableOpacity 
-            style={styles.startButton}
-            onPress={() => {
-              scaleValue.value = withSpring(0.95, {}, () => {
-                scaleValue.value = withSpring(1);
-              });
-            }}
-          >
-            <LinearGradient colors={['#2E7D4A', '#4CAF50']} style={styles.startButtonGradient}>
-              <MaterialIcons name="play-arrow" size={24} color="white" />
-              <Text style={styles.startButtonText}>Начать путь</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+          <Link href="/(tabs)/onboarding" asChild>
+            <TouchableOpacity 
+              style={styles.startButton}
+              onPress={() => {
+                scaleValue.value = withSpring(0.95, {}, () => {
+                  scaleValue.value = withSpring(1);
+                });
+              }}
+            >
+              <LinearGradient colors={['#2E7D4A', '#4CAF50']} style={styles.startButtonGradient}>
+                <MaterialIcons name="play-arrow" size={24} color="white" />
+                <Text style={styles.startButtonText}>Начать путь</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </Link>
         </View>
       </LinearGradient>
     );
