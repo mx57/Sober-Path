@@ -256,7 +256,7 @@ function HomePage() {
             Начните свой путь к здоровой жизни без алкоголя. 
             Получите поддержку, отслеживайте прогресс и достигайте целей.
           </Text>
-          <Link href="/(tabs)/onboarding" asChild>
+          <Link href="/onboarding" asChild>
             <TouchableOpacity 
               style={styles.startButton}
               onPress={() => {
