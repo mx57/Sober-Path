@@ -15,6 +15,7 @@ const TabLayout = () => {
   const audioIcon = ({ color, size }) => React.createElement(MaterialIcons, { name: 'menu-book', size, color });
   const chatIcon = ({ color, size }) => React.createElement(MaterialIcons, { name: 'chat', size, color });
   const gamesIcon = ({ color, size }) => React.createElement(MaterialIcons, { name: 'games', size, color });
+  const settingsIcon = ({ color, size }) => React.createElement(MaterialIcons, { name: 'settings', size, color });
 
   return React.createElement(Tabs, { screenOptions: tabOptions },
     React.createElement(Tabs.Screen, { name: 'index', options: { title: 'Главная', tabBarIcon: homeIcon } }),
@@ -23,16 +24,17 @@ const TabLayout = () => {
     React.createElement(Tabs.Screen, { name: 'articles', options: { title: 'Статьи', tabBarIcon: audioIcon } }),
     React.createElement(Tabs.Screen, { name: 'ai-chat', options: { title: 'ИИ-Чат', tabBarIcon: chatIcon } }),
     React.createElement(Tabs.Screen, { name: 'mini-games', options: { title: 'Игры', tabBarIcon: gamesIcon } }),
+    React.createElement(Tabs.Screen, { name: 'enhanced-settings', options: { title: 'Настройки', tabBarIcon: settingsIcon } }),
     React.createElement(Tabs.Screen, { name: 'personalized-recommendations', options: { href: null } }),
     React.createElement(Tabs.Screen, { name: 'advanced-analytics', options: { href: null } }),
-    React.createElement(Tabs.Screen, { name: 'enhanced-settings', options: { href: null } }),
     React.createElement(Tabs.Screen, { name: 'gamification', options: { href: null } }),
     React.createElement(Tabs.Screen, { name: 'psychology', options: { href: null } }),
     React.createElement(Tabs.Screen, { name: 'therapy', options: { href: null } }),
     React.createElement(Tabs.Screen, { name: 'exercises', options: { href: null } }),
     React.createElement(Tabs.Screen, { name: 'community', options: { href: null } }),
     React.createElement(Tabs.Screen, { name: 'profile', options: { href: null } }),
-    React.createElement(Tabs.Screen, { name: 'analytics', options: { href: null } })
+    React.createElement(Tabs.Screen, { name: 'analytics', options: { href: null } }),
+    React.createElement(Tabs.Screen, { name: 'sounds', options: { href: null } })
   );
 };
 
