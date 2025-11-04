@@ -22,6 +22,7 @@ export function RecoveryProvider({ children }: { children: ReactNode }) {
   const [progress, setProgress] = useState<ProgressEntry[]>([]);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const updateUserProfile = updateProfile; // Экспортируем для использования в компонентах
 
   useEffect(() => {
     loadData();
@@ -200,6 +201,7 @@ export function RecoveryProvider({ children }: { children: ReactNode }) {
       soberDays,
       addProgressEntry,
       updateProfile,
+      updateUserProfile: updateProfile,
       initializeProfile,
       getStreakDays,
       getTotalSoberDays,

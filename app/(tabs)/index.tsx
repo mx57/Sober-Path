@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   View, Text, ScrollView, StyleSheet, TouchableOpacity, 
@@ -20,41 +19,101 @@ import Animated, {
   runOnJS 
 } from 'react-native-reanimated';
 
-// Ленивые компоненты для улучшения производительности
 const AchievementSystem = React.lazy(() => import('../../components/AchievementSystem'));
 const CrisisIntervention = React.lazy(() => import('../../components/CrisisIntervention'));
 
 const { width: screenWidth } = Dimensions.get('window');
 
-// Мемоизированные компоненты для оптимизации
-const MemoizedHealthMetric = React.memo(({ metric, index }: { metric: any; index: number }) => (
-  <View key={index} style={[styles.healthMetric, { borderColor: metric.color }]}>
+// База знаний о здоровье
+const healthKnowledge: Record<string, { title: string; content: string; benefits: string[] }> = {
+  sleep: {
+    title: 'Улучшение качества сна',
+    content: 'Алкоголь серьезно нарушает архитектуру сна. Хотя он может помочь быстрее заснуть, он препятствует глубокому REM-сну, когда происходит восстановление организма.\n\n**Что происходит при отказе от алкоголя:**\n\nДень 1-3: Бессонница и беспокойный сон - нормальное явление. Мозг адаптируется к отсутствию депрессанта.\n\nДень 3-7: Начинается восстановление естественных циклов сна. Увеличивается продолжительность глубокого сна.\n\nДень 7-30: Значительное улучшение качества сна. Больше REM-фаз, лучшее восстановление.\n\n30+ дней: Полная нормализация архитектуры сна. Улучшение когнитивных функций, памяти, настроения.',
+    benefits: [
+      'Более глубокий и качественный сон',
+      'Легче просыпаться по утрам',
+      'Больше энергии в течение дня',
+      'Улучшение памяти и концентрации',
+      'Нормализация гормонального баланса',
+      'Укрепление иммунной системы'
+    ]
+  },
+  energy: {
+    title: 'Повышение уровня энергии',
+    content: 'Алкоголь - это токсин, на переработку которого организм тратит огромное количество энергии. Печень работает сверхурочно, все системы организма в режиме детоксикации.\n\n**Восстановление энергии:**\n\nДень 1-2: Может ощущаться усталость из-за синдрома отмены.\n\nДень 3-5: Первый прилив энергии! Организм больше не тратит ресурсы на детоксикацию.\n\nНеделя 2-3: Значительное повышение энергии. Лучше усваиваются витамины группы B (ключевые для энергии).\n\nМесяц+: Стабильно высокий уровень энергии. Улучшение метаболизма, эффективная работа митохондрий.',
+    benefits: [
+      'Постоянный высокий уровень энергии',
+      'Отсутствие утренних похмелий',
+      'Лучшая физическая выносливость',
+      'Повышенная продуктивность',
+      'Желание заниматься спортом',
+      'Улучшение обмена веществ'
+    ]
+  },
+  heart: {
+    title: 'Укрепление сердечно-сосудистой системы',
+    content: 'Алкоголь вызывает множество проблем с сердцем и сосудами: повышение артериального давления, аритмии, кардиомиопатию, повышенный риск инсульта.\n\n**Восстановление сердца:**\n\nНеделя 1: Снижение артериального давления. Уменьшение нагрузки на сердце.\n\nНедели 2-4: Нормализация сердечного ритма. Улучшение кровообращения.\n\n1-3 месяца: Снижение риска аритмий. Укрепление сердечной мышцы.\n\n6+ месяцев: Значительное снижение риска сердечных заболеваний и инсульта (на 30-40%).',
+    benefits: [
+      'Нормализация артериального давления',
+      'Регулярный сердечный ритм',
+      'Улучшение кровообращения',
+      'Снижение риска инфаркта',
+      'Укрепление сосудов',
+      'Улучшение доставки кислорода к органам'
+    ]
+  },
+  mind: {
+    title: 'Ясность мышления и когнитивные функции',
+    content: 'Алкоголь токсичен для мозга. Он повреждает нейроны, нарушает связи между ними, ухудшает память, концентрацию и принятие решений.\n\n**Восстановление мозга:**\n\nНедели 1-2: "Мозговой туман" начинает рассеиваться. Улучшается концентрация внимания.\n\nНедели 3-6: Значительное улучшение памяти. Лучше работает исполнительная функция (планирование, принятие решений).\n\n2-3 месяца: Восстановление нейронных связей. Улучшение скорости обработки информации.\n\n6+ месяцев: Полное восстановление когнитивных функций. Возможен рост новых нейронов (нейрогенез).',
+    benefits: [
+      'Улучшение памяти и концентрации',
+      'Быстрое и четкое мышление',
+      'Лучшее принятие решений',
+      'Повышение креативности',
+      'Эмоциональная стабильность',
+      'Способность к обучению'
+    ]
+  },
+  immunity: {
+    title: 'Укрепление иммунной системы',
+    content: 'Алкоголь подавляет иммунную систему на нескольких уровнях: нарушает работу иммунных клеток, ухудшает барьерные функции кишечника, вызывает хроническое воспаление.\n\n**Восстановление иммунитета:**\n\nНеделя 1: Начало восстановления функции лейкоцитов.\n\nНедели 2-4: Улучшение кишечного барьера. Нормализация микробиома.\n\n1-3 месяца: Значительное укрепление иммунного ответа. Меньше простуд и инфекций.\n\n6+ месяцев: Полное восстановление иммунной функции. Снижение хронического воспаления.',
+    benefits: [
+      'Устойчивость к простудам и инфекциям',
+      'Быстрое заживление ран',
+      'Снижение риска аутоиммунных заболеваний',
+      'Улучшение функции лимфатической системы',
+      'Нормализация воспалительных процессов',
+      'Повышение общей выносливости организма'
+    ]
+  },
+  transformation: {
+    title: 'Полная трансформация жизни',
+    content: 'После 90 дней трезвости происходят фундаментальные изменения во всех сферах жизни. Это не просто отсутствие алкоголя - это новый образ жизни.\n\n**Физические изменения:**\nПечень почти полностью восстанавливается. Нормализуется вес. Кожа становится здоровее. Глаза ясные.\n\n**Психологические изменения:**\nИсчезает тревожность и депрессия, связанные с алкоголем. Появляется уверенность в себе. Улучшаются отношения.\n\n**Социальные изменения:**\nЛучше работа или учеба. Восстановление отношений. Новые здоровые хобби. Финансовая стабильность.\n\n**Духовный рост:**\nПонимание своих ценностей. Жизненная цель. Гордость за достижения.',
+    benefits: [
+      'Полное физическое восстановление',
+      'Новая идентичность без алкоголя',
+      'Глубокие и здоровые отношения',
+      'Финансовая стабильность',
+      'Ощущение гордости и достижения',
+      'Вдохновение для других',
+      'Новые возможности и перспективы',
+      'Истинное счастье и удовлетворение'
+    ]
+  }
+};
+
+const MemoizedHealthMetric = React.memo(({ metric, onPress }: { metric: any; onPress: () => void }) => (
+  <TouchableOpacity onPress={onPress} style={[styles.healthMetric, { borderColor: metric.color }]}>
     <MaterialIcons name={metric.icon} size={24} color={metric.color} />
     <Text style={styles.healthText}>{metric.text}</Text>
     <Text style={styles.healthDays}>День {metric.days}+</Text>
-  </View>
-));
-
-const MemoizedNavCard = React.memo(({ item, onPress }: { item: any; onPress: () => void }) => (
-  <TouchableOpacity style={styles.navCard} onPress={onPress}>
-    <View style={[styles.navIcon, { backgroundColor: item.color }]}>
-      <MaterialIcons name={item.icon} size={28} color="white" />
-      {item.isNew && (
-        <View style={styles.newBadge}>
-          <Text style={styles.newBadgeText}>NEW</Text>
-        </View>
-      )}
+    <View style={styles.tapHint}>
+      <MaterialIcons name="info-outline" size={14} color={metric.color} />
     </View>
-    <View style={styles.navContent}>
-      <Text style={styles.navTitle}>{item.title}</Text>
-      <Text style={styles.navDescription}>{item.description}</Text>
-    </View>
-    <MaterialIcons name="chevron-right" size={24} color="#999" />
   </TouchableOpacity>
 ));
 
 function HomePage() {
-  // ВСЕ ХУКИ ДОЛЖНЫ БЫТЬ ЗДЕСЬ, ДО ЛЮБЫХ УСЛОВНЫХ RETURN'ОВ
   const insets = useSafeAreaInsets();
   const { 
     soberDays, 
@@ -69,12 +128,12 @@ function HomePage() {
   } = useRecovery();
   const { addMoodEntry } = useAnalytics();
   
-  // ВСЕ useState хуки
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [mood, setMood] = useState<1 | 2 | 3 | 4 | 5>(3);
   const [showMoodSelector, setShowMoodSelector] = useState(false);
   const [showCrisisIntervention, setShowCrisisIntervention] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [selectedHealthMetric, setSelectedHealthMetric] = useState<string | null>(null);
   const [alertConfig, setAlertConfig] = useState<{
     visible: boolean;
     title: string;
@@ -82,16 +141,13 @@ function HomePage() {
     onOk?: () => void;
   }>({ visible: false, title: '', message: '' });
 
-  // ВСЕ анимационные хуки
   const pulseValue = useSharedValue(0);
   const scaleValue = useSharedValue(1);
   
-  // ВСЕ анимированные стили
   const pulseAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: 1 + pulseValue.value * 0.05 }]
   }));
 
-  // ВСЕ useEffect хуки
   useEffect(() => {
     pulseValue.value = withRepeat(
       withTiming(1, { duration: 2000 }),
@@ -100,7 +156,6 @@ function HomePage() {
     );
   }, []);
 
-  // ВСЕ useCallback хуки
   const showWebAlert = useCallback((title: string, message: string, onOk?: () => void) => {
     if (Platform.OS === 'web') {
       setAlertConfig({ visible: true, title, message, onOk });
@@ -109,76 +164,19 @@ function HomePage() {
     }
   }, []);
 
-  const handleNavigation = useCallback((route: string) => {
-    scaleValue.value = withSpring(0.98, {}, () => {
-      scaleValue.value = withSpring(1);
-    });
-    
-    // Простая навигация без использования router
-    // Поскольку мы в таб-структуре, ссылки будут работать автоматически
-    console.log('Переход на:', route);
-  }, [scaleValue]);
-
-  // ВСЕ useMemo хуки - КРИТИЧНО: должны быть ДО handleLogDay
   const streakDays = useMemo(() => getStreakDays(), [getStreakDays]);
   const totalSoberDays = useMemo(() => getTotalSoberDays(), [getTotalSoberDays]);
   const todayStatus = useMemo(() => getDayStatus(selectedDate), [getDayStatus, selectedDate]);
   const calendarMarks = useMemo(() => getCalendarMarks(), [getCalendarMarks]);
 
-  const navigationItems = useMemo(() => [
-    {
-      title: 'AI-Коуч',
-      description: 'Персональный помощник 24/7',
-      icon: 'psychology',
-      color: '#6A1B9A',
-      route: '/(tabs)/ai-coach',
-      isNew: true
-    },
-    {
-      title: 'Терапевтические звуки',
-      description: 'Расслабление и медитация',
-      icon: 'headphones',
-      color: '#2196F3',
-      route: '/(tabs)/sounds'
-    },
-    {
-      title: 'НЛП упражнения',
-      description: 'Техники изменения поведения',
-      icon: 'self-improvement',
-      color: '#FF9800',
-      route: '/(tabs)/exercises'
-    },
-    {
-      title: 'Психологические советы',
-      description: 'Профессиональные рекомендации',
-      icon: 'lightbulb',
-      color: '#3F51B5',
-      route: '/(tabs)/psychology'
-    },
-    {
-      title: 'Сообщество',
-      description: 'Поддержка единомышленников',
-      icon: 'group',
-      color: '#4CAF50',
-      route: '/(tabs)/community'
-    },
-    {
-      title: 'Достижения',
-      description: 'Награды и мотивация',
-      icon: 'emoji-events',
-      color: '#FF6B6B',
-      route: '/(tabs)/gamification'
-    }
-  ], []);
-
   const getHealthMetrics = useCallback(() => {
     const metrics = [];
-    if (soberDays >= 1) metrics.push({ icon: 'bedtime', text: 'Сон улучшается', color: '#4CAF50', days: 1 });
-    if (soberDays >= 3) metrics.push({ icon: 'fitness-center', text: 'Больше энергии', color: '#FF9800', days: 3 });
-    if (soberDays >= 7) metrics.push({ icon: 'favorite', text: 'Здоровье сердца', color: '#F44336', days: 7 });
-    if (soberDays >= 14) metrics.push({ icon: 'psychology', text: 'Ясность мышления', color: '#9C27B0', days: 14 });
-    if (soberDays >= 30) metrics.push({ icon: 'shield', text: 'Сильный иммунитет', color: '#607D8B', days: 30 });
-    if (soberDays >= 90) metrics.push({ icon: 'auto-awesome', text: 'Новая жизнь!', color: '#E91E63', days: 90 });
+    if (soberDays >= 1) metrics.push({ icon: 'bedtime', text: 'Сон улучшается', color: '#4CAF50', days: 1, type: 'sleep' });
+    if (soberDays >= 3) metrics.push({ icon: 'fitness-center', text: 'Больше энергии', color: '#FF9800', days: 3, type: 'energy' });
+    if (soberDays >= 7) metrics.push({ icon: 'favorite', text: 'Здоровье сердца', color: '#F44336', days: 7, type: 'heart' });
+    if (soberDays >= 14) metrics.push({ icon: 'psychology', text: 'Ясность мышления', color: '#9C27B0', days: 14, type: 'mind' });
+    if (soberDays >= 30) metrics.push({ icon: 'shield', text: 'Сильный иммунитет', color: '#607D8B', days: 30, type: 'immunity' });
+    if (soberDays >= 90) metrics.push({ icon: 'auto-awesome', text: 'Новая жизнь!', color: '#E91E63', days: 90, type: 'transformation' });
     return metrics;
   }, [soberDays]);
 
@@ -230,7 +228,6 @@ function HomePage() {
     }
   }, [selectedDate, todayStatus, mood, addProgressEntry, addMoodEntry, streakDays, showWebAlert]);
 
-  // ТЕПЕРЬ МОЖНО ДЕЛАТЬ УСЛОВНЫЕ РЕНДЕРЫ - ВСЕ ХУКИ УЖЕ ВЫЗВАНЫ
   if (loading) {
     return (
       <View style={[styles.container, styles.loadingContainer, { paddingTop: insets.top }]}>
@@ -257,14 +254,7 @@ function HomePage() {
             Получите поддержку, отслеживайте прогресс и достигайте целей.
           </Text>
           <Link href="/onboarding" asChild>
-            <TouchableOpacity 
-              style={styles.startButton}
-              onPress={() => {
-                scaleValue.value = withSpring(0.95, {}, () => {
-                  scaleValue.value = withSpring(1);
-                });
-              }}
-            >
+            <TouchableOpacity style={styles.startButton}>
               <LinearGradient colors={['#2E7D4A', '#4CAF50']} style={styles.startButtonGradient}>
                 <MaterialIcons name="play-arrow" size={24} color="white" />
                 <Text style={styles.startButtonText}>Начать путь</Text>
@@ -276,14 +266,8 @@ function HomePage() {
     );
   }
 
-
-
-
-
-
   return (
     <ScrollView style={[styles.container, { paddingTop: insets.top }]}>
-
       <LinearGradient colors={['white', '#F8F9FA']} style={styles.header}>
         <View style={styles.headerContent}>
           <View>
@@ -298,7 +282,6 @@ function HomePage() {
           </TouchableOpacity>
         </View>
       </LinearGradient>
-
 
       <View style={styles.statsContainer}>
         <Animated.View style={[styles.statCard, styles.primaryStatCard, pulseAnimatedStyle]}>
@@ -321,20 +304,26 @@ function HomePage() {
         </View>
       </View>
 
-
       {healthMetrics.length > 0 && (
         <View style={styles.healthContainer}>
-          <Text style={styles.sectionTitle}>💚 Ваши достижения в здоровье</Text>
+          <View style={styles.healthHeader}>
+            <Text style={styles.sectionTitle}>💚 Ваши достижения в здоровье</Text>
+            <MaterialIcons name="touch-app" size={16} color="#666" />
+            <Text style={styles.tapHintText}>Нажмите для подробностей</Text>
+          </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={styles.healthMetrics}>
               {healthMetrics.map((metric, index) => (
-                <MemoizedHealthMetric key={index} metric={metric} index={index} />
+                <MemoizedHealthMetric 
+                  key={index} 
+                  metric={metric} 
+                  onPress={() => setSelectedHealthMetric(metric.type)}
+                />
               ))}
             </View>
           </ScrollView>
         </View>
       )}
-
 
       <View style={styles.quickActionsContainer}>
         <Text style={styles.sectionTitle}>⚡ Быстрые действия</Text>
@@ -381,42 +370,60 @@ function HomePage() {
         </View>
       </View>
 
-
-      <View style={styles.navigationContainer}>
-        <Text style={styles.sectionTitle}>🛠 Инструменты восстановления</Text>
-        <View style={styles.navigationGrid}>
-          {navigationItems.map((item, index) => (
-            <Link key={index} href={item.route as any} asChild>
-              <TouchableOpacity style={styles.navCard}>
-                <View style={[styles.navIcon, { backgroundColor: item.color }]}>
-                  <MaterialIcons name={item.icon} size={28} color="white" />
-                  {item.isNew && (
-                    <View style={styles.newBadge}>
-                      <Text style={styles.newBadgeText}>NEW</Text>
-                    </View>
-                  )}
-                </View>
-                <View style={styles.navContent}>
-                  <Text style={styles.navTitle}>{item.title}</Text>
-                  <Text style={styles.navDescription}>{item.description}</Text>
-                </View>
-                <MaterialIcons name="chevron-right" size={24} color="#999" />
-              </TouchableOpacity>
-            </Link>
-          ))}
-        </View>
-      </View>
-
-
       <React.Suspense fallback={
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#2E7D4A" />
-          <Text style={styles.loadingText}>Загрузка достижений...</Text>
         </View>
       }>
         <AchievementSystem />
       </React.Suspense>
 
+      {/* Модал подробной информации о здоровье */}
+      <Modal visible={selectedHealthMetric !== null} animationType="slide" presentationStyle="pageSheet">
+        {selectedHealthMetric && healthKnowledge[selectedHealthMetric] && (
+          <View style={[styles.modalContainer, { paddingTop: insets.top }]}>
+            <View style={styles.healthModalHeader}>
+              <TouchableOpacity onPress={() => setSelectedHealthMetric(null)}>
+                <MaterialIcons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+              <Text style={styles.healthModalTitle}>{healthKnowledge[selectedHealthMetric].title}</Text>
+              <View style={{ width: 24 }} />
+            </View>
+
+            <ScrollView style={styles.healthModalContent}>
+              <View style={styles.healthModalBody}>
+                {healthKnowledge[selectedHealthMetric].content.split('\n').map((paragraph, index) => {
+                  if (!paragraph.trim()) return null;
+                  const isBold = paragraph.startsWith('**') && paragraph.endsWith('**');
+                  const cleanText = isBold ? paragraph.slice(2, -2) : paragraph;
+                  
+                  return (
+                    <Text
+                      key={index}
+                      style={[
+                        styles.healthModalParagraph,
+                        isBold && styles.healthModalBold
+                      ]}
+                    >
+                      {cleanText}
+                    </Text>
+                  );
+                })}
+              </View>
+
+              <View style={styles.benefitsSection}>
+                <Text style={styles.benefitsTitle}>✨ Ключевые преимущества:</Text>
+                {healthKnowledge[selectedHealthMetric].benefits.map((benefit, index) => (
+                  <View key={index} style={styles.benefitItem}>
+                    <MaterialIcons name="check-circle" size={20} color="#4CAF50" />
+                    <Text style={styles.benefitText}>{benefit}</Text>
+                  </View>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+        )}
+      </Modal>
 
       <Modal visible={showCalendar} animationType="slide">
         <View style={[styles.modalContainer, { paddingTop: insets.top }]}>
@@ -486,7 +493,6 @@ function HomePage() {
         </View>
       </Modal>
 
-
       <Modal visible={showMoodSelector} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.moodModalContent}>
@@ -546,7 +552,6 @@ function HomePage() {
         </View>
       </Modal>
 
-
       {Platform.OS === 'web' && (
         <Modal visible={alertConfig.visible} transparent animationType="fade">
           <View style={styles.webAlertOverlay}>
@@ -567,13 +572,11 @@ function HomePage() {
         </Modal>
       )}
 
-
       {showCrisisIntervention && (
         <React.Suspense fallback={
           <Modal visible={showCrisisIntervention} transparent>
             <View style={[styles.modalOverlay, { justifyContent: 'center', alignItems: 'center' }]}>
               <ActivityIndicator size="large" color="#2E7D4A" />
-              <Text style={[styles.loadingText, { color: 'white' }]}>Загрузка помощи...</Text>
             </View>
           </Modal>
         }>
@@ -593,8 +596,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F9FA'
   },
   loadingContainer: {
+    flex: 1,
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    padding: 20
   },
   loadingText: {
     fontSize: 18,
@@ -739,6 +744,17 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3
   },
+  healthHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+    gap: 8
+  },
+  tapHintText: {
+    fontSize: 12,
+    color: '#666',
+    fontStyle: 'italic'
+  },
   healthMetrics: {
     flexDirection: 'row',
     gap: 12
@@ -750,7 +766,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 20,
     borderWidth: 2,
-    minWidth: 120
+    minWidth: 120,
+    position: 'relative'
   },
   healthText: {
     fontSize: 13,
@@ -763,6 +780,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#666',
     marginTop: 2
+  },
+  tapHint: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    opacity: 0.6
   },
   quickActionsContainer: {
     margin: 20
@@ -790,60 +813,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold'
   },
-  navigationContainer: {
-    margin: 20
-  },
-  navigationGrid: {
-    gap: 12
-  },
-  navCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    padding: 18,
-    borderRadius: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3
-  },
-  navIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-    position: 'relative'
-  },
-  newBadge: {
-    position: 'absolute',
-    top: -6,
-    right: -6,
-    backgroundColor: '#FF6B6B',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8
-  },
-  newBadgeText: {
-    color: 'white',
-    fontSize: 8,
-    fontWeight: 'bold'
-  },
-  navContent: {
-    flex: 1
-  },
-  navTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4
-  },
-  navDescription: {
-    fontSize: 14,
-    color: '#666'
-  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
@@ -853,6 +822,63 @@ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
     backgroundColor: 'white'
+  },
+  healthModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0'
+  },
+  healthModalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2E7D4A',
+    flex: 1,
+    textAlign: 'center'
+  },
+  healthModalContent: {
+    flex: 1
+  },
+  healthModalBody: {
+    padding: 20
+  },
+  healthModalParagraph: {
+    fontSize: 16,
+    color: '#333',
+    lineHeight: 24,
+    marginBottom: 12
+  },
+  healthModalBold: {
+    fontWeight: 'bold',
+    fontSize: 17,
+    color: '#2E7D4A',
+    marginTop: 12,
+    marginBottom: 8
+  },
+  benefitsSection: {
+    backgroundColor: '#E8F5E8',
+    padding: 20,
+    marginTop: 10
+  },
+  benefitsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2E7D4A',
+    marginBottom: 15
+  },
+  benefitItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+    gap: 10
+  },
+  benefitText: {
+    flex: 1,
+    fontSize: 15,
+    color: '#333',
+    lineHeight: 22
   },
   calendarHeader: {
     flexDirection: 'row',
@@ -1036,5 +1062,4 @@ const styles = StyleSheet.create({
   }
 });
 
-// Экспорт с мемоизацией
 export default React.memo(HomePage);

@@ -366,14 +366,15 @@ export default function EnhancedSettingsPage() {
     setSelectedTheme(themeId);
     await saveSettings(STORAGE_KEYS.THEME, themeId);
     
+    // Применяем тему к приложению
     if (updateUserProfile) {
-      updateUserProfile({ theme: themeId });
+      await updateUserProfile({ theme: themeId });
     }
     
     if (Platform.OS !== 'web' && Haptics?.impactAsync) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
-  }, [updateUserProfile]);
+  }, [updateUserProfile, saveSettings]);
 
   const handleSettingChange = useCallback(async (sectionId: string, settingId: string, value: any) => {
     switch (sectionId) {
@@ -381,7 +382,9 @@ export default function EnhancedSettingsPage() {
         const newNotifSettings = { ...notificationSettings, [settingId]: value };
         setNotificationSettings(newNotifSettings);
         await saveSettings(STORAGE_KEYS.NOTIFICATIONS, newNotifSettings);
-        smartNotificationService.updatePreferences({ [settingId]: value });
+        if (smartNotificationService?.updatePreferences) {
+          smartNotificationService.updatePreferences({ [settingId]: value });
+        }
         break;
         
       case 'privacy':
@@ -394,9 +397,14 @@ export default function EnhancedSettingsPage() {
         const newAccessibilitySettings = { ...accessibilitySettings, [settingId]: value };
         setAccessibilitySettings(newAccessibilitySettings);
         await saveSettings(STORAGE_KEYS.ACCESSIBILITY, newAccessibilitySettings);
+        
+        // Применяем настройки доступности к приложению
+        if (updateUserProfile) {
+          await updateUserProfile({ accessibility: newAccessibilitySettings });
+        }
         break;
     }
-  }, [notificationSettings, privacySettings, accessibilitySettings]);
+  }, [notificationSettings, privacySettings, accessibilitySettings, updateUserProfile, saveSettings]);
 
   const handleResetAllSettings = useCallback(async () => {
     try {
