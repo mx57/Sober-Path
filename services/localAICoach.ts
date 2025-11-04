@@ -1,4 +1,6 @@
-// Улучшенный AI-коуч с локальной языковой моделью
+// Улучшенный AI-коуч с расширенной базой психологических знаний
+
+import { findRelevantKnowledge } from './psychologyKnowledgeBase';
 
 interface AIResponse {
   message: string;
@@ -158,8 +160,22 @@ class LocalAICoach {
     return 'low';
   }
 
-  // Генерация ответа на основе контекста
+  // Генерация ответа на основе контекста и психологической базы знаний
   private generateResponse(context: ConversationContext, userMessage: string): AIResponse {
+    // Сначала проверяем базу психологических знаний
+    const knowledgeMatch = findRelevantKnowledge(userMessage);
+    
+    if (knowledgeMatch) {
+      return {
+        message: knowledgeMatch.response,
+        suggestions: knowledgeMatch.techniques.slice(0, 3),
+        resources: knowledgeMatch.resources,
+        mood: 'supportive',
+        confidence: 0.9
+      };
+    }
+    
+    // Если нет совпадений в базе знаний, используем стандартную логику
     const moodAnalysis = this.analyzeMood(userMessage);
     const urgency = this.determineUrgency(moodAnalysis.mood, userMessage.toLowerCase().split(' '));
     

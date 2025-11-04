@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
@@ -9,9 +8,11 @@ import {
   Switch,
   Dimensions,
   Platform,
-  Animated as RNAnimated
+  Modal,
+  Alert
 } from 'react-native';
-import * as Haptics from 'expo-haptics'; // Corrected: Import Haptics from expo-haptics
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Haptics from 'expo-haptics';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -48,7 +49,14 @@ interface Setting {
   max?: number;
 }
 
-// Мемоизированные компоненты для оптимизации
+// Константы для ключей хранилища
+const STORAGE_KEYS = {
+  THEME: '@settings/theme',
+  NOTIFICATIONS: '@settings/notifications',
+  PRIVACY: '@settings/privacy',
+  ACCESSIBILITY: '@settings/accessibility'
+};
+
 const MemoizedThemeCard = React.memo(({ theme, isSelected, onPress }: {
   theme: any;
   isSelected: boolean;
@@ -74,11 +82,7 @@ const MemoizedThemeCard = React.memo(({ theme, isSelected, onPress }: {
 
   useEffect(() => {
     if (isSelected) {
-      glowValue.value = withRepeat(
-        withTiming(1, { duration: 1500 }),
-        -1,
-        true
-      );
+      glowValue.value = withRepeat(withTiming(1, { duration: 1500 }), -1, true);
     } else {
       glowValue.value = withTiming(0, { duration: 300 });
     }
@@ -89,10 +93,7 @@ const MemoizedThemeCard = React.memo(({ theme, isSelected, onPress }: {
       <TouchableOpacity onPress={handlePress}>
         <LinearGradient
           colors={theme.gradient}
-          style={[
-            styles.themeGradient,
-            isSelected && styles.selectedTheme
-          ]}
+          style={[styles.themeGradient, isSelected && styles.selectedTheme]}
         >
           <MaterialIcons name={theme.icon} size={32} color="white" />
           <Text style={styles.themeName}>{theme.name}</Text>
@@ -143,10 +144,7 @@ const MemoizedSettingRow = React.memo(({ setting, onValueChange }: {
           />
         );
       case 'slider':
-        // В реальном приложении здесь был бы слайдер
-        return (
-          <Text style={styles.sliderValue}>{localValue}</Text>
-        );
+        return <Text style={styles.sliderValue}>{localValue}</Text>;
       case 'select':
         return (
           <TouchableOpacity style={styles.selectButton}>
@@ -177,50 +175,46 @@ export default function EnhancedSettingsPage() {
   const { userProfile, updateUserProfile } = useRecovery();
   
   const [selectedTheme, setSelectedTheme] = useState('nature');
-  const [notificationSettings, setNotificationSettings] = useState<any>({});
-  const [privacySettings, setPrivacySettings] = useState<any>({});
-  const [accessibilitySettings, setAccessibilitySettings] = useState<any>({});
+  const [notificationSettings, setNotificationSettings] = useState<any>({
+    motivationalQuotes: true,
+    riskInterventions: true,
+    dailyCheckIns: true,
+    wellnessTips: true
+  });
+  const [privacySettings, setPrivacySettings] = useState<any>({
+    dataAnalytics: true,
+    crashReports: true,
+    locationServices: false
+  });
+  const [accessibilitySettings, setAccessibilitySettings] = useState<any>({
+    largeText: false,
+    highContrast: false,
+    voiceFeedback: false,
+    hapticFeedback: true
+  });
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+  }>({ visible: false, title: '', message: '' });
 
-  // Анимации
   const fadeInValue = useSharedValue(0);
   const slideValue = useSharedValue(30);
-  const bounceValue = useRef(new RNAnimated.Value(0)).current;
 
   const fadeInAnimatedStyle = useAnimatedStyle(() => ({
     opacity: fadeInValue.value,
     transform: [{ translateY: slideValue.value }]
   }));
 
-  // Темы приложения
   const themes = [
-    {
-      id: 'nature',
-      name: 'Природа',
-      icon: 'eco',
-      gradient: ['#4CAF50', '#2E7D4A']
-    },
-    {
-      id: 'ocean',
-      name: 'Океан',
-      icon: 'waves',
-      gradient: ['#2196F3', '#1565C0']
-    },
-    {
-      id: 'sunset',
-      name: 'Закат',
-      icon: 'wb-sunny',
-      gradient: ['#FF9800', '#F57C00']
-    },
-    {
-      id: 'minimal',
-      name: 'Минимал',
-      icon: 'palette',
-      gradient: ['#607D8B', '#455A64']
-    }
+    { id: 'nature', name: 'Природа', icon: 'eco', gradient: ['#4CAF50', '#2E7D4A'] },
+    { id: 'ocean', name: 'Океан', icon: 'waves', gradient: ['#2196F3', '#1565C0'] },
+    { id: 'sunset', name: 'Закат', icon: 'wb-sunny', gradient: ['#FF9800', '#F57C00'] },
+    { id: 'minimal', name: 'Минимал', icon: 'palette', gradient: ['#607D8B', '#455A64'] }
   ];
 
-  // Разделы настроек
   const settingSections: SettingSection[] = [
     {
       id: 'notifications',
@@ -229,32 +223,32 @@ export default function EnhancedSettingsPage() {
       description: 'Настройка умных уведомлений и напоминаний',
       settings: [
         {
-          id: 'motivational_quotes',
+          id: 'motivationalQuotes',
           title: 'Мотивационные цитаты',
           description: 'Ежедневные персонализированные сообщения поддержки',
           type: 'switch',
-          value: notificationSettings.motivationalQuotes ?? true
+          value: notificationSettings.motivationalQuotes
         },
         {
-          id: 'risk_interventions',
+          id: 'riskInterventions',
           title: 'Экстренная поддержка',
           description: 'Уведомления при обнаружении повышенного риска',
           type: 'switch',
-          value: notificationSettings.riskInterventions ?? true
+          value: notificationSettings.riskInterventions
         },
         {
-          id: 'daily_checkins',
+          id: 'dailyCheckIns',
           title: 'Ежедневные проверки',
           description: 'Напоминания о необходимости отметить настроение',
           type: 'switch',
-          value: notificationSettings.dailyCheckIns ?? true
+          value: notificationSettings.dailyCheckIns
         },
         {
-          id: 'wellness_tips',
+          id: 'wellnessTips',
           title: 'Советы по здоровью',
           description: 'ИИ-инсайты и рекомендации для улучшения самочувствия',
           type: 'switch',
-          value: notificationSettings.wellnessTips ?? true
+          value: notificationSettings.wellnessTips
         }
       ]
     },
@@ -265,25 +259,25 @@ export default function EnhancedSettingsPage() {
       description: 'Управление конфиденциальностью данных',
       settings: [
         {
-          id: 'data_analytics',
+          id: 'dataAnalytics',
           title: 'Аналитика данных',
           description: 'Разрешить анализ данных для персонализации',
           type: 'switch',
-          value: privacySettings.dataAnalytics ?? true
+          value: privacySettings.dataAnalytics
         },
         {
-          id: 'crash_reports',
+          id: 'crashReports',
           title: 'Отчеты об ошибках',
           description: 'Автоматическая отправка отчетов для улучшения приложения',
           type: 'switch',
-          value: privacySettings.crashReports ?? true
+          value: privacySettings.crashReports
         },
         {
-          id: 'location_services',
+          id: 'locationServices',
           title: 'Геолокация',
           description: 'Использование местоположения для контекстных советов',
           type: 'switch',
-          value: privacySettings.locationServices ?? false
+          value: privacySettings.locationServices
         }
       ]
     },
@@ -294,32 +288,32 @@ export default function EnhancedSettingsPage() {
       description: 'Настройки для улучшения доступности приложения',
       settings: [
         {
-          id: 'large_text',
+          id: 'largeText',
           title: 'Крупный текст',
           description: 'Увеличенный размер шрифта для лучшей читаемости',
           type: 'switch',
-          value: accessibilitySettings.largeText ?? false
+          value: accessibilitySettings.largeText
         },
         {
-          id: 'high_contrast',
+          id: 'highContrast',
           title: 'Высокий контраст',
           description: 'Повышенная контрастность для лучшей видимости',
           type: 'switch',
-          value: accessibilitySettings.highContrast ?? false
+          value: accessibilitySettings.highContrast
         },
         {
-          id: 'voice_feedback',
+          id: 'voiceFeedback',
           title: 'Голосовая обратная связь',
           description: 'Озвучивание важных уведомлений и действий',
           type: 'switch',
-          value: accessibilitySettings.voiceFeedback ?? false
+          value: accessibilitySettings.voiceFeedback
         },
         {
-          id: 'haptic_feedback',
+          id: 'hapticFeedback',
           title: 'Тактильная обратная связь',
           description: 'Вибрация при взаимодействии с интерфейсом',
           type: 'switch',
-          value: accessibilitySettings.hapticFeedback ?? true
+          value: accessibilitySettings.hapticFeedback
         }
       ]
     }
@@ -333,37 +327,21 @@ export default function EnhancedSettingsPage() {
   const initializeAnimations = () => {
     fadeInValue.value = withTiming(1, { duration: 800 });
     slideValue.value = withTiming(0, { duration: 800 });
-    
-    // Анимация появления с bounce эффектом
-    RNAnimated.spring(bounceValue, {
-      toValue: 1,
-      friction: 6,
-      tension: 40,
-      useNativeDriver: true
-    }).start();
   };
 
   const loadSettings = async () => {
     try {
-      // Загружаем настройки из сервисов
-      const notifSettings = smartNotificationService.getPreferences();
-      setNotificationSettings(notifSettings);
-      
-      // Загружаем другие настройки из локального хранилища
-      // В реальном приложении здесь был бы AsyncStorage
-      setPrivacySettings({
-        dataAnalytics: true,
-        crashReports: true,
-        locationServices: false
-      });
-      
-      setAccessibilitySettings({
-        largeText: false,
-        highContrast: false,
-        voiceFeedback: false,
-        hapticFeedback: true
-      });
-      
+      const [theme, notif, privacy, accessibility] = await Promise.all([
+        AsyncStorage.getItem(STORAGE_KEYS.THEME),
+        AsyncStorage.getItem(STORAGE_KEYS.NOTIFICATIONS),
+        AsyncStorage.getItem(STORAGE_KEYS.PRIVACY),
+        AsyncStorage.getItem(STORAGE_KEYS.ACCESSIBILITY)
+      ]);
+
+      if (theme) setSelectedTheme(theme);
+      if (notif) setNotificationSettings(JSON.parse(notif));
+      if (privacy) setPrivacySettings(JSON.parse(privacy));
+      if (accessibility) setAccessibilitySettings(JSON.parse(accessibility));
     } catch (error) {
       console.error('Ошибка загрузки настроек:', error);
     } finally {
@@ -371,15 +349,27 @@ export default function EnhancedSettingsPage() {
     }
   };
 
-  const handleThemeChange = useCallback((themeId: string) => {
+  const saveSettings = async (key: string, value: any) => {
+    try {
+      setIsSaving(true);
+      await AsyncStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value));
+      showAlert('Успешно', 'Настройки сохранены');
+    } catch (error) {
+      console.error('Ошибка сохранения настроек:', error);
+      showAlert('Ошибка', 'Не удалось сохранить настройки');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleThemeChange = useCallback(async (themeId: string) => {
     setSelectedTheme(themeId);
+    await saveSettings(STORAGE_KEYS.THEME, themeId);
     
-    // Применяем новую тему
     if (updateUserProfile) {
       updateUserProfile({ theme: themeId });
     }
     
-    // Тактильная обратная связь
     if (Platform.OS !== 'web' && Haptics?.impactAsync) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
@@ -390,46 +380,59 @@ export default function EnhancedSettingsPage() {
       case 'notifications':
         const newNotifSettings = { ...notificationSettings, [settingId]: value };
         setNotificationSettings(newNotifSettings);
+        await saveSettings(STORAGE_KEYS.NOTIFICATIONS, newNotifSettings);
         smartNotificationService.updatePreferences({ [settingId]: value });
         break;
         
       case 'privacy':
-        setPrivacySettings(prev => ({ ...prev, [settingId]: value }));
-        // Сохранение в AsyncStorage
+        const newPrivacySettings = { ...privacySettings, [settingId]: value };
+        setPrivacySettings(newPrivacySettings);
+        await saveSettings(STORAGE_KEYS.PRIVACY, newPrivacySettings);
         break;
         
       case 'accessibility':
-        setAccessibilitySettings(prev => ({ ...prev, [settingId]: value }));
-        // Применение настроек доступности
+        const newAccessibilitySettings = { ...accessibilitySettings, [settingId]: value };
+        setAccessibilitySettings(newAccessibilitySettings);
+        await saveSettings(STORAGE_KEYS.ACCESSIBILITY, newAccessibilitySettings);
         break;
     }
-  }, [notificationSettings]);
+  }, [notificationSettings, privacySettings, accessibilitySettings]);
 
-  const handleResetAllSettings = useCallback(() => {
-    // Сброс всех настроек к значениям по умолчанию
-    setSelectedTheme('nature');
-    setNotificationSettings({
-      motivationalQuotes: true,
-      riskInterventions: true,
-      dailyCheckIns: true,
-      wellnessTips: true
-    });
-    setPrivacySettings({
-      dataAnalytics: true,
-      crashReports: true,
-      locationServices: false
-    });
-    setAccessibilitySettings({
-      largeText: false,
-      highContrast: false,
-      voiceFeedback: false,
-      hapticFeedback: true
-    });
-    
-    if (Platform.OS !== 'web' && Haptics?.notificationAsync) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  const handleResetAllSettings = useCallback(async () => {
+    try {
+      setSelectedTheme('nature');
+      const defaultNotif = { motivationalQuotes: true, riskInterventions: true, dailyCheckIns: true, wellnessTips: true };
+      const defaultPrivacy = { dataAnalytics: true, crashReports: true, locationServices: false };
+      const defaultAccessibility = { largeText: false, highContrast: false, voiceFeedback: false, hapticFeedback: true };
+      
+      setNotificationSettings(defaultNotif);
+      setPrivacySettings(defaultPrivacy);
+      setAccessibilitySettings(defaultAccessibility);
+      
+      await Promise.all([
+        AsyncStorage.setItem(STORAGE_KEYS.THEME, 'nature'),
+        AsyncStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(defaultNotif)),
+        AsyncStorage.setItem(STORAGE_KEYS.PRIVACY, JSON.stringify(defaultPrivacy)),
+        AsyncStorage.setItem(STORAGE_KEYS.ACCESSIBILITY, JSON.stringify(defaultAccessibility))
+      ]);
+      
+      showAlert('Готово', 'Все настройки сброшены к значениям по умолчанию');
+      
+      if (Platform.OS !== 'web' && Haptics?.notificationAsync) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    } catch (error) {
+      showAlert('Ошибка', 'Не удалось сбросить настройки');
     }
   }, []);
+
+  const showAlert = (title: string, message: string) => {
+    if (Platform.OS === 'web') {
+      setAlertConfig({ visible: true, title, message });
+    } else {
+      Alert.alert(title, message);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -442,19 +445,15 @@ export default function EnhancedSettingsPage() {
 
   return (
     <ScrollView style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header */}
       <LinearGradient colors={['#4CAF50', '#2E7D4A']} style={styles.header}>
-        <RNAnimated.View 
-          style={[styles.headerContent, { transform: [{ scale: bounceValue }] }]}
-        >
+        <View style={styles.headerContent}>
           <MaterialIcons name="settings" size={32} color="white" />
           <Text style={styles.headerTitle}>Настройки</Text>
           <Text style={styles.headerSubtitle}>Персонализация и управление</Text>
-        </RNAnimated.View>
+        </View>
       </LinearGradient>
 
       <Animated.View style={[styles.content, fadeInAnimatedStyle]}>
-        {/* Выбор темы */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>🎨 Тема приложения</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -471,8 +470,7 @@ export default function EnhancedSettingsPage() {
           </ScrollView>
         </View>
 
-        {/* Разделы настроек */}
-        {settingSections.map((section, sectionIndex) => (
+        {settingSections.map((section) => (
           <View key={section.id} style={styles.section}>
             <View style={styles.sectionHeader}>
               <MaterialIcons name={section.icon} size={24} color="#4CAF50" />
@@ -483,7 +481,7 @@ export default function EnhancedSettingsPage() {
             </View>
             
             <View style={styles.settingsContainer}>
-              {section.settings.map((setting, settingIndex) => (
+              {section.settings.map((setting) => (
                 <MemoizedSettingRow
                   key={setting.id}
                   setting={setting}
@@ -494,7 +492,6 @@ export default function EnhancedSettingsPage() {
           </View>
         ))}
 
-        {/* Дополнительные действия */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>🔧 Дополнительно</Text>
           <View style={styles.actionButtonsContainer}>
@@ -502,39 +499,9 @@ export default function EnhancedSettingsPage() {
               <MaterialIcons name="refresh" size={24} color="#FF9800" />
               <Text style={styles.actionButtonText}>Сбросить настройки</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.actionButton}>
-              <MaterialIcons name="backup" size={24} color="#2196F3" />
-              <Text style={styles.actionButtonText}>Экспорт данных</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.actionButton}>
-              <MaterialIcons name="help" size={24} color="#9C27B0" />
-              <Text style={styles.actionButtonText}>Помощь и поддержка</Text>
-            </TouchableOpacity>
           </View>
         </View>
 
-        {/* Информация о приложении */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>ℹ️ О приложении</Text>
-          <View style={styles.appInfoContainer}>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Версия:</Text>
-              <Text style={styles.infoValue}>2.1.0</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Последнее обновление:</Text>
-              <Text style={styles.infoValue}>15 декабря 2024</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Разработчик:</Text>
-              <Text style={styles.infoValue}>SoberPath Team</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Уведомление о конфиденциальности */}
         <View style={styles.privacyNotice}>
           <MaterialIcons name="security" size={20} color="#666" />
           <Text style={styles.privacyText}>
@@ -543,6 +510,23 @@ export default function EnhancedSettingsPage() {
           </Text>
         </View>
       </Animated.View>
+
+      {Platform.OS === 'web' && (
+        <Modal visible={alertConfig.visible} transparent animationType="fade">
+          <View style={styles.webAlertOverlay}>
+            <View style={styles.webAlertContent}>
+              <Text style={styles.webAlertTitle}>{alertConfig.title}</Text>
+              <Text style={styles.webAlertMessage}>{alertConfig.message}</Text>
+              <TouchableOpacity 
+                style={styles.webAlertButton}
+                onPress={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
+              >
+                <Text style={styles.webAlertButtonText}>OK</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      )}
     </ScrollView>
   );
 }
@@ -716,33 +700,6 @@ const styles = StyleSheet.create({
     color: '#333',
     marginLeft: 12
   },
-  appInfoContainer: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0'
-  },
-  infoLabel: {
-    fontSize: 14,
-    color: '#666'
-  },
-  infoValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333'
-  },
   privacyNotice: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -757,5 +714,41 @@ const styles = StyleSheet.create({
     marginLeft: 12,
     lineHeight: 18,
     flex: 1
+  },
+  webAlertOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  webAlertContent: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 12,
+    minWidth: 300,
+    maxWidth: '90%'
+  },
+  webAlertTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#333'
+  },
+  webAlertMessage: {
+    fontSize: 16,
+    marginBottom: 20,
+    lineHeight: 22,
+    color: '#666'
+  },
+  webAlertButton: {
+    backgroundColor: '#4CAF50',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center'
+  },
+  webAlertButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16
   }
 });
