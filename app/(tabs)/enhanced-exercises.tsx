@@ -29,7 +29,7 @@ import {
   beliefWorkTechniques,
   integrativeNLPTechniques
 } from '../../services/enhancedNLPService';
-import { advancedCBTTechniques } from '../../services/advancedCBTService';
+import { advancedCBTTechniques } from '../../services/PsychologyService';
 import { traumaInformedTechniques } from '../../services/traumaTherapyService';
 import { integrativeTherapyTechniques } from '../../services/integrativeTherapyService';
 import { allExpandedTechniques } from '../../services/expandedNLPTechniques';

@@ -1,0 +1,62 @@
+{
+  "common": {
+    "welcome": "Welcome",
+    "loading": "Loading...",
+    "error": "Error",
+    "save": "Save",
+    "cancel": "Cancel",
+    "ok": "OK",
+    "days": "Days",
+    "start": "Start",
+    "home": "Home",
+    "back": "Back"
+  },
+  "onboarding": {
+    "profileSetup": "Profile Setup",
+    "step": "Step {{current}} of {{total}}",
+    "whenStarted": "When did you start your journey?",
+    "lastTimeAlcohol": "Specify the date when you last consumed alcohol",
+    "startDateLabel": "Sobriety start date:",
+    "next": "Next",
+    "back": "Back",
+    "complete": "Complete",
+    "whatMotivates": "What motivates you?",
+    "motivationDesc": "Choose the reasons why you want to quit drinking. This will help in difficult moments.",
+    "addCustom": "Add your own reason:",
+    "customPlaceholder": "Enter your motivation",
+    "predefined": {
+      "health": "Improve health",
+      "relationships": "Strengthen relationships",
+      "money": "Save money",
+      "looks": "Look better",
+      "kids": "Be an example for kids",
+      "productivity": "Increase productivity",
+      "control": "Gain control"
+    }
+  },
+  "home": {
+    "title": "Home",
+    "welcomeBack": "Welcome back!",
+    "daysInJourney": "Days in journey",
+    "streak": "Streak",
+    "totalSober": "Total sober days",
+    "healthAchievements": "Your health achievements",
+    "tapForDetails": "Tap for details",
+    "quickActions": "Quick Actions",
+    "logDay": "Log Day",
+    "dayLogged": "Day Logged",
+    "needHelp": "Need Help",
+    "calendar": "Calendar",
+    "howIsMood": "How is your mood?",
+    "chooseState": "Choose your state for {{date}}",
+    "soberDay": "Sober Day",
+    "relapse": "Mark Relapse",
+    "mood": {
+      "bad": "Bad",
+      "sad": "Sad",
+      "neutral": "Normal",
+      "good": "Good",
+      "great": "Great"
+    }
+  }
+}

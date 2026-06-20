@@ -1,4 +1,5 @@
 import { Stack } from 'expo-router';
+import './i18n';
 import { RecoveryProvider } from '../contexts/RecoveryContext';
 import { AnalyticsProvider } from '../contexts/AnalyticsContext';
 import { PaperProvider } from 'react-native-paper';

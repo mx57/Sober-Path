@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, Alert, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AdvancedTherapy, advancedTherapies } from '../services/advancedPsychologyService';
+import { AdvancedTherapy, advancedTherapies } from '../services/PsychologyService';
 
 interface AdvancedTherapyPlayerProps {
   visible: boolean;

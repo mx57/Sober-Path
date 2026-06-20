@@ -23,9 +23,30 @@ import Animated, {
   withTiming,
   runOnJS
 } from 'react-native-reanimated';
-import AdvancedAIChat, { ChatMessage, ActionSuggestion } from '../../services/advancedAIChat';
+import { AICoachService } from '../../services/AICoachService';
 
 const { width: screenWidth } = Dimensions.get('window');
+
+interface ChatMessage {
+  id: string;
+  senderId: string;
+  senderType: 'user' | 'ai';
+  content: string;
+  timestamp: Date;
+  messageType: 'text' | 'emergency';
+  metadata?: {
+    suggestions?: ActionSuggestion[];
+    urgency?: string;
+  };
+}
+
+interface ActionSuggestion {
+  id: string;
+  type: 'technique' | 'contact' | 'emergency' | 'exercise' | 'distraction';
+  title: string;
+  description: string;
+  action: string;
+}
 
 interface AIAssistantPageProps {
   initialContext?: {
@@ -239,7 +260,6 @@ const AIAssistantPage: React.FC<AIAssistantPageProps> = ({ initialContext }) => 
   
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
-  const [aiChat] = useState(() => new AdvancedAIChat());
   const [isTyping, setIsTyping] = useState(false);
   const [currentContext, setCurrentContext] = useState(
     initialContext || { mood: 3, cravingLevel: 2, stressLevel: 3 }
@@ -297,18 +317,35 @@ const AIAssistantPage: React.FC<AIAssistantPageProps> = ({ initialContext }) => 
 
     try {
       // Получаем ответ от ИИ
-      const aiResponses = await aiChat.sendMessage('user_1', text.trim(), {
+      const aiResponse = await AICoachService.getEnhancedResponse('user_1', text.trim(), {
         userMood: currentContext.mood,
+        soberDays: 0,
         cravingLevel: currentContext.cravingLevel,
-        stressLevel: currentContext.stressLevel,
-        timeOfDay: new Date().getHours(),
-        recentEvents: []
+        timeOfDay: new Date().getHours() > 12 ? 'afternoon' : 'morning',
       });
+
+      const responseMessage: ChatMessage = {
+        id: `ai_${Date.now()}`,
+        senderId: 'ai_coach',
+        senderType: 'ai',
+        content: aiResponse.message,
+        timestamp: new Date(),
+        messageType: 'text',
+        metadata: {
+          suggestions: aiResponse.suggestions.map((s, i) => ({
+            id: `s_${i}`,
+            type: 'technique',
+            title: s,
+            description: '',
+            action: ''
+          }))
+        }
+      };
 
       // Добавляем ответы ИИ с задержкой для реалистичности
       setTimeout(() => {
         setIsTyping(false);
-        setMessages(prev => [...prev, ...aiResponses]);
+        setMessages(prev => [...prev, responseMessage]);
         
         // Прокручиваем к последнему сообщению
         setTimeout(() => {
