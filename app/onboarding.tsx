@@ -3,20 +3,22 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput } from 
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useRecovery } from '../hooks/useRecovery';
 
-const predefinedMotivations = [
-  'Улучшить здоровье',
-  'Укрепить отношения',
-  'Сэкономить деньги', 
-  'Лучше выглядеть',
-  'Быть примером для детей',
-  'Повысить продуктивность',
-  'Избежать проблем',
-  'Обрести контроль'
-];
-
 export default function OnboardingPage() {
+  const { t } = useTranslation();
+
+  const predefinedMotivations = [
+    t('onboarding.predefined.health'),
+    t('onboarding.predefined.relationships'),
+    t('onboarding.predefined.money'),
+    t('onboarding.predefined.looks'),
+    t('onboarding.predefined.kids'),
+    t('onboarding.predefined.productivity'),
+    t('onboarding.predefined.control')
+  ];
+
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { initializeProfile } = useRecovery();
@@ -51,21 +53,21 @@ export default function OnboardingPage() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>Настройка профиля</Text>
-        <Text style={styles.step}>Шаг {step} из 2</Text>
+        <Text style={styles.title}>{t('onboarding.profileSetup')}</Text>
+        <Text style={styles.step}>{t('onboarding.step', { current: step, total: 2 })}</Text>
       </View>
 
       <ScrollView style={styles.content}>
         {step === 1 && (
           <View style={styles.stepContainer}>
             <MaterialIcons name="event" size={60} color="#2E7D4A" style={styles.stepIcon} />
-            <Text style={styles.stepTitle}>Когда вы начали свой путь?</Text>
+            <Text style={styles.stepTitle}>{t('onboarding.whenStarted')}</Text>
             <Text style={styles.stepDescription}>
-              Укажите дату, когда вы последний раз употребляли алкоголь
+              {t('onboarding.lastTimeAlcohol')}
             </Text>
 
             <View style={styles.dateContainer}>
-              <Text style={styles.dateLabel}>Дата начала трезвости:</Text>
+              <Text style={styles.dateLabel}>{t('onboarding.startDateLabel')}</Text>
               <TextInput
                 style={styles.dateInput}
                 value={startDate}
@@ -78,7 +80,7 @@ export default function OnboardingPage() {
               style={styles.nextButton}
               onPress={() => setStep(2)}
             >
-              <Text style={styles.nextButtonText}>Далее</Text>
+              <Text style={styles.nextButtonText}>{t('onboarding.next')}</Text>
               <MaterialIcons name="arrow-forward" size={20} color="white" />
             </TouchableOpacity>
           </View>
@@ -87,9 +89,9 @@ export default function OnboardingPage() {
         {step === 2 && (
           <View style={styles.stepContainer}>
             <MaterialIcons name="star" size={60} color="#2E7D4A" style={styles.stepIcon} />
-            <Text style={styles.stepTitle}>Что вас мотивирует?</Text>
+            <Text style={styles.stepTitle}>{t('onboarding.whatMotivates')}</Text>
             <Text style={styles.stepDescription}>
-              Выберите причины, по которым вы хотите бросить пить. Это поможет в трудные моменты.
+              {t('onboarding.motivationDesc')}
             </Text>
 
             <View style={styles.motivationsGrid}>
@@ -113,13 +115,13 @@ export default function OnboardingPage() {
             </View>
 
             <View style={styles.customMotivationContainer}>
-              <Text style={styles.customLabel}>Добавить свою причину:</Text>
+              <Text style={styles.customLabel}>{t('onboarding.addCustom')}</Text>
               <View style={styles.customInputRow}>
                 <TextInput
                   style={styles.customInput}
                   value={customMotivation}
                   onChangeText={setCustomMotivation}
-                  placeholder="Введите вашу мотивацию"
+                  placeholder={t('onboarding.customPlaceholder')}
                   onSubmitEditing={addCustomMotivation}
                 />
                 <TouchableOpacity 
@@ -137,7 +139,7 @@ export default function OnboardingPage() {
                 onPress={() => setStep(1)}
               >
                 <MaterialIcons name="arrow-back" size={20} color="#2E7D4A" />
-                <Text style={styles.backButtonText}>Назад</Text>
+                <Text style={styles.backButtonText}>{t('onboarding.back')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity 
@@ -152,7 +154,7 @@ export default function OnboardingPage() {
                   styles.completeButtonText,
                   selectedMotivations.length === 0 && styles.disabledButtonText
                 ]}>
-                  Завершить
+                  {t('onboarding.complete')}
                 </Text>
                 <MaterialIcons 
                   name="check" 

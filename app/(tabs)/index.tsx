@@ -3,6 +3,8 @@ import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, 
   Alert, Platform, Modal, Dimensions, ActivityIndicator 
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import i18n from '../i18n';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Link } from 'expo-router';
@@ -13,18 +15,18 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
-  withSpring, 
   withTiming,
   withRepeat,
-  runOnJS 
 } from 'react-native-reanimated';
+
+import { MemoizedHealthMetric } from '../../components/home/HealthMetric';
+import { StatCard } from '../../components/home/StatCard';
 
 const AchievementSystem = React.lazy(() => import('../../components/AchievementSystem'));
 const CrisisIntervention = React.lazy(() => import('../../components/CrisisIntervention'));
 
 const { width: screenWidth } = Dimensions.get('window');
 
-// База знаний о здоровье
 const healthKnowledge: Record<string, { title: string; content: string; benefits: string[] }> = {
   sleep: {
     title: 'Улучшение качества сна',
@@ -102,25 +104,14 @@ const healthKnowledge: Record<string, { title: string; content: string; benefits
   }
 };
 
-const MemoizedHealthMetric = React.memo(({ metric, onPress }: { metric: any; onPress: () => void }) => (
-  <TouchableOpacity onPress={onPress} style={[styles.healthMetric, { borderColor: metric.color }]}>
-    <MaterialIcons name={metric.icon} size={24} color={metric.color} />
-    <Text style={styles.healthText}>{metric.text}</Text>
-    <Text style={styles.healthDays}>День {metric.days}+</Text>
-    <View style={styles.tapHint}>
-      <MaterialIcons name="info-outline" size={14} color={metric.color} />
-    </View>
-  </TouchableOpacity>
-));
-
 function HomePage() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { 
     soberDays, 
     getStreakDays, 
     getTotalSoberDays,
     userProfile, 
-    progress, 
     addProgressEntry,
     getDayStatus,
     getCalendarMarks,
@@ -142,7 +133,6 @@ function HomePage() {
   }>({ visible: false, title: '', message: '' });
 
   const pulseValue = useSharedValue(0);
-  const scaleValue = useSharedValue(1);
   
   const pulseAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: 1 + pulseValue.value * 0.05 }]
@@ -169,7 +159,7 @@ function HomePage() {
   const todayStatus = useMemo(() => getDayStatus(selectedDate), [getDayStatus, selectedDate]);
   const calendarMarks = useMemo(() => getCalendarMarks(), [getCalendarMarks]);
 
-  const getHealthMetrics = useCallback(() => {
+  const healthMetrics = useMemo(() => {
     const metrics = [];
     if (soberDays >= 1) metrics.push({ icon: 'bedtime', text: 'Сон улучшается', color: '#4CAF50', days: 1, type: 'sleep' });
     if (soberDays >= 3) metrics.push({ icon: 'fitness-center', text: 'Больше энергии', color: '#FF9800', days: 3, type: 'energy' });
@@ -179,8 +169,6 @@ function HomePage() {
     if (soberDays >= 90) metrics.push({ icon: 'auto-awesome', text: 'Новая жизнь!', color: '#E91E63', days: 90, type: 'transformation' });
     return metrics;
   }, [soberDays]);
-
-  const healthMetrics = useMemo(() => getHealthMetrics(), [getHealthMetrics]);
 
   const handleLogDay = useCallback(async (status: 'sober' | 'relapse') => {
     try {
@@ -232,7 +220,7 @@ function HomePage() {
     return (
       <View style={[styles.container, styles.loadingContainer, { paddingTop: insets.top }]}>
         <MaterialIcons name="hourglass-empty" size={50} color="#2E7D4A" />
-        <Text style={styles.loadingText}>Загрузка...</Text>
+        <Text style={styles.loadingText}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -244,9 +232,7 @@ function HomePage() {
         style={[styles.container, { paddingTop: insets.top }]}
       >
         <View style={styles.welcomeContainer}>
-          <Animated.View style={[{ transform: [{ scale: scaleValue }] }]}>
-            <MaterialIcons name="eco" size={100} color="#2E7D4A" />
-          </Animated.View>
+          <MaterialIcons name="eco" size={100} color="#2E7D4A" />
           <Text style={styles.welcomeTitle}>Путь к Трезвости</Text>
           <Text style={styles.welcomeSubtitle}>Ваш персональный помощник</Text>
           <Text style={styles.welcomeText}>
@@ -271,8 +257,8 @@ function HomePage() {
       <LinearGradient colors={['white', '#F8F9FA']} style={styles.header}>
         <View style={styles.headerContent}>
           <View>
-            <Text style={styles.title}>Главная</Text>
-            <Text style={styles.greeting}>Добро пожаловать назад!</Text>
+            <Text style={styles.title}>{t('home.title')}</Text>
+            <Text style={styles.greeting}>{t('home.welcomeBack')}</Text>
           </View>
           <TouchableOpacity 
             style={styles.emergencyButton}
@@ -284,32 +270,26 @@ function HomePage() {
       </LinearGradient>
 
       <View style={styles.statsContainer}>
-        <Animated.View style={[styles.statCard, styles.primaryStatCard, pulseAnimatedStyle]}>
-          <MaterialIcons name="timeline" size={40} color="white" />
-          <Text style={styles.statNumberPrimary}>{soberDays}</Text>
-          <Text style={styles.statLabelPrimary}>Дней в пути</Text>
-        </Animated.View>
+        <StatCard
+          icon="timeline"
+          number={soberDays}
+          label={t('home.daysInJourney')}
+          primary
+          animatedStyle={pulseAnimatedStyle}
+        />
         
         <View style={styles.secondaryStats}>
-          <View style={styles.statCard}>
-            <MaterialIcons name="local-fire-department" size={28} color="#FF9800" />
-            <Text style={styles.statNumber}>{streakDays}</Text>
-            <Text style={styles.statLabel}>Серия дней</Text>
-          </View>
-          <View style={styles.statCard}>
-            <MaterialIcons name="check-circle" size={28} color="#4CAF50" />
-            <Text style={styles.statNumber}>{totalSoberDays}</Text>
-            <Text style={styles.statLabel}>Трезвых дней</Text>
-          </View>
+          <StatCard icon="local-fire-department" number={streakDays} label={t('home.streak')} />
+          <StatCard icon="check-circle" number={totalSoberDays} label={t('home.totalSober')} />
         </View>
       </View>
 
       {healthMetrics.length > 0 && (
         <View style={styles.healthContainer}>
           <View style={styles.healthHeader}>
-            <Text style={styles.sectionTitle}>💚 Ваши достижения в здоровье</Text>
+            <Text style={styles.sectionTitle}>💚 {t('home.healthAchievements')}</Text>
             <MaterialIcons name="touch-app" size={16} color="#666" />
-            <Text style={styles.tapHintText}>Нажмите для подробностей</Text>
+            <Text style={styles.tapHintText}>{t('home.tapForDetails')}</Text>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={styles.healthMetrics}>
@@ -326,7 +306,7 @@ function HomePage() {
       )}
 
       <View style={styles.quickActionsContainer}>
-        <Text style={styles.sectionTitle}>⚡ Быстрые действия</Text>
+        <Text style={styles.sectionTitle}>⚡ {t('home.quickActions')}</Text>
         <View style={styles.quickActionsGrid}>
           <TouchableOpacity 
             style={[
@@ -348,7 +328,7 @@ function HomePage() {
               color="white" 
             />
             <Text style={styles.quickActionText}>
-              {todayStatus === 'no-entry' ? 'Отметить день' : 'День отмечен'}
+              {todayStatus === 'no-entry' ? t('home.logDay') : t('home.dayLogged')}
             </Text>
           </TouchableOpacity>
           
@@ -357,7 +337,7 @@ function HomePage() {
             onPress={() => setShowCrisisIntervention(true)}
           >
             <MaterialIcons name="emergency" size={28} color="white" />
-            <Text style={styles.quickActionText}>Нужна помощь</Text>
+            <Text style={styles.quickActionText}>{t('home.needHelp')}</Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
@@ -365,7 +345,7 @@ function HomePage() {
             onPress={() => setShowCalendar(true)}
           >
             <MaterialIcons name="calendar-month" size={28} color="white" />
-            <Text style={styles.quickActionText}>Календарь</Text>
+            <Text style={styles.quickActionText}>{t('home.calendar')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -378,7 +358,7 @@ function HomePage() {
         <AchievementSystem />
       </React.Suspense>
 
-      {/* Модал подробной информации о здоровье */}
+      {/* Health Info Modal */}
       <Modal visible={selectedHealthMetric !== null} animationType="slide" presentationStyle="pageSheet">
         {selectedHealthMetric && healthKnowledge[selectedHealthMetric] && (
           <View style={[styles.modalContainer, { paddingTop: insets.top }]}>
@@ -474,7 +454,7 @@ function HomePage() {
           {selectedDate && (
             <View style={styles.selectedDayInfo}>
               <Text style={styles.selectedDayTitle}>
-                {new Date(selectedDate).toLocaleDateString('ru', { 
+                {new Date(selectedDate).toLocaleDateString(i18n.language, {
                   weekday: 'long', 
                   year: 'numeric', 
                   month: 'long', 
@@ -496,9 +476,9 @@ function HomePage() {
       <Modal visible={showMoodSelector} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.moodModalContent}>
-            <Text style={styles.modalTitle}>Как ваше настроение?</Text>
+            <Text style={styles.modalTitle}>{t('home.howIsMood')}</Text>
             <Text style={styles.modalSubtitle}>
-              Выберите ваше состояние для {new Date(selectedDate).toLocaleDateString('ru')}
+              {t('home.chooseState', { date: new Date(selectedDate).toLocaleDateString(i18n.language) })}
             </Text>
             
             <View style={styles.moodContainer}>
@@ -519,8 +499,8 @@ function HomePage() {
                     styles.moodLabel,
                     mood === moodValue && styles.selectedMoodLabel
                   ]}>
-                    {moodValue === 1 ? 'Плохо' : moodValue === 2 ? 'Грустно' : 
-                     moodValue === 3 ? 'Нормально' : moodValue === 4 ? 'Хорошо' : 'Отлично'}
+                    {moodValue === 1 ? t('home.mood.bad') : moodValue === 2 ? t('home.mood.sad') :
+                     moodValue === 3 ? t('home.mood.neutral') : moodValue === 4 ? t('home.mood.good') : t('home.mood.great')}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -531,14 +511,14 @@ function HomePage() {
                 style={styles.modalButton}
                 onPress={() => setShowMoodSelector(false)}
               >
-                <Text style={styles.modalButtonText}>Отмена</Text>
+                <Text style={styles.modalButtonText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={[styles.modalButton, styles.confirmButton]}
                 onPress={() => handleLogDay('sober')}
               >
                 <MaterialIcons name="check" size={20} color="white" />
-                <Text style={[styles.modalButtonText, styles.confirmButtonText]}>Трезвый день</Text>
+                <Text style={[styles.modalButtonText, styles.confirmButtonText]}>{t('home.soberDay')}</Text>
               </TouchableOpacity>
             </View>
             
@@ -546,7 +526,7 @@ function HomePage() {
               style={styles.relapseButton}
               onPress={() => handleLogDay('relapse')}
             >
-              <Text style={styles.relapseButtonText}>Отметить срыв</Text>
+              <Text style={styles.relapseButtonText}>{t('home.relapse')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -687,51 +667,9 @@ const styles = StyleSheet.create({
     padding: 20,
     gap: 15
   },
-  primaryStatCard: {
-    backgroundColor: '#2E7D4A',
-    alignItems: 'center',
-    padding: 25
-  },
-  statNumberPrimary: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    color: 'white',
-    marginTop: 10
-  },
-  statLabelPrimary: {
-    fontSize: 16,
-    color: 'white',
-    marginTop: 5,
-    fontWeight: '500'
-  },
   secondaryStats: {
     flexDirection: 'row',
     gap: 15
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 15,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3
-  },
-  statNumber: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#2E7D4A',
-    marginTop: 8
-  },
-  statLabel: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 5,
-    textAlign: 'center',
-    fontWeight: '500'
   },
   healthContainer: {
     margin: 20,
@@ -758,34 +696,6 @@ const styles = StyleSheet.create({
   healthMetrics: {
     flexDirection: 'row',
     gap: 12
-  },
-  healthMetric: {
-    alignItems: 'center',
-    backgroundColor: '#F8F9FA',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 20,
-    borderWidth: 2,
-    minWidth: 120,
-    position: 'relative'
-  },
-  healthText: {
-    fontSize: 13,
-    color: '#333',
-    fontWeight: '600',
-    marginTop: 6,
-    textAlign: 'center'
-  },
-  healthDays: {
-    fontSize: 11,
-    color: '#666',
-    marginTop: 2
-  },
-  tapHint: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    opacity: 0.6
   },
   quickActionsContainer: {
     margin: 20

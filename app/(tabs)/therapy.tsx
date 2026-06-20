@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { modernTechniques, ModernTechnique, mindfulnessExercises } from '../../services/modernPsychologyService';
+import { modernTechniques, ModernTechnique, mindfulnessExercises } from '../../services/PsychologyService';
 
 export default function TherapyPage() {
   const insets = useSafeAreaInsets();

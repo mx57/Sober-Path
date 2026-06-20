@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AdvancedTherapy, advancedTherapies, TherapeuticSound, therapeuticSounds } from '../../services/advancedPsychologyService';
+import { AdvancedTherapy, advancedTherapies, TherapeuticSound, therapeuticSounds } from '../../services/PsychologyService';
 import AdvancedTherapyPlayer from '../../components/AdvancedTherapyPlayer';
 import TherapeuticSoundPlayer from '../../components/TherapeuticSoundPlayer';
 
