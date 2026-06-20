@@ -1,48 +1,17 @@
-export interface ProgressEntry {
-  id: string;
-  date: string;
-  status: 'sober' | 'relapse';
-  mood: 1 | 2 | 3 | 4 | 5;
-  notes?: string;
-  createdAt: string;
+export type Result<T, E = Error> =
+  | { success: true; data: T }
+  | { success: false; error: E };
+
+export function success<T>(data: T): Result<T, any> {
+  return { success: true, data };
 }
 
-export interface PsychologyTip {
-  id: string;
-  title: string;
-  content: string;
-  category: 'motivation' | 'coping' | 'understanding' | 'techniques';
-  readingTime: number;
+export function failure<E>(error: E): Result<any, E> {
+  return { success: false, error };
 }
 
-export interface NLPExercise {
-  id: string;
-  title: string;
-  description: string;
-  duration: number;
-  steps: string[];
-  category: 'anchoring' | 'visualization' | 'reframing' | 'future_pacing';
-}
-
-export type NLPCategory = 'anchoring' | 'visualization' | 'reframing' | 'future_pacing';
-
-export interface UserProfile {
-  id: string;
-  startDate: string;
-  name?: string;
-  motivations: string[];
-  notifications: {
-    daily: boolean;
-    time: string;
-    emergency: boolean;
-  };
-}
-
-export interface CommunityPost {
-  id: string;
-  author: string;
-  content: string;
-  timestamp: string;
-  replies: number;
-  category: 'success' | 'struggle' | 'advice' | 'support';
+export interface UIState<T> {
+  data: T | null;
+  isLoading: boolean;
+  error: string | null;
 }

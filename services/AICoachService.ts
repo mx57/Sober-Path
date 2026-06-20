@@ -1,4 +1,5 @@
 import { findRelevantKnowledge } from './psychologyKnowledgeBase';
+import { Result, success, failure } from './types';
 
 export interface AICoachMessage {
   id: string;
@@ -99,24 +100,28 @@ export class AICoachService {
     stressLevel: number;
     healthMetrics: HealthMetrics;
     recentEvents: string[];
-  }): AICoachMessage[] {
-    const messages: AICoachMessage[] = [];
-    const now = new Date();
+  }): Result<AICoachMessage[]> {
+    try {
+        const messages: AICoachMessage[] = [];
+        const now = new Date();
 
-    if (data.cravingLevel >= 4 && data.stressLevel >= 4) {
-      messages.push({
-        id: `crisis_${Date.now()}`,
-        type: 'crisis',
-        priority: 'critical',
-        timestamp: now,
-        message: 'Я вижу, что сейчас вам очень трудно. Высокий уровень стресса и тяги могут привести к срыву. Давайте вместе преодолеем этот момент.',
-        actions: [
-          { text: 'Экстренные техники', action: 'emergency_techniques' },
-          { text: 'Связаться с поддержкой', action: 'contact_support' }
-        ]
-      });
+        if (data.cravingLevel >= 4 && data.stressLevel >= 4) {
+        messages.push({
+            id: `crisis_${Date.now()}`,
+            type: 'crisis',
+            priority: 'critical',
+            timestamp: now,
+            message: 'Я вижу, что сейчас вам очень трудно. Высокий уровень стресса и тяги могут привести к срыву. Давайте вместе преодолеем этот момент.',
+            actions: [
+            { text: 'Экстренные техники', action: 'emergency_techniques' },
+            { text: 'Связаться с поддержкой', action: 'contact_support' }
+            ]
+        });
+        }
+        return success(messages);
+    } catch (e) {
+        return failure(e as Error);
     }
-    return messages;
   }
 
   static async getEnhancedResponse(
@@ -128,37 +133,41 @@ export class AICoachService {
       cravingLevel: number;
       timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night';
     }
-  ): Promise<EnhancedAIResponse> {
-    const memory = this.getUserMemory(userId);
-    const lowercaseMessage = userMessage.toLowerCase();
+  ): Promise<Result<EnhancedAIResponse>> {
+    try {
+        const memory = this.getUserMemory(userId);
+        const lowercaseMessage = userMessage.toLowerCase();
 
-    const topics = this.extractTopics(lowercaseMessage);
-    const knowledgeMatch = findRelevantKnowledge(userMessage);
+        const topics = this.extractTopics(lowercaseMessage);
+        const knowledgeMatch = findRelevantKnowledge(userMessage);
 
-    let response: string;
-    let emotionalTone: 'empathetic' | 'motivational' | 'educational' | 'supportive';
-    let suggestions: string[] = [];
+        let response: string;
+        let emotionalTone: 'empathetic' | 'motivational' | 'educational' | 'supportive';
+        let suggestions: string[] = [];
 
-    if (knowledgeMatch) {
-      response = knowledgeMatch.response;
-      emotionalTone = 'educational';
-      suggestions = knowledgeMatch.techniques.slice(0, 3);
-    } else {
-      response = "Я рядом и готов поддержать вас на пути к трезвости.";
-      emotionalTone = 'supportive';
-      suggestions = ['Дыхательное упражнение', 'Прогулка'];
+        if (knowledgeMatch) {
+        response = knowledgeMatch.response;
+        emotionalTone = 'educational';
+        suggestions = knowledgeMatch.techniques.slice(0, 3);
+        } else {
+        response = "Я рядом и готов поддержать вас на пути к трезвости.";
+        emotionalTone = 'supportive';
+        suggestions = ['Дыхательное упражнение', 'Прогулка'];
+        }
+
+        this.updateMemory(userId, userMessage, response, context.userMood, topics);
+
+        return success({
+        message: response,
+        emotionalTone,
+        suggestions,
+        followUpQuestions: [],
+        memoryUpdates: [`Updated memory for ${userId}`],
+        confidenceLevel: knowledgeMatch ? 0.9 : 0.6
+        });
+    } catch (e) {
+        return failure(e as Error);
     }
-
-    this.updateMemory(userId, userMessage, response, context.userMood, topics);
-
-    return {
-      message: response,
-      emotionalTone,
-      suggestions,
-      followUpQuestions: [],
-      memoryUpdates: [`Updated memory for ${userId}`],
-      confidenceLevel: knowledgeMatch ? 0.9 : 0.6
-    };
   }
 
   static getUserInsights(userId: string) {
@@ -200,7 +209,6 @@ export class AICoachService {
     ];
   }
 
-  // Added missing helper methods for better functionality
   static async getMotivationalMessage(soberDays: number): Promise<string> {
     if (soberDays === 0) return "Начало пути - самый важный шаг. Вы справитесь!";
     return `Поздравляю с ${soberDays} днями трезвости! Ваш прогресс вдохновляет.`;

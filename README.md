@@ -1,74 +1,52 @@
+# Sober-Path 🌿
 
+Персональный ассистент на пути к трезвости. Приложение помогает отслеживать прогресс, получать психологическую поддержку и справляться с тягой с помощью современных методов терапии.
 
-## Getting Started
+## 📸 Интерфейс приложения
 
-### 1. Install Dependencies
+<div align="center">
+  <img src="assets/screenshots/1_welcome.png" width="300" alt="Onboarding" />
+  <img src="assets/screenshots/2_home.png" width="300" alt="Home Screen" />
+</div>
 
-```bash
-npm install
-# or
-yarn install
-```
+## ✨ Основные функции
 
-### 2. Start the Project
+- **Трекер трезвости**: Отслеживание дней без алкоголя, серий и достижений.
+- **AI-Коуч 2.0**: Персональный помощник, использующий современные психологические методики для поддержки.
+- **Продвинутая терапия**: Доступ к библиотеке техник (КПТ, DBT, EMDR, IFS) и терапевтическим звукам.
+- **Аналитика прогресса**: Детальная статистика настроения и выявление паттернов тяги.
+- **Интернационализация**: Полная поддержка русского и английского языков.
 
-- Start the development server (choose your platform):
+## 🛠 Технологический стек
 
-```bash
-npm run start         # Start Expo development server
-npm run android       # Launch Android emulator
-npm run ios           # Launch iOS simulator
-npm run web           # Start the web version
-```
+- **Frontend**: React Native (Expo SDK 53)
+- **Язык**: TypeScript
+- **Архитектура**: MVVM (View-ViewModel-Service)
+- **Управление состоянием**: Zustand & Custom Hooks
+- **Анимации**: React Native Reanimated
+- **Интернационализация**: i18next
+- **Тестирование**: Jest
 
-- Reset the project (clear cache, etc.):
+## 🚀 Начало работы
 
-```bash
-npm run reset-project
-```
+1. Установите зависимости:
+   ```bash
+   npm install --legacy-peer-deps
+   ```
+2. Запустите проект:
+   ```bash
+   npx expo start
+   ```
 
-### 3. Lint the Code
+## 📈 Проведенные улучшения
 
-```bash
-npm run lint
-```
-
-## Main Dependencies
-
-- React Native: 0.79.4
-- React: 19.0.0
-- Expo: ~53.0.12
-- Expo Router: ~5.1.0
-- Supabase: ^2.50.0
-- Other commonly used libraries:  
-  - @expo/vector-icons  
-  - react-native-paper  
-  - react-native-calendars  
-  - lottie-react-native  
-  - react-native-webview  
-  - and more
-
-For a full list of dependencies, see [package.json](./package.json).
-
-## Development Tools
-
-- TypeScript: ~5.8.3
-- ESLint: ^9.25.0
-- @babel/core: ^7.25.2
-
-## Contributing
-
-1. Fork this repository
-2. Create a new branch (`git checkout -b main`)
-3. Commit your changes (`git commit -am 'Add new feature'`)
-4. Push to the branch (`git push origin feature/your-feature`)
-5. Open a Pull Request
-
-## License
-
-This project is private ("private": true). For collaboration inquiries, please contact the author.
+В рамках ревью проекта были выполнены следующие работы:
+- **Рефакторинг**: Переход на архитектуру MVVM для улучшения тестируемости и чистоты кода.
+- **Консолидация**: Объединение разрозненных сервисов в единые модули `PsychologyService` и `AICoachService`.
+- **Локализация**: Внедрена система i18n, переведены основные разделы приложения.
+- **Оптимизация**: Удалены неиспользуемые зависимости, исправлены ошибки импорта.
+- **Android Ready**: Обеспечена корректная работа аудио и UI на Android-устройствах.
+- **Тестирование**: Добавлены юнит-тесты для критической бизнес-логики.
 
 ---
-
-Feel free to add project screenshots, API documentation, feature descriptions, or any other information as needed.
-
+*Приложение разработано с заботой о вашем здоровье и благополучии.*

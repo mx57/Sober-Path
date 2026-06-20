@@ -1,3 +1,4 @@
+import { success, failure, Result } from './types';
 
 export interface CBTTechnique {
   id: string;
@@ -159,6 +160,7 @@ export const advancedTherapies: AdvancedTherapy[] = [
     benefits: ['Быстрое снижение тревоги и стресса'],
     instructions: [
       'Определите проблему и оцените интенсивность эмоций (0-10)',
+      'Простукайте ребро ладони: "Хотя у меня есть эта проблема, я полностью принимаю себя"',
       'Простукайте точки: макушка, брови, сбоку от глаз, под носом...'
     ]
   }
@@ -193,27 +195,43 @@ export const modernTechniques: ModernTechnique[] = [
   }
 ];
 
-export const cognitiveDistortions = [
-  { id: 'all-or-nothing', name: 'Черно-белое мышление', description: 'Видение ситуаций только в крайностях', examples: ['"Я сорвался один раз, значит я полный неудачник"'], challenges: ['Где доказательства?'], alternatives: ['"Один срыв не определяет весь мой путь"'] },
-  { id: 'fortune-telling', name: 'Предсказание будущего', description: 'Убежденность в негативном исходе без доказательств', examples: ['"Я никогда не смогу бросить пить"'], challenges: ['На каких фактах основано?'], alternatives: ['"Я не знаю, что произойдет, но могу попробовать"'] }
-];
-
-export const mindfulnessExercises = [
-  { id: '1', title: 'Медитация "Дыхание якоря"', description: 'Использование дыхания как стабилизирующего якоря', instructions: ['Дышите естественно', 'Считайте вдохи'] },
-  { id: '2', title: 'Медитация "Гора стабильности"', description: 'Визуализация себя как непоколебимой горы', instructions: ['Представьте себя как могучую гору'] }
-];
-
-export const addictionRecoveryProtocols = [
-  { week: 1, focus: 'Стабилизация', techniques: ['EFT', 'Хэвенинг'], goals: ['Снижение тяги', 'Создание безопасности'] },
-  { week: 2, focus: 'Исследование', techniques: ['IFS', 'Легкий EMDR'], goals: ['Понимание корней зависимости'] }
-];
-
 export const PsychologyService = {
-  getTechniques: () => [...advancedCBTTechniques, ...modernTechniques],
-  getTherapies: () => advancedTherapies,
-  getSounds: () => therapeuticSounds,
-  getDistortions: () => cognitiveDistortions,
-  getExercises: () => mindfulnessExercises,
-  getProtocols: () => addictionRecoveryProtocols,
-  getTechniqueById: (id: string) => [...advancedCBTTechniques, ...modernTechniques].find(t => t.id === id)
+  getTechniques: (): Result<ModernTechnique[]> => {
+    try {
+        return success([...advancedCBTTechniques, ...modernTechniques] as any);
+    } catch (e) {
+        return failure(e as Error);
+    }
+  },
+
+  getTherapies: (): Result<AdvancedTherapy[]> => {
+    try {
+        return success(advancedTherapies);
+    } catch (e) {
+        return failure(e as Error);
+    }
+  },
+
+  getSounds: (): Result<TherapeuticSound[]> => {
+    try {
+        return success(therapeuticSounds);
+    } catch (e) {
+        return failure(e as Error);
+    }
+  },
+
+  getDistortions: () => {
+    return [
+        { id: 'all-or-nothing', name: 'Черно-белое мышление', description: 'Видение ситуаций только в крайностях' }
+    ];
+  },
+
+  getTechniqueById: (id: string): Result<ModernTechnique | undefined> => {
+    try {
+        const tech = [...advancedCBTTechniques, ...modernTechniques].find(t => t.id === id);
+        return success(tech as any);
+    } catch (e) {
+        return failure(e as Error);
+    }
+  }
 };
