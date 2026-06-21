@@ -5,8 +5,11 @@
 ## 📸 Интерфейс приложения
 
 <div align="center">
-  <img src="assets/screenshots/1_welcome.png" width="300" alt="Onboarding" />
-  <img src="assets/screenshots/2_home.png" width="300" alt="Home Screen" />
+  <img src="assets/screenshots/1_welcome.png" width="200" alt="Onboarding" />
+  <img src="assets/screenshots/2_home.png" width="200" alt="Home Screen" />
+  <img src="assets/screenshots/3_ai_coach.png" width="200" alt="AI Coach" />
+  <img src="assets/screenshots/4_analytics.png" width="200" alt="Analytics" />
+  <img src="assets/screenshots/5_therapy.png" width="200" alt="Advanced Therapy" />
 </div>
 
 ## ✨ Основные функции
@@ -43,7 +46,7 @@
 В рамках ревью проекта были выполнены следующие работы:
 - **Рефакторинг**: Переход на архитектуру MVVM для улучшения тестируемости и чистоты кода.
 - **Консолидация**: Объединение разрозненных сервисов в единые модули `PsychologyService` и `AICoachService`.
-- **Локализация**: Внедрена система i18n, переведены основные разделы приложения.
+- **Локализация**: Внедрена система i18n, переведены все основные разделы приложения.
 - **Оптимизация**: Удалены неиспользуемые зависимости, исправлены ошибки импорта.
 - **Android Ready**: Обеспечена корректная работа аудио и UI на Android-устройствах.
 - **Тестирование**: Добавлены юнит-тесты для критической бизнес-логики.
