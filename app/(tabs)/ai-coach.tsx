@@ -10,10 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAICoachViewModel, ChatMessage } from '../../hooks/useAICoachViewModel';
 import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withTiming,
+  FadeInUp,
 } from 'react-native-reanimated';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -22,7 +19,10 @@ const { width: screenWidth } = Dimensions.get('window');
 const MessageBubble = React.memo(({ message }: { message: ChatMessage }) => {
   const isUser = message.isUser;
   return (
-    <View style={[styles.messageContainer, isUser && styles.userMessageContainer]}>
+    <Animated.View
+      entering={FadeInUp.duration(400)}
+      style={[styles.messageContainer, isUser && styles.userMessageContainer]}
+    >
       <View style={[styles.messageBubble, isUser ? styles.userBubble : styles.aiBubble]}>
         {!isUser && (
           <View style={styles.aiHeader}>
@@ -37,7 +37,7 @@ const MessageBubble = React.memo(({ message }: { message: ChatMessage }) => {
           {message.timestamp.toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })}
         </Text>
       </View>
-    </View>
+    </Animated.View>
   );
 });
 
@@ -87,6 +87,25 @@ export default function EnhancedAICoach() {
               {vm.isTyping && <ActivityIndicator color="#2E7D4A" style={{ margin: 10 }} />}
             </ScrollView>
 
+            {vm.messages.length > 0 && !vm.messages[vm.messages.length - 1].isUser && vm.messages[vm.messages.length - 1].suggestions && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.suggestionsContainer}
+                contentContainerStyle={styles.suggestionsContent}
+              >
+                {vm.messages[vm.messages.length - 1].suggestions?.map((suggestion, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.suggestionButton}
+                    onPress={() => vm.sendMessage(suggestion)}
+                  >
+                    <Text style={styles.suggestionText}>{suggestion}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
+
             <View style={styles.inputContainer}>
               <TextInput
                 style={styles.textInput}
@@ -103,8 +122,51 @@ export default function EnhancedAICoach() {
 
         {vm.activeTab === 'insights' && vm.insights && (
             <ScrollView style={styles.scrollContent}>
-                <Text style={styles.cardTitle}>Статус: {vm.insights.progressSummary}</Text>
-                <Text>Сообщений: {vm.insights.conversationCount}</Text>
+                <View style={styles.insightCard}>
+                  <Text style={styles.cardTitle}>Прогресс</Text>
+                  <Text style={styles.statusText}>{vm.insights.progressSummary}</Text>
+                  <View style={styles.statsRow}>
+                    <View style={styles.statItem}>
+                      <Text style={styles.statValue}>{vm.insights.conversationCount}</Text>
+                      <Text style={styles.statLabel}>Сессий</Text>
+                    </View>
+                    <View style={styles.statItem}>
+                      <Text style={styles.statValue}>{vm.soberDays}</Text>
+                      <Text style={styles.statLabel}>Дней</Text>
+                    </View>
+                  </View>
+                </View>
+
+                <Text style={styles.sectionTitle}>Выявленные триггеры</Text>
+                {vm.triggers && vm.triggers.length > 0 ? (
+                  vm.triggers.map((trigger: any) => (
+                    <View key={trigger.id} style={styles.triggerCard}>
+                      <View style={styles.triggerHeader}>
+                        <MaterialIcons
+                          name={trigger.type === 'temporal' ? 'access-time' : 'error-outline'}
+                          size={20}
+                          color="#FF6B6B"
+                        />
+                        <Text style={styles.triggerName}>{trigger.name}</Text>
+                        <View style={[styles.severityBadge, { backgroundColor: trigger.severity > 3 ? '#FFE5E5' : '#E5F6ED' }]}>
+                          <Text style={[styles.severityText, { color: trigger.severity > 3 ? '#FF6B6B' : '#2E7D4A' }]}>
+                            Ур. {trigger.severity}
+                          </Text>
+                        </View>
+                      </View>
+                      <Text style={styles.triggerDesc}>{trigger.description}</Text>
+                      <View style={styles.countermeasuresContainer}>
+                        {trigger.countermeasures.map((cm: string, idx: number) => (
+                          <View key={idx} style={styles.cmBadge}>
+                            <Text style={styles.cmText}>{cm}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  ))
+                ) : (
+                  <Text style={styles.emptyText}>Триггеры пока не выявлены. Продолжайте общение.</Text>
+                )}
             </ScrollView>
         )}
       </View>
@@ -114,7 +176,13 @@ export default function EnhancedAICoach() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F9FA' },
-  header: { padding: 20, alignItems: 'center' },
+  header: {
+    padding: 20,
+    alignItems: 'center',
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    paddingBottom: 25,
+  },
   title: { fontSize: 24, fontWeight: 'bold', color: 'white' },
   headerStats: { color: 'white', marginTop: 5 },
   tabBar: { flexDirection: 'row', margin: 10, backgroundColor: 'white', borderRadius: 10 },
@@ -135,8 +203,66 @@ const styles = StyleSheet.create({
   aiHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
   aiLabel: { fontSize: 10, fontWeight: 'bold', color: '#2E7D4A', marginLeft: 4 },
   timestamp: { fontSize: 10, color: '#999', marginTop: 4, alignSelf: 'flex-end' },
+  suggestionsContainer: {
+    maxHeight: 50,
+    backgroundColor: '#F8F9FA',
+  },
+  suggestionsContent: {
+    paddingHorizontal: 10,
+    alignItems: 'center',
+    gap: 8,
+  },
+  suggestionButton: {
+    backgroundColor: 'white',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#2E7D4A',
+    justifyContent: 'center',
+  },
+  suggestionText: {
+    color: '#2E7D4A',
+    fontSize: 14,
+    fontWeight: '500',
+  },
   inputContainer: { flexDirection: 'row', padding: 15, backgroundColor: 'white', alignItems: 'center' },
   textInput: { flex: 1, backgroundColor: '#F0F0F0', borderRadius: 20, paddingHorizontal: 15, paddingVertical: 8, marginRight: 10 },
   scrollContent: { padding: 20 },
-  cardTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 }
+  insightCard: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  cardTitle: { fontSize: 18, fontWeight: 'bold', color: '#2E7D4A', marginBottom: 10 },
+  statusText: { fontSize: 16, color: '#333', marginBottom: 15 },
+  statsRow: { flexDirection: 'row', justifyContent: 'space-around', borderTopWidth: 1, borderTopColor: '#F0F0F0', paddingTop: 15 },
+  statItem: { alignItems: 'center' },
+  statValue: { fontSize: 20, fontWeight: 'bold', color: '#2E7D4A' },
+  statLabel: { fontSize: 12, color: '#666' },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 15 },
+  triggerCard: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 15,
+    marginBottom: 12,
+    elevation: 2,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FF6B6B',
+  },
+  triggerHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  triggerName: { fontSize: 16, fontWeight: 'bold', color: '#333', marginLeft: 8, flex: 1 },
+  severityBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
+  severityText: { fontSize: 10, fontWeight: 'bold' },
+  triggerDesc: { fontSize: 14, color: '#666', marginBottom: 10 },
+  countermeasuresContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  cmBadge: { backgroundColor: '#F0F0F0', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  cmText: { fontSize: 12, color: '#444' },
+  emptyText: { textAlign: 'center', color: '#999', marginTop: 20, fontStyle: 'italic' }
 });

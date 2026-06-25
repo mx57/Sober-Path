@@ -18,6 +18,7 @@ export function useAICoachViewModel() {
   const [isTyping, setIsTyping] = useState(false);
   const [activeTab, setActiveTab] = useState<'chat' | 'insights' | 'notifications'>('chat');
   const [insights, setInsights] = useState<any>(null);
+  const [triggers, setTriggers] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
 
   useEffect(() => {
@@ -30,34 +31,37 @@ export function useAICoachViewModel() {
       id: 'welcome',
       text: `Привет! Я ваш AI-коуч. У вас ${soberDays} дней трезвости. Как я могу помочь?`,
       isUser: false,
-      timestamp: new Date()
+      timestamp: new Date(),
+      suggestions: ['Как справиться с тягой?', 'Нужна мотивация', 'Я сорвался']
     };
     setMessages([welcome]);
 
     // Load data
     const aiInsights = AICoachService.getUserInsights(userProfile?.id || 'default');
     setInsights(aiInsights);
+    setTriggers(AICoachService.detectTriggerPatterns(userProfile?.id || 'default'));
     setNotifications(NotificationService.getNotifications());
   };
 
-  const sendMessage = async () => {
-    if (!inputText.trim() || isTyping) return;
+  const sendMessage = async (overrideText?: string) => {
+    const textToSend = overrideText || inputText;
+    if (!textToSend.trim() || isTyping) return;
 
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
-      text: inputText,
+      text: textToSend,
       isUser: true,
       timestamp: new Date()
     };
 
     setMessages(prev => [...prev, userMsg]);
-    setInputText('');
+    if (!overrideText) setInputText('');
     setIsTyping(true);
 
     try {
       const response = await AICoachService.getEnhancedResponse(
         userProfile?.id || 'default',
-        inputText,
+        textToSend,
         {
           userMood: 3,
           soberDays,
@@ -90,6 +94,7 @@ export function useAICoachViewModel() {
     activeTab,
     setActiveTab,
     insights,
+    triggers,
     notifications,
     sendMessage,
     soberDays,
