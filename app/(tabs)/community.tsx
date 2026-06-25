@@ -1,80 +1,116 @@
-import React from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {
+  View, Text, ScrollView, StyleSheet, TouchableOpacity,
+  FlatList, Image, Dimensions
+} from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { CommunityService, SuccessStory, SupportPost } from '../../services/communityService';
+
+const { width: screenWidth } = Dimensions.get('window');
+
+const SuccessStoryCard = ({ story }: { story: SuccessStory }) => (
+  <View style={styles.storyCard}>
+    <View style={styles.storyHeader}>
+      <Image source={{ uri: story.avatar }} style={styles.avatar} />
+      <View>
+        <Text style={styles.userName}>{story.userName}</Text>
+        <Text style={styles.daysBadge}>{story.daysSober} дней трезвости</Text>
+      </View>
+    </View>
+    <Text style={styles.storyText} numberOfLines={3}>{story.story}</Text>
+  </View>
+);
+
+const SupportPostItem = ({ post }: { post: SupportPost }) => {
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'motivation': return 'auto-awesome';
+      case 'question': return 'help-outline';
+      case 'milestone': return 'emoji-events';
+      default: return 'favorite-border';
+    }
+  };
+
+  return (
+    <View style={styles.postCard}>
+      <View style={styles.postHeader}>
+        <View style={styles.categoryIconContainer}>
+          <MaterialIcons name={getCategoryIcon(post.category)} size={20} color="#2E7D4A" />
+        </View>
+        <Text style={styles.authorName}>{post.author}</Text>
+        <Text style={styles.timeAgo}>{post.timeAgo}</Text>
+      </View>
+      <Text style={styles.postContent}>{post.content}</Text>
+      <View style={styles.postFooter}>
+        <TouchableOpacity style={styles.actionButton}>
+          <MaterialIcons name="favorite-border" size={18} color="#666" />
+          <Text style={styles.actionText}>{post.likes}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.actionButton}>
+          <MaterialIcons name="chat-bubble-outline" size={18} color="#666" />
+          <Text style={styles.actionText}>{post.comments}</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
 
 export default function CommunityPage() {
   const insets = useSafeAreaInsets();
+  const [stories, setStories] = useState<SuccessStory[]>([]);
+  const [posts, setPosts] = useState<SupportPost[]>([]);
+
+  useEffect(() => {
+    setStories(CommunityService.getSuccessStories());
+    setPosts(CommunityService.getSupportPosts());
+  }, []);
+
+  const renderHeader = () => (
+    <View>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Истории успеха</Text>
+        <TouchableOpacity>
+          <Text style={styles.seeAllText}>Все</Text>
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.storiesContainer}
+      >
+        {stories.map(story => (
+          <SuccessStoryCard key={story.id} story={story} />
+        ))}
+      </ScrollView>
+
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Лента поддержки</Text>
+      </View>
+    </View>
+  );
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Сообщество поддержки</Text>
-        <Text style={styles.subtitle}>
-          Поделитесь опытом и получите поддержку от других людей
-        </Text>
-      </View>
+      <LinearGradient colors={['#2E7D4A', '#4CAF50']} style={styles.header}>
+        <Text style={styles.title}>Сообщество</Text>
+        <Text style={styles.subtitle}>Вместе мы сильнее</Text>
+      </LinearGradient>
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.comingSoonCard}>
-          <MaterialIcons name="group-add" size={80} color="#2E7D4A" />
-          <Text style={styles.comingSoonTitle}>Скоро появится!</Text>
-          <Text style={styles.comingSoonText}>
-            Мы работаем над созданием безопасного пространства для общения и взаимной поддержки.
-          </Text>
-          
-          <View style={styles.featuresContainer}>
-            <Text style={styles.featuresTitle}>Планируемые возможности:</Text>
-            
-            <View style={styles.featureItem}>
-              <MaterialIcons name="forum" size={24} color="#2E7D4A" />
-              <Text style={styles.featureText}>Форум для обсуждений</Text>
-            </View>
-            
-            <View style={styles.featureItem}>
-              <MaterialIcons name="support-agent" size={24} color="#2E7D4A" />
-              <Text style={styles.featureText}>Группы взаимной поддержки</Text>
-            </View>
-            
-            <View style={styles.featureItem}>
-              <MaterialIcons name="emoji-events" size={24} color="#2E7D4A" />
-              <Text style={styles.featureText}>Истории успеха</Text>
-            </View>
-            
-            <View style={styles.featureItem}>
-              <MaterialIcons name="chat" size={24} color="#2E7D4A" />
-              <Text style={styles.featureText}>Анонимный чат поддержки</Text>
-            </View>
-          </View>
-        </View>
+      <FlatList
+        data={posts}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => <SupportPostItem post={item} />}
+        ListHeaderComponent={renderHeader}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      />
 
-        <View style={styles.currentSupportCard}>
-          <Text style={styles.currentSupportTitle}>А пока...</Text>
-          <Text style={styles.currentSupportText}>
-            Используйте кнопку экстренной помощи для получения немедленной поддержки
-          </Text>
-          
-          <View style={styles.helplineContainer}>
-            <MaterialIcons name="phone" size={24} color="#FF6B6B" />
-            <View style={styles.helplineInfo}>
-              <Text style={styles.helplineTitle}>Телефон доверия</Text>
-              <Text style={styles.helplineNumber}>8-800-200-0-200</Text>
-              <Text style={styles.helplineDescription}>
-                Бесплатная психологическая помощь 24/7
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.privacyCard}>
-          <MaterialIcons name="security" size={24} color="#2E7D4A" />
-          <Text style={styles.privacyTitle}>Конфиденциальность</Text>
-          <Text style={styles.privacyText}>
-            Все ваши данные хранятся локально на устройстве. Мы не собираем и не передаем 
-            личную информацию третьим лицам. Ваша анонимность и приватность - наш приоритет.
-          </Text>
-        </View>
-      </ScrollView>
+      <TouchableOpacity style={styles.fab}>
+        <MaterialIcons name="edit" size={24} color="white" />
+      </TouchableOpacity>
     </View>
   );
 }
@@ -86,134 +122,150 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 20,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0'
+    paddingBottom: 25,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#2E7D4A',
-    marginBottom: 5
+    color: 'white',
+    marginBottom: 4
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
-    lineHeight: 22
+    color: 'rgba(255,255,255,0.8)',
   },
   content: {
-    padding: 20,
-    gap: 20
+    paddingBottom: 100
   },
-  comingSoonCard: {
-    backgroundColor: 'white',
-    borderRadius: 15,
-    padding: 30,
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 20,
+    marginTop: 25,
+    marginBottom: 15
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333'
+  },
+  seeAllText: {
+    color: '#2E7D4A',
+    fontWeight: '600'
+  },
+  storiesContainer: {
+    paddingHorizontal: 15,
+    gap: 15
+  },
+  storyCard: {
+    backgroundColor: 'white',
+    width: screenWidth * 0.7,
+    borderRadius: 16,
+    padding: 16,
+    elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3
   },
-  comingSoonTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#2E7D4A',
-    marginTop: 20,
-    marginBottom: 10
-  },
-  comingSoonText: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 30
-  },
-  featuresContainer: {
-    width: '100%'
-  },
-  featuresTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2E7D4A',
-    marginBottom: 15,
-    textAlign: 'center'
-  },
-  featureItem: {
+  storyHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
     gap: 12
   },
-  featureText: {
+  avatar: {
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
+    backgroundColor: '#F0F0F0'
+  },
+  userName: {
     fontSize: 16,
-    color: '#333',
-    flex: 1
-  },
-  currentSupportCard: {
-    backgroundColor: '#FFF9E6',
-    borderRadius: 15,
-    padding: 20,
-    borderLeftWidth: 4,
-    borderLeftColor: '#FFA500'
-  },
-  currentSupportTitle: {
-    fontSize: 20,
     fontWeight: 'bold',
-    color: '#CC8400',
-    marginBottom: 10
+    color: '#333'
   },
-  currentSupportText: {
-    fontSize: 16,
-    color: '#8B6914',
-    lineHeight: 22,
-    marginBottom: 20
+  daysBadge: {
+    fontSize: 12,
+    color: '#2E7D4A',
+    fontWeight: '600'
   },
-  helplineContainer: {
+  storyText: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20
+  },
+  postCard: {
+    backgroundColor: 'white',
+    marginHorizontal: 20,
+    marginBottom: 15,
+    borderRadius: 16,
+    padding: 16,
+    elevation: 2,
+  },
+  postHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
-    padding: 15,
-    borderRadius: 10,
-    gap: 12
+    marginBottom: 12,
+    gap: 10
   },
-  helplineInfo: {
+  categoryIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#E5F6ED',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  authorName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#333',
     flex: 1
   },
-  helplineTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 5
+  timeAgo: {
+    fontSize: 12,
+    color: '#999'
   },
-  helplineNumber: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FF6B6B',
-    marginBottom: 5
+  postContent: {
+    fontSize: 15,
+    color: '#444',
+    lineHeight: 22,
+    marginBottom: 15
   },
-  helplineDescription: {
+  postFooter: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+    paddingTop: 12,
+    gap: 20
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6
+  },
+  actionText: {
     fontSize: 14,
     color: '#666'
   },
-  privacyCard: {
-    backgroundColor: '#E8F5E8',
-    borderRadius: 15,
-    padding: 20,
-    flexDirection: 'row',
-    gap: 15
-  },
-  privacyTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2E7D4A',
-    marginBottom: 10
-  },
-  privacyText: {
-    fontSize: 14,
-    color: '#4A6741',
-    lineHeight: 20,
-    flex: 1
+  fab: {
+    position: 'absolute',
+    bottom: 25,
+    right: 25,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#2E7D4A',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   }
 });
