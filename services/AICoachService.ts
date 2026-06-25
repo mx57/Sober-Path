@@ -1,5 +1,6 @@
 import { findRelevantKnowledge } from './psychologyKnowledgeBase';
 import { Result, success, failure } from './types';
+import { articlesDatabase } from './articlesDatabase';
 
 export interface AICoachMessage {
   id: string;
@@ -57,6 +58,12 @@ export interface ConversationMemory {
   };
 }
 
+export interface RecommendedArticle {
+  id: string;
+  title: string;
+  category: string;
+}
+
 export interface EnhancedAIResponse {
   message: string;
   emotionalTone: 'empathetic' | 'motivational' | 'educational' | 'supportive';
@@ -64,6 +71,7 @@ export interface EnhancedAIResponse {
   followUpQuestions: string[];
   memoryUpdates: string[];
   confidenceLevel: number;
+  recommendedArticles?: RecommendedArticle[];
 }
 
 export class AICoachService {
@@ -155,6 +163,7 @@ export class AICoachService {
         suggestions = ['Дыхательное упражнение', 'Прогулка'];
         }
 
+        const recommendedArticles = this.recommendArticles(topics);
         this.updateMemory(userId, userMessage, response, context.userMood, topics);
 
         return success({
@@ -163,7 +172,8 @@ export class AICoachService {
         suggestions,
         followUpQuestions: [],
         memoryUpdates: [`Updated memory for ${userId}`],
-        confidenceLevel: knowledgeMatch ? 0.9 : 0.6
+        confidenceLevel: knowledgeMatch ? 0.9 : 0.6,
+        recommendedArticles
         });
     } catch (e) {
         return failure(e as Error);
@@ -226,6 +236,20 @@ export class AICoachService {
       }
     });
     return topics;
+  }
+
+  private static recommendArticles(topics: string[]): RecommendedArticle[] {
+    if (topics.length === 0) return [];
+
+    return articlesDatabase
+      .filter(article =>
+        topics.some(topic =>
+          article.tags.includes(topic) ||
+          article.category.toLowerCase().includes(topic.toLowerCase())
+        )
+      )
+      .slice(0, 2)
+      .map(a => ({ id: a.id, title: a.title, category: a.category }));
   }
 
   private static updateMemory(

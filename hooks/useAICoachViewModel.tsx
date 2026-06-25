@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { AICoachService, AICoachMessage } from '../services/AICoachService';
+import { AICoachService, AICoachMessage, RecommendedArticle } from '../services/AICoachService';
 import { useRecovery } from './useRecovery';
 import NotificationService from '../services/notificationService';
 
@@ -9,6 +9,7 @@ export interface ChatMessage {
   isUser: boolean;
   timestamp: Date;
   suggestions?: string[];
+  recommendedArticles?: RecommendedArticle[];
 }
 
 export function useAICoachViewModel() {
@@ -75,7 +76,8 @@ export function useAICoachViewModel() {
         text: response.message,
         isUser: false,
         timestamp: new Date(),
-        suggestions: response.suggestions
+        suggestions: response.suggestions,
+        recommendedArticles: response.recommendedArticles
       };
 
       setMessages(prev => [...prev, aiMsg]);

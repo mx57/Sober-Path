@@ -167,7 +167,7 @@ export default function ArticlesPage() {
 
   return (
     <ScrollView style={[styles.container, { paddingTop: insets.top }]}>
-      <LinearGradient colors={['#2196F3', '#1976D2']} style={styles.header}>
+      <LinearGradient colors={['#2E7D4A', '#4CAF50']} style={styles.header}>
         <View style={styles.headerContent}>
           <MaterialIcons name="menu-book" size={32} color="white" />
           <Text style={styles.headerTitle}>База знаний</Text>
@@ -313,7 +313,10 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 20,
-    alignItems: 'center'
+    alignItems: 'center',
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    paddingBottom: 25,
   },
   headerContent: {
     alignItems: 'center'
@@ -352,7 +355,7 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#2196F3'
+    color: '#2E7D4A'
   },
   statLabel: {
     fontSize: 14,
@@ -381,8 +384,8 @@ const styles = StyleSheet.create({
     borderColor: 'transparent'
   },
   selectedChip: {
-    backgroundColor: '#2196F3',
-    borderColor: '#1976D2'
+    backgroundColor: '#2E7D4A',
+    borderColor: '#1B4D2E'
   },
   filterChipText: {
     fontSize: 14,
@@ -533,7 +536,7 @@ const styles = StyleSheet.create({
   boldParagraph: {
     fontWeight: 'bold',
     fontSize: 18,
-    color: '#2196F3',
+    color: '#2E7D4A',
     marginTop: 8
   },
   actionButtons: {
@@ -546,12 +549,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 12,
     borderRadius: 12,
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#E8F5E8',
     gap: 6
   },
   actionButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#2196F3'
+    color: '#2E7D4A'
   }
 });

@@ -21,6 +21,7 @@ import Animated, {
 
 import { MemoizedHealthMetric } from '../../components/home/HealthMetric';
 import { StatCard } from '../../components/home/StatCard';
+import { DailyMotivationService, MotivationQuote, RecoveryTip } from '../../services/dailyMotivationService';
 
 const AchievementSystem = React.lazy(() => import('../../components/AchievementSystem'));
 const CrisisIntervention = React.lazy(() => import('../../components/CrisisIntervention'));
@@ -125,6 +126,8 @@ function HomePage() {
   const [showCrisisIntervention, setShowCrisisIntervention] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedHealthMetric, setSelectedHealthMetric] = useState<string | null>(null);
+  const [dailyQuote, setDailyQuote] = useState<MotivationQuote | null>(null);
+  const [dailyTip, setDailyTip] = useState<RecoveryTip | null>(null);
   const [alertConfig, setAlertConfig] = useState<{
     visible: boolean;
     title: string;
@@ -144,6 +147,8 @@ function HomePage() {
       -1,
       true
     );
+    setDailyQuote(DailyMotivationService.getDailyQuote());
+    setDailyTip(DailyMotivationService.getDailyTip());
   }, []);
 
   const showWebAlert = useCallback((title: string, message: string, onOk?: () => void) => {
@@ -270,6 +275,16 @@ function HomePage() {
       </LinearGradient>
 
       <View style={styles.statsContainer}>
+        {dailyQuote && (
+          <View style={styles.motivationCard}>
+            <LinearGradient colors={['#E8F5E8', '#F1F8F1']} style={styles.motivationGradient}>
+              <MaterialIcons name="format-quote" size={32} color="#2E7D4A" style={styles.quoteIcon} />
+              <Text style={styles.quoteText}>{dailyQuote.text}</Text>
+              <Text style={styles.quoteAuthor}>— {dailyQuote.author}</Text>
+            </LinearGradient>
+          </View>
+        )}
+
         <StatCard
           icon="timeline"
           number={soberDays}
@@ -666,6 +681,41 @@ const styles = StyleSheet.create({
   statsContainer: {
     padding: 20,
     gap: 15
+  },
+  motivationCard: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 5,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  motivationGradient: {
+    padding: 20,
+    position: 'relative',
+  },
+  quoteIcon: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    opacity: 0.2,
+  },
+  quoteText: {
+    fontSize: 16,
+    fontStyle: 'italic',
+    color: '#1B4D2E',
+    lineHeight: 24,
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  quoteAuthor: {
+    fontSize: 14,
+    color: '#2E7D4A',
+    textAlign: 'right',
+    marginTop: 10,
+    fontWeight: '600',
   },
   secondaryStats: {
     flexDirection: 'row',
