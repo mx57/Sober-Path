@@ -2,21 +2,32 @@ import { PsychologyService } from '../services/PsychologyService';
 
 describe('PsychologyService', () => {
   it('should return a non-empty list of techniques', () => {
-    const techniques = PsychologyService.getTechniques();
-    expect(techniques.length).toBeGreaterThan(0);
-    expect(techniques[0]).toHaveProperty('id');
+    const result = PsychologyService.getTechniques();
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.length).toBeGreaterThan(0);
+      expect(result.data[0]).toHaveProperty('id');
+    }
   });
 
   it('should return a technique by id', () => {
-    const techniques = PsychologyService.getTechniques();
-    const id = techniques[0].id;
-    const technique = PsychologyService.getTechniqueById(id);
-    expect(technique).toBeDefined();
-    expect(technique?.id).toBe(id);
+    const result = PsychologyService.getTechniques();
+    if (result.success) {
+      const id = result.data[0].id;
+      const techResult = PsychologyService.getTechniqueById(id);
+      expect(techResult.success).toBe(true);
+      if (techResult.success) {
+        expect(techResult.data).toBeDefined();
+        expect(techResult.data?.id).toBe(id);
+      }
+    }
   });
 
   it('should return solfeggio sounds', () => {
-    const sounds = PsychologyService.getSounds();
-    expect(sounds.some(s => s.type === 'solfeggio')).toBe(true);
+    const result = PsychologyService.getSounds();
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.some(s => s.type === 'solfeggio')).toBe(true);
+    }
   });
 });

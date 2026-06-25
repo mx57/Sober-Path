@@ -1,18 +1,18 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import ProgressAnalytics from '../../components/ProgressAnalytics';
 
 export default function AnalyticsTab() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>Аналитика прогресса</Text>
-        <Text style={styles.subtitle}>
-          Детальная статистика вашего пути к трезвости
-        </Text>
+        <Text style={styles.title}>{t('analytics.title')}</Text>
+        <Text style={styles.subtitle}>{t('analytics.subtitle')}</Text>
       </View>
       <ProgressAnalytics />
     </View>

@@ -4,8 +4,6 @@ describe('AICoachService', () => {
   it('should initialize memory for a new user', () => {
     const userId = 'test-user';
     AICoachService.initializeUserMemory(userId);
-    // Accessing private memory for test verification isn't ideal,
-    // but we can check if it returns a valid response
   });
 
   it('should return crisis message for high craving and stress', () => {
@@ -16,7 +14,10 @@ describe('AICoachService', () => {
       healthMetrics: {},
       recentEvents: []
     };
-    const messages = AICoachService.analyzeUserBehavior(data);
-    expect(messages.some(m => m.type === 'crisis')).toBe(true);
+    const result = AICoachService.analyzeUserBehavior(data);
+    expect(result.success).toBe(true);
+    if (result.success) {
+        expect(result.data.some(m => m.type === 'crisis')).toBe(true);
+    }
   });
 });

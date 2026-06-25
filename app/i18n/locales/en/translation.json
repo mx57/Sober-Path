@@ -34,6 +34,31 @@
       "control": "Gain control"
     }
   },
+  "psychology": {
+    "title": "Advanced Therapy",
+    "subtitle": "Modern psychotherapy methods and therapeutic frequencies",
+    "therapies": "Techniques",
+    "sounds": "Frequencies",
+    "professionalTechniques": "Professional Techniques",
+    "therapiesDesc": "Modern methods of psychotherapy adapted for independent work.",
+    "therapeuticFrequencies": "Therapeutic Frequencies",
+    "soundsDesc": "Special frequencies for healing and harmonization. Use headphones.",
+    "startTechnique": "Start technique",
+    "listenFrequency": "Listen frequency",
+    "benefits": "Benefits:",
+    "warning": "Has contraindications - study before use"
+  },
+  "analytics": {
+    "title": "Progress Analytics",
+    "subtitle": "Detailed statistics of your journey",
+    "overview": "Overview",
+    "avgMoodWeek": "Avg mood (week)",
+    "moodTrend": "Mood Trend",
+    "improving": "Improving",
+    "declining": "Declining",
+    "stable": "Stable",
+    "personalizedInsights": "Personalized Insights"
+  },
   "home": {
     "title": "Home",
     "welcomeBack": "Welcome back!",

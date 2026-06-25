@@ -1,21 +1,38 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import Animated from 'react-native-reanimated';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withDelay,
+  withTiming
+} from 'react-native-reanimated';
 
 interface StatCardProps {
   icon: string;
   number: number | string;
   label: string;
   primary?: boolean;
-  animatedStyle?: any;
+  index?: number;
 }
 
-export const StatCard = ({ icon, number, label, primary, animatedStyle }: StatCardProps) => {
-  const CardView = animatedStyle ? Animated.View : View;
+export const StatCard = ({ icon, number, label, primary, index = 0 }: StatCardProps) => {
+  const opacity = useSharedValue(0);
+  const translateY = useSharedValue(20);
+
+  useEffect(() => {
+    opacity.value = withDelay(index * 100, withTiming(1, { duration: 500 }));
+    translateY.value = withDelay(index * 100, withSpring(0));
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: translateY.value }]
+  }));
 
   return (
-    <CardView style={[
+    <Animated.View style={[
       styles.statCard,
       primary && styles.primaryStatCard,
       animatedStyle
@@ -23,7 +40,7 @@ export const StatCard = ({ icon, number, label, primary, animatedStyle }: StatCa
       <MaterialIcons name={icon as any} size={primary ? 40 : 28} color={primary ? 'white' : '#FF9800'} />
       <Text style={[styles.statNumber, primary && styles.statNumberPrimary]}>{number}</Text>
       <Text style={[styles.statLabel, primary && styles.statLabelPrimary]}>{label}</Text>
-    </CardView>
+    </Animated.View>
   );
 };
 
