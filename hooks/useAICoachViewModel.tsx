@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { AICoachService, AICoachMessage, RecommendedArticle } from '../services/AICoachService';
+import { useState, useEffect } from 'react';
+import { AICoachService, RecommendedArticle } from '../services/AICoachService';
 import { useRecovery } from './useRecovery';
 import NotificationService from '../services/notificationService';
 
@@ -10,6 +10,7 @@ export interface ChatMessage {
   timestamp: Date;
   suggestions?: string[];
   recommendedArticles?: RecommendedArticle[];
+  followUpQuestions?: string[];
 }
 
 export function useAICoachViewModel() {
@@ -24,16 +25,17 @@ export function useAICoachViewModel() {
 
   useEffect(() => {
     initialize();
-  }, []);
+  }, [soberDays, userProfile?.id]);
 
   const initialize = async () => {
     // Initial welcome message
     const welcome: ChatMessage = {
       id: 'welcome',
-      text: `Привет! Я ваш AI-коуч. У вас ${soberDays} дней трезвости. Как я могу помочь?`,
+      text: `Привет! Я ваш AI-коуч. У вас ${soberDays} дней трезвости. Как я могу помочь сегодня?`,
       isUser: false,
       timestamp: new Date(),
-      suggestions: ['Как справиться с тягой?', 'Нужна мотивация', 'Я сорвался']
+      suggestions: ['Как справиться с тягой?', 'Нужна мотивация', 'Я сорвался'],
+      followUpQuestions: ['Что у вас на уме?', 'Как ваше настроение?']
     };
     setMessages([welcome]);
 
@@ -45,7 +47,7 @@ export function useAICoachViewModel() {
   };
 
   const sendMessage = async (overrideText?: string) => {
-    const textToSend = overrideText || inputText;
+    const textToSend = typeof overrideText === 'string' ? overrideText : inputText;
     if (!textToSend.trim() || isTyping) return;
 
     const userMsg: ChatMessage = {
@@ -56,7 +58,7 @@ export function useAICoachViewModel() {
     };
 
     setMessages(prev => [...prev, userMsg]);
-    if (!overrideText) setInputText('');
+    if (typeof overrideText !== 'string') setInputText('');
     setIsTyping(true);
 
     try {
@@ -71,16 +73,20 @@ export function useAICoachViewModel() {
         }
       );
 
-      const aiMsg: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        text: response.message,
-        isUser: false,
-        timestamp: new Date(),
-        suggestions: response.suggestions,
-        recommendedArticles: response.recommendedArticles
-      };
+      if (response.success) {
+        const data = response.data;
+        const aiMsg: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          text: data.message,
+          isUser: false,
+          timestamp: new Date(),
+          suggestions: data.suggestions,
+          recommendedArticles: data.recommendedArticles,
+          followUpQuestions: data.followUpQuestions
+        };
 
-      setMessages(prev => [...prev, aiMsg]);
+        setMessages(prev => [...prev, aiMsg]);
+      }
     } catch (e) {
       console.error(e);
     } finally {

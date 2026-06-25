@@ -1,4 +1,4 @@
-import { findRelevantKnowledge } from './psychologyKnowledgeBase';
+import { findRelevantKnowledge, psychologyKnowledgeBase } from './psychologyKnowledgeBase';
 import { Result, success, failure } from './types';
 import { articlesDatabase } from './articlesDatabase';
 
@@ -152,31 +152,53 @@ export class AICoachService {
         let response: string;
         let emotionalTone: 'empathetic' | 'motivational' | 'educational' | 'supportive';
         let suggestions: string[] = [];
+        let followUpQuestions: string[] = [];
 
         if (knowledgeMatch) {
-        response = knowledgeMatch.response;
-        emotionalTone = 'educational';
-        suggestions = knowledgeMatch.techniques.slice(0, 3);
+          response = knowledgeMatch.response;
+          emotionalTone = this.determineTone(knowledgeMatch.category);
+          suggestions = knowledgeMatch.techniques.slice(0, 3);
+          followUpQuestions = this.generateFollowUp(knowledgeMatch.category);
         } else {
-        response = "Я рядом и готов поддержать вас на пути к трезвости.";
-        emotionalTone = 'supportive';
-        suggestions = ['Дыхательное упражнение', 'Прогулка'];
+          response = "Я рядом и готов поддержать вас на пути к трезвости. Расскажите подробнее, что вы сейчас чувствуете?";
+          emotionalTone = 'supportive';
+          suggestions = ['Дыхательное упражнение', 'Прогулка', 'HALT проверка'];
+          followUpQuestions = ['Как прошел ваш день?', 'Что сейчас больше всего беспокоит?'];
         }
 
         const recommendedArticles = this.recommendArticles(topics);
         this.updateMemory(userId, userMessage, response, context.userMood, topics);
 
         return success({
-        message: response,
-        emotionalTone,
-        suggestions,
-        followUpQuestions: [],
-        memoryUpdates: [`Updated memory for ${userId}`],
-        confidenceLevel: knowledgeMatch ? 0.9 : 0.6,
-        recommendedArticles
+          message: response,
+          emotionalTone,
+          suggestions,
+          followUpQuestions,
+          memoryUpdates: [`Updated memory for ${userId}`, `Detected topics: ${topics.join(', ')}`],
+          confidenceLevel: knowledgeMatch ? 0.95 : 0.6,
+          recommendedArticles
         });
     } catch (e) {
         return failure(e as Error);
+    }
+  }
+
+  private static determineTone(category: string): 'empathetic' | 'motivational' | 'educational' | 'supportive' {
+    switch (category) {
+      case 'Эмоциональная регуляция': return 'empathetic';
+      case 'Мотивация и целеполагание': return 'motivational';
+      case 'Когнитивные искажения': return 'educational';
+      case 'Работа с тягой и триггерами': return 'supportive';
+      default: return 'supportive';
+    }
+  }
+
+  private static generateFollowUp(category: string): string[] {
+    switch (category) {
+      case 'Эмоциональная регуляция': return ['Как часто вы это чувствуете?', 'Что обычно помогает вам успокоиться?'];
+      case 'Работа с тягой и триггерами': return ['Где вы сейчас находитесь?', 'Что произошло непосредственно перед этим?'];
+      case 'Мотивация и целеполагание': return ['Какая ваша главная цель на сегодня?', 'Что дает вам силы продолжать?'];
+      default: return ['Как я еще могу вам помочь?'];
     }
   }
 
@@ -194,15 +216,16 @@ export class AICoachService {
   }
 
   static detectTriggerPatterns(userId: string): TriggerPattern[] {
+    // В реальном приложении здесь был бы сложный анализ истории
     return [
       {
         id: '1',
         name: 'Вечерний стресс',
         type: 'temporal',
-        description: 'Повышенная тяга вечером',
+        description: 'Повышенная тяга в вечернее время',
         severity: 4,
         frequency: 3,
-        countermeasures: ['Медитация', 'Чай']
+        countermeasures: ['Медитация', 'Вечерний чай', 'Чтение статей о сне']
       }
     ];
   }
@@ -213,43 +236,55 @@ export class AICoachService {
         id: 'p1',
         type: 'risk_prediction',
         title: 'Риск в выходные',
-        description: 'Повышенный риск срыва в субботу',
+        description: 'Повышенный риск из-за изменения привычного графика',
         confidence: 70
       }
     ];
   }
 
   static async getMotivationalMessage(soberDays: number): Promise<string> {
-    if (soberDays === 0) return "Начало пути - самый важный шаг. Вы справитесь!";
-    return `Поздравляю с ${soberDays} днями трезвости! Ваш прогресс вдохновляет.`;
+    if (soberDays === 0) return "Начало пути - самый сложный и важный шаг. Вы уже здесь, и это победа!";
+    if (soberDays % 7 === 0) return `Вы трезвы уже ${soberDays / 7} недель! Это потрясающий результат.`;
+    return `Поздравляю с ${soberDays} днями трезвости! Каждый день делает вас сильнее.`;
   }
 
   private static extractTopics(message: string): string[] {
-    const topicKeywords = {
-      craving: ['хочу выпить', 'тяга', 'искушение'],
-      anxiety: ['тревога', 'беспокойство', 'страх']
-    };
-    const topics: string[] = [];
-    Object.entries(topicKeywords).forEach(([topic, keywords]) => {
-      if (keywords.some(keyword => message.includes(keyword))) {
-        topics.push(topic);
-      }
+    const topics: Set<string> = new Set();
+    const lowerMessage = message.toLowerCase();
+
+    // Извлекаем топики на основе базы знаний
+    psychologyKnowledgeBase.forEach(kb => {
+      kb.topics.forEach(topic => {
+        if (topic.keyword.some(kw => lowerMessage.includes(kw.toLowerCase()))) {
+          topics.add(kb.category);
+          // Добавляем также конкретные теги для поиска статей
+          topic.keyword.forEach(kw => {
+            if (kw.length > 4) topics.add(kw);
+          });
+        }
+      });
     });
-    return topics;
+
+    return Array.from(topics);
   }
 
   private static recommendArticles(topics: string[]): RecommendedArticle[] {
     if (topics.length === 0) return [];
 
-    return articlesDatabase
+    // Поиск статей по совпадению категории или тегов
+    const recommended = articlesDatabase
       .filter(article =>
         topics.some(topic =>
-          article.tags.includes(topic) ||
-          article.category.toLowerCase().includes(topic.toLowerCase())
+          article.tags.some(tag => tag.toLowerCase().includes(topic.toLowerCase())) ||
+          article.category.toLowerCase().includes(topic.toLowerCase()) ||
+          topic.toLowerCase().includes(article.category.toLowerCase())
         )
       )
-      .slice(0, 2)
+      .sort((a, b) => b.readTime - a.readTime) // Предлагаем более глубокие статьи первыми
+      .slice(0, 3)
       .map(a => ({ id: a.id, title: a.title, category: a.category }));
+
+    return recommended;
   }
 
   private static updateMemory(
@@ -267,5 +302,11 @@ export class AICoachService {
       userMood,
       topics
     });
+
+    // Обновляем статистику по эмоциям/топикам
+    if (topics.length > 0) {
+      const currentEmotions = [...memory.emotionalPattern.commonEmotions, ...topics];
+      memory.emotionalPattern.commonEmotions = Array.from(new Set(currentEmotions)).slice(-10);
+    }
   }
 }

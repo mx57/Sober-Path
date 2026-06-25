@@ -9,7 +9,8 @@ import {
   TouchableOpacity,
   Modal,
   Platform,
-  Dimensions
+  Dimensions,
+  TextInput
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -41,7 +42,7 @@ import { articlesDatabase } from '../../services/articlesDatabase';
 // Используем базу данных статей
 const articles: Article[] = articlesDatabase;
 
-// Компоненты остаются теми же
+// Компоненты
 const MemoizedArticleCard = React.memo(({ article, onPress }: {
   article: Article;
   onPress: () => void;
@@ -131,6 +132,7 @@ const MemoizedFilterChip = React.memo(({ label, selected, onPress, count }: {
 export default function ArticlesPage() {
   const insets = useSafeAreaInsets();
   const [selectedCategory, setSelectedCategory] = useState<string>('Все');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
 
   const fadeInValue = useSharedValue(0);
@@ -148,13 +150,27 @@ export default function ArticlesPage() {
 
   const categories = useMemo(() => {
     const cats = new Set(articles.map(a => a.category));
-    return ['Все', ...Array.from(cats)];
+    return ['Все', ...Array.from(cats)].sort();
   }, []);
 
   const filteredArticles = useMemo(() => {
-    if (selectedCategory === 'Все') return articles;
-    return articles.filter(a => a.category === selectedCategory);
-  }, [selectedCategory]);
+    let result = articles;
+
+    if (selectedCategory !== 'Все') {
+      result = result.filter(a => a.category === selectedCategory);
+    }
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(a =>
+        a.title.toLowerCase().includes(q) ||
+        a.preview.toLowerCase().includes(q) ||
+        a.tags.some(t => t.toLowerCase().includes(q))
+      );
+    }
+
+    return result;
+  }, [selectedCategory, searchQuery]);
 
   const getCategoryCount = useCallback((category: string) => {
     if (category === 'Все') return articles.length;
@@ -166,67 +182,101 @@ export default function ArticlesPage() {
   }, []);
 
   return (
-    <ScrollView style={[styles.container, { paddingTop: insets.top }]}>
-      <LinearGradient colors={['#2E7D4A', '#4CAF50']} style={styles.header}>
+    <View style={styles.container}>
+      <LinearGradient colors={['#2E7D4A', '#4CAF50']} style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <View style={styles.headerContent}>
           <MaterialIcons name="menu-book" size={32} color="white" />
           <Text style={styles.headerTitle}>База знаний</Text>
-          <Text style={styles.headerSubtitle}>
-            {articles.length} научных статей о восстановлении
-          </Text>
+        </View>
+
+        <View style={styles.searchContainer}>
+          <MaterialIcons name="search" size={20} color="#666" style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Поиск статей..."
+            placeholderTextColor="#999"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <MaterialIcons name="cancel" size={20} color="#999" />
+            </TouchableOpacity>
+          )}
         </View>
       </LinearGradient>
 
-      <Animated.View style={[styles.content, fadeInAnimatedStyle]}>
-        <View style={styles.statsContainer}>
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{articles.length}</Text>
-            <Text style={styles.statLabel}>Статей</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{categories.length - 1}</Text>
-            <Text style={styles.statLabel}>Категорий</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>
-              {Math.round(articles.reduce((sum, a) => sum + a.readTime, 0) / articles.length)}
+      <ScrollView style={styles.scrollView}>
+        <Animated.View style={[styles.content, fadeInAnimatedStyle]}>
+          {!searchQuery && (
+            <>
+              <View style={styles.statsContainer}>
+                <View style={styles.statItem}>
+                  <Text style={styles.statNumber}>{articles.length}</Text>
+                  <Text style={styles.statLabel}>Статей</Text>
+                </View>
+                <View style={styles.statItem}>
+                  <Text style={styles.statNumber}>{categories.length - 1}</Text>
+                  <Text style={styles.statLabel}>Категорий</Text>
+                </View>
+                <View style={styles.statItem}>
+                  <Text style={styles.statNumber}>5.0</Text>
+                  <Text style={styles.statLabel}>Рейтинг</Text>
+                </View>
+              </View>
+
+              <View style={styles.filtersSection}>
+                <Text style={styles.filterTitle}>Выберите категорию</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View style={styles.filtersContainer}>
+                    {categories.map((category) => (
+                      <MemoizedFilterChip
+                        key={category}
+                        label={category}
+                        selected={selectedCategory === category}
+                        onPress={() => setSelectedCategory(category)}
+                        count={getCategoryCount(category)}
+                      />
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+            </>
+          )}
+
+          <View style={styles.articlesContainer}>
+            <Text style={styles.sectionTitle}>
+              {searchQuery ? `Результаты поиска (${filteredArticles.length})` : `📚 Статьи (${filteredArticles.length})`}
             </Text>
-            <Text style={styles.statLabel}>мин среднее</Text>
-          </View>
-        </View>
 
-        <View style={styles.filtersSection}>
-          <Text style={styles.filterTitle}>Выберите категорию</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={styles.filtersContainer}>
-              {categories.map((category) => (
-                <MemoizedFilterChip
-                  key={category}
-                  label={category}
-                  selected={selectedCategory === category}
-                  onPress={() => setSelectedCategory(category)}
-                  count={getCategoryCount(category)}
-                />
-              ))}
-            </View>
-          </ScrollView>
-        </View>
-
-        <View style={styles.articlesContainer}>
-          <Text style={styles.sectionTitle}>
-            📚 Статьи ({filteredArticles.length})
-          </Text>
-          <View style={styles.articlesList}>
-            {filteredArticles.map((article) => (
-              <MemoizedArticleCard
-                key={article.id}
-                article={article}
-                onPress={() => handleArticlePress(article)}
-              />
-            ))}
+            {filteredArticles.length > 0 ? (
+              <View style={styles.articlesList}>
+                {filteredArticles.map((article) => (
+                  <MemoizedArticleCard
+                    key={article.id}
+                    article={article}
+                    onPress={() => handleArticlePress(article)}
+                  />
+                ))}
+              </View>
+            ) : (
+              <View style={styles.emptyContainer}>
+                <MaterialIcons name="search-off" size={64} color="#CCC" />
+                <Text style={styles.emptyText}>Ничего не найдено</Text>
+                <TouchableOpacity
+                  style={styles.resetButton}
+                  onPress={() => {
+                    setSearchQuery('');
+                    setSelectedCategory('Все');
+                  }}
+                >
+                  <Text style={styles.resetButtonText}>Сбросить фильтры</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
-        </View>
-      </Animated.View>
+        </Animated.View>
+      </ScrollView>
 
       <Modal
         visible={selectedArticle !== null}
@@ -234,7 +284,7 @@ export default function ArticlesPage() {
         presentationStyle="pageSheet"
       >
         {selectedArticle && (
-          <View style={[styles.modalContainer, { paddingTop: insets.top }]}>
+          <View style={[styles.modalContainer, { paddingTop: Platform.OS === 'ios' ? 0 : insets.top }]}>
             <View style={styles.modalHeader}>
               <TouchableOpacity
                 onPress={() => setSelectedArticle(null)}
@@ -290,11 +340,11 @@ export default function ArticlesPage() {
               
               <View style={styles.actionButtons}>
                 <TouchableOpacity style={styles.actionButton}>
-                  <MaterialIcons name="bookmark-border" size={20} color="#2196F3" />
+                  <MaterialIcons name="bookmark-border" size={20} color="#2E7D4A" />
                   <Text style={styles.actionButtonText}>Сохранить</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.actionButton}>
-                  <MaterialIcons name="share" size={20} color="#2196F3" />
+                  <MaterialIcons name="share" size={20} color="#2E7D4A" />
                   <Text style={styles.actionButtonText}>Поделиться</Text>
                 </TouchableOpacity>
               </View>
@@ -302,7 +352,7 @@ export default function ArticlesPage() {
           </View>
         )}
       </Modal>
-    </ScrollView>
+    </View>
   );
 }
 
@@ -313,25 +363,46 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 20,
-    alignItems: 'center',
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
     paddingBottom: 25,
   },
   headerContent: {
-    alignItems: 'center'
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 15
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
     color: 'white',
-    marginTop: 8
+    marginLeft: 10
   },
-  headerSubtitle: {
+  searchContainer: {
+    flexDirection: 'row',
+    backgroundColor: 'white',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    height: 45,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  searchIcon: {
+    marginRight: 8
+  },
+  searchInput: {
+    flex: 1,
     fontSize: 16,
-    color: 'rgba(255,255,255,0.9)',
-    marginTop: 4,
-    textAlign: 'center'
+    color: '#333',
+    paddingVertical: 8
+  },
+  scrollView: {
+    flex: 1
   },
   content: {
     padding: 20
@@ -340,7 +411,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: 'white',
     borderRadius: 15,
-    padding: 20,
+    padding: 15,
     marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -353,12 +424,12 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   statNumber: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#2E7D4A'
   },
   statLabel: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#666',
     marginTop: 4
   },
@@ -373,7 +444,8 @@ const styles = StyleSheet.create({
   },
   filtersContainer: {
     flexDirection: 'row',
-    gap: 8
+    gap: 8,
+    paddingRight: 20
   },
   filterChip: {
     paddingHorizontal: 16,
@@ -388,7 +460,7 @@ const styles = StyleSheet.create({
     borderColor: '#1B4D2E'
   },
   filterChipText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: '#666'
   },
@@ -396,7 +468,7 @@ const styles = StyleSheet.create({
     color: 'white'
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#2E7D4A',
     marginBottom: 16
@@ -425,9 +497,9 @@ const styles = StyleSheet.create({
     marginBottom: 12
   },
   iconBadge: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center'
   },
@@ -436,26 +508,26 @@ const styles = StyleSheet.create({
     flex: 1
   },
   categoryText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: '#666',
     marginBottom: 2
   },
   readTimeText: {
-    fontSize: 11,
+    fontSize: 10,
     color: '#999'
   },
   articleTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 8
+    marginBottom: 6
   },
   articlePreview: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#666',
-    lineHeight: 20,
-    marginBottom: 12
+    lineHeight: 18,
+    marginBottom: 10
   },
   tagsContainer: {
     flexDirection: 'row',
@@ -469,9 +541,31 @@ const styles = StyleSheet.create({
     borderRadius: 8
   },
   tagText: {
-    fontSize: 11,
+    fontSize: 10,
     color: '#666',
     fontWeight: '500'
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+    marginTop: 20
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#999',
+    marginTop: 15,
+    marginBottom: 20
+  },
+  resetButton: {
+    backgroundColor: '#2E7D4A',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 12
+  },
+  resetButtonText: {
+    color: 'white',
+    fontWeight: 'bold'
   },
   modalContainer: {
     flex: 1,
@@ -480,7 +574,7 @@ const styles = StyleSheet.create({
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 20,
+    padding: 15,
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0'
   },
@@ -492,13 +586,13 @@ const styles = StyleSheet.create({
     marginLeft: 12
   },
   modalCategory: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: '#666',
     marginBottom: 2
   },
   modalReadTime: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#999'
   },
   modalContent: {
@@ -506,14 +600,14 @@ const styles = StyleSheet.create({
     padding: 20
   },
   largeIconBadge: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     alignSelf: 'center',
     marginBottom: 20
   },
   modalTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 16,
@@ -522,7 +616,7 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: '#E0E0E0',
-    marginVertical: 20
+    marginVertical: 15
   },
   articleBody: {
     marginBottom: 30
@@ -530,19 +624,19 @@ const styles = StyleSheet.create({
   articleParagraph: {
     fontSize: 16,
     color: '#333',
-    lineHeight: 26,
-    marginBottom: 16
+    lineHeight: 24,
+    marginBottom: 14
   },
   boldParagraph: {
     fontWeight: 'bold',
-    fontSize: 18,
+    fontSize: 17,
     color: '#2E7D4A',
     marginTop: 8
   },
   actionButtons: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 20
+    marginBottom: 40
   },
   actionButton: {
     flexDirection: 'row',
@@ -553,7 +647,7 @@ const styles = StyleSheet.create({
     gap: 6
   },
   actionButtonText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: '#2E7D4A'
   }
