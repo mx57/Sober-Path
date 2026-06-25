@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { AICoachService, AICoachMessage } from '../services/AICoachService';
+import { useState, useEffect } from 'react';
+import { AICoachService, RecommendedArticle } from '../services/AICoachService';
 import { useRecovery } from './useRecovery';
 import NotificationService from '../services/notificationService';
+import * as Speech from 'expo-speech';
 
 export interface ChatMessage {
   id: string;
@@ -9,6 +10,8 @@ export interface ChatMessage {
   isUser: boolean;
   timestamp: Date;
   suggestions?: string[];
+  recommendedArticles?: RecommendedArticle[];
+  followUpQuestions?: string[];
 }
 
 export function useAICoachViewModel() {
@@ -20,31 +23,50 @@ export function useAICoachViewModel() {
   const [insights, setInsights] = useState<any>(null);
   const [triggers, setTriggers] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   useEffect(() => {
     initialize();
-  }, []);
+  }, [soberDays, userProfile?.id]);
 
   const initialize = async () => {
-    // Initial welcome message
     const welcome: ChatMessage = {
       id: 'welcome',
-      text: `Привет! Я ваш AI-коуч. У вас ${soberDays} дней трезвости. Как я могу помочь?`,
+      text: `Привет! Я ваш AI-коуч. У вас ${soberDays} дней трезвости. Как я могу помочь сегодня?`,
       isUser: false,
       timestamp: new Date(),
-      suggestions: ['Как справиться с тягой?', 'Нужна мотивация', 'Я сорвался']
+      suggestions: ['Как справиться с тягой?', 'Нужна мотивация', 'Я сорвался'],
+      followUpQuestions: ['Что у вас на уме?', 'Как ваше настроение?']
     };
     setMessages([welcome]);
 
-    // Load data
     const aiInsights = AICoachService.getUserInsights(userProfile?.id || 'default');
     setInsights(aiInsights);
     setTriggers(AICoachService.detectTriggerPatterns(userProfile?.id || 'default'));
     setNotifications(NotificationService.getNotifications());
   };
 
+  const speak = (text: string) => {
+    if (isSpeaking) {
+      Speech.stop();
+      setIsSpeaking(false);
+    } else {
+      setIsSpeaking(true);
+      Speech.speak(text, {
+        language: 'ru',
+        onDone: () => setIsSpeaking(false),
+        onError: () => setIsSpeaking(false)
+      });
+    }
+  };
+
+  const stopSpeaking = () => {
+    Speech.stop();
+    setIsSpeaking(false);
+  };
+
   const sendMessage = async (overrideText?: string) => {
-    const textToSend = overrideText || inputText;
+    const textToSend = typeof overrideText === 'string' ? overrideText : inputText;
     if (!textToSend.trim() || isTyping) return;
 
     const userMsg: ChatMessage = {
@@ -55,7 +77,7 @@ export function useAICoachViewModel() {
     };
 
     setMessages(prev => [...prev, userMsg]);
-    if (!overrideText) setInputText('');
+    if (typeof overrideText !== 'string') setInputText('');
     setIsTyping(true);
 
     try {
@@ -70,15 +92,20 @@ export function useAICoachViewModel() {
         }
       );
 
-      const aiMsg: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        text: response.message,
-        isUser: false,
-        timestamp: new Date(),
-        suggestions: response.suggestions
-      };
+      if (response.success) {
+        const data = response.data;
+        const aiMsg: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          text: data.message,
+          isUser: false,
+          timestamp: new Date(),
+          suggestions: data.suggestions,
+          recommendedArticles: data.recommendedArticles,
+          followUpQuestions: data.followUpQuestions
+        };
 
-      setMessages(prev => [...prev, aiMsg]);
+        setMessages(prev => [...prev, aiMsg]);
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -98,6 +125,9 @@ export function useAICoachViewModel() {
     notifications,
     sendMessage,
     soberDays,
-    getStreakDays
+    getStreakDays,
+    speak,
+    stopSpeaking,
+    isSpeaking
   };
 }

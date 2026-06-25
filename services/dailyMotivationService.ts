@@ -1,606 +1,85 @@
-// Система ежедневных напоминаний и мотивационных сообщений
 
-import * as Notifications from 'expo-notifications';
-import { Platform } from 'react-native';
-
-export interface DailyReminder {
+export interface MotivationQuote {
   id: string;
-  type: 'motivation' | 'technique' | 'check_in' | 'milestone' | 'wellness' | 'social';
-  title: string;
-  body: string;
-  scheduledTime: string; // HH:MM format
-  frequency: 'daily' | 'weekly' | 'weekdays' | 'weekends' | 'custom';
-  customDays?: number[]; // 0-6, где 0 = воскресенье
-  enabled: boolean;
-  personalized: boolean;
-  category: string;
-  priority: 'low' | 'medium' | 'high';
-  actionButtons?: NotificationAction[];
+  text: string;
+  author: string;
+  category: 'motivation' | 'wisdom' | 'discipline' | 'hope' | 'strength' | 'patience';
 }
 
-export interface NotificationAction {
+export interface RecoveryTip {
   id: string;
   title: string;
-  action: string;
-  icon?: string;
-}
-
-export interface MotivationalContent {
-  id: string;
-  type: 'quote' | 'affirmation' | 'reminder' | 'achievement' | 'tip' | 'story';
   content: string;
-  author?: string;
-  category: string;
-  mood: 'uplifting' | 'calming' | 'energizing' | 'reflective' | 'encouraging';
-  difficultyLevel: 'easy' | 'challenging' | 'inspiring';
-  personalityMatch: string[]; // типы личности, которым подходит
+  icon: string;
 }
 
-export interface UserMotivationProfile {
-  userId: string;
-  preferredTimes: string[];
-  motivationStyle: 'gentle' | 'direct' | 'inspirational' | 'practical';
-  responseToReminders: 'high' | 'medium' | 'low';
-  effectiveCategories: string[];
-  skipDays: string[]; // дни недели для пропуска
-  personalizedQuotes: string[];
-  milestonePreferences: MilestonePreference[];
-}
+export class DailyMotivationService {
+  private static quotes: MotivationQuote[] = [
+    { id: 'q1', text: 'Величайшая победа — это победа над самим собой.', author: 'Платон', category: 'wisdom' },
+    { id: 'q2', text: 'Неважно, как медленно вы идете, пока вы не остановитесь.', author: 'Конфуций', category: 'discipline' },
+    { id: 'q3', text: 'Трезвость не открывает врата рая, чтобы впустить вас туда, она открывает врата ада, чтобы выпустить вас оттуда.', author: 'Анонимный источник', category: 'motivation' },
+    { id: 'q4', text: 'Ваше будущее создается тем, что вы делаете сегодня, а не завтра.', author: 'Роберт Кийосаки', category: 'discipline' },
+    { id: 'q5', text: 'Трудности часто готовят обычного человека к необычной судьбе.', author: 'К.С. Льюис', category: 'hope' },
+    { id: 'q6', text: 'Вы никогда не будете слишком стары, чтобы поставить новую цель или мечтать о новой мечте.', author: 'К.С. Льюис', category: 'hope' },
+    { id: 'q7', text: 'Успех — это способность идти от одной неудачи к другой, не теряя энтузиазма.', author: 'Уинстон Черчилль', category: 'strength' },
+    { id: 'q8', text: 'Наше величайшее величие не в том, чтобы никогда не падать, а в том, чтобы подниматься каждый раз, когда мы падаем.', author: 'Конфуций', category: 'strength' },
+    { id: 'q9', text: 'Всегда кажется, что это невозможно, пока это не сделано.', author: 'Нельсон Мандела', category: 'motivation' },
+    { id: 'q10', text: 'Тот, кто имеет "зачем" жить, может вынести почти любое "как".', author: 'Виктор Франкл', category: 'wisdom' },
+    { id: 'q11', text: 'Ваша нынешняя ситуация — это не ваш конечный пункт назначения. Лучшее еще впереди.', author: 'Аноним', category: 'hope' },
+    { id: 'q12', text: 'Дисциплина — это выбор между тем, чего вы хотите сейчас, и тем, чего вы хотите больше всего.', author: 'Авраам Линкольн', category: 'discipline' },
+    { id: 'q13', text: 'Трезвость — это не просто отсутствие алкоголя, это присутствие самого себя.', author: 'Аноним', category: 'wisdom' },
+    { id: 'q14', text: 'Один день за раз. Одно утро за раз. Один час за раз.', author: 'Принцип 12 шагов', category: 'patience' },
+    { id: 'q15', text: 'Вы сильнее, чем вы думаете. Вы умнее, чем вы верите. Вы любимы больше, чем вы знаете.', author: 'А.А. Милн', category: 'strength' },
+    { id: 'q16', text: 'Жизнь начинается там, где заканчивается ваша зона комфорта.', author: 'Нил Уолш', category: 'motivation' },
+    { id: 'q17', text: 'Будьте тем изменением, которое вы хотите видеть в мире.', author: 'Махатма Ганди', category: 'wisdom' },
+    { id: 'q18', text: 'Единственный способ сделать выдающуюся работу — искренне любить то, что вы делаете.', author: 'Стив Джобс', category: 'discipline' },
+    { id: 'q19', text: 'Ваше время ограничено, не тратьте его, живя чужой жизнью.', author: 'Стив Джобс', category: 'wisdom' },
+    { id: 'q20', text: 'Не бойтесь расти медленно, бойтесь оставаться неизменными.', author: 'Китайская пословица', category: 'patience' },
+    { id: 'q21', text: 'Измените свои мысли, и вы измените свой мир.', author: 'Норман Винсент Пил', category: 'strength' },
+    { id: 'q22', text: 'Каждое утро у нас есть шанс начать жизнь заново.', author: 'Будда', category: 'hope' },
+    { id: 'q23', text: 'Свобода — это то, что вы делаете с тем, что с вами сделали.', author: 'Жан-Поль Сартр', category: 'wisdom' },
+    { id: 'q24', text: 'Трезвость — это форма самоуважения.', author: 'Аноним', category: 'strength' },
+    { id: 'q25', text: 'Маленькие шаги в правильном направлении могут привести к большим переменам.', author: 'Аноним', category: 'patience' },
+    { id: 'q26', text: 'Самый лучший способ предсказать будущее — создать его.', author: 'Питер Друкер', category: 'discipline' },
+    { id: 'q27', text: 'Прошлого не существует, есть только настоящее, в котором мы создаем будущее.', author: 'Аноним', category: 'wisdom' },
+    { id: 'q28', text: 'Трезвость дает вам возможность быть тем, кем вы всегда хотели быть.', author: 'Аноним', category: 'hope' },
+    { id: 'q29', text: 'Сила не в том, чтобы не иметь слабостей, а в том, чтобы уметь с ними работать.', author: 'Аноним', category: 'strength' },
+    { id: 'q30', text: 'Каждый день трезвости — это кирпичик в фундаменте вашей новой жизни.', author: 'Аноним', category: 'discipline' }
+  ];
 
-export interface MilestonePreference {
-  type: string;
-  frequency: number;
-  celebrationStyle: 'quiet' | 'enthusiastic' | 'social';
-}
+  private static tips: RecoveryTip[] = [
+    { id: 't1', title: 'Пейте больше воды', content: 'Гидратация помогает вымывать токсины и улучшает когнитивные функции. Старайтесь пить 1.5-2 литра в день.', icon: 'local-drink' },
+    { id: 't2', title: 'Практикуйте дыхание', content: 'Когда чувствуете тягу, сделайте 10 глубоких вдохов. Это снизит уровень кортизола и успокоит нервную систему.', icon: 'air' },
+    { id: 't3', title: 'Планируйте вечер', content: 'Заранее придумайте занятие на вечер пятницы или выходные, чтобы избежать старых триггерных ситуаций.', icon: 'event' },
+    { id: 't4', title: 'HALT проверка', content: 'Если возникло желание выпить, проверьте: вы Голодны, Злы, Одиноки или Устали? Удовлетворите базовую потребность.', icon: 'warning' },
+    { id: 't5', title: 'Дневник благодарности', content: 'Записывайте 3 вещи, за которые вы благодарны сегодня. Это переключает мозг на позитивное восприятие.', icon: 'edit' },
+    { id: 't6', title: 'Физическая активность', content: 'Даже 15-минутная прогулка повышает уровень эндорфинов и помогает справиться со стрессом.', icon: 'directions-run' },
+    { id: 't7', title: 'Звонок другу', content: 'Если становится тяжело, не изолируйтесь. Позвоните человеку, который поддерживает вашу трезвость.', icon: 'phone' },
+    { id: 't8', title: 'Избегайте сахара', content: 'Скачки сахара могут имитировать тягу к алкоголю. Выбирайте сложные углеводы и белок.', icon: 'restaurant' },
+    { id: 't9', title: 'Новое хобби', content: 'Займите мозг изучением чего-то нового. Это создает новые нейронные связи и снижает скуку.', icon: 'lightbulb' },
+    { id: 't10', title: 'Сон — приоритет', content: 'Недостаток сна резко снижает волевой ресурс. Старайтесь спать не менее 7-8 часов.', icon: 'bedtime' },
+    { id: 't11', title: 'Техника 5 минут', content: 'Если тяга сильная, договоритесь с собой подождать всего 5 минут. Обычно за это время острый пик проходит.', icon: 'timer' },
+    { id: 't12', title: 'Поощряйте себя', content: 'На сэкономленные деньги купите себе что-то приятное. Визуализируйте пользу трезвости.', icon: 'redeem' },
+    { id: 't13', title: 'Чистое окружение', content: 'Уберите из дома всё, что напоминает об употреблении. Создайте безопасное пространство.', icon: 'home' },
+    { id: 't14', title: 'Медитация', content: 'Всего 10 минут тишины и наблюдения за дыханием в день укрепляют префронтальную кору мозга.', icon: 'self-improvement' },
+    { id: 't15', title: 'Визуализация', content: 'Представьте свой вечер завтра: вы просыпаетесь бодрым, без похмелья и чувства вины.', icon: 'visibility' }
+  ];
 
-export class DailyMotivationSystem {
-  private reminders: Map<string, DailyReminder[]> = new Map();
-  private motivationalLibrary: MotivationalContent[];
-  private userProfiles: Map<string, UserMotivationProfile> = new Map();
-  
-  constructor() {
-    this.motivationalLibrary = this.initializeMotivationalContent();
-    this.setupNotificationHandlers();
+  static getDailyQuote(): MotivationQuote {
+    const dayOfYear = Math.floor((new Date().getTime() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
+    return this.quotes[dayOfYear % this.quotes.length];
   }
 
-  // Инициализация системы уведомлений
-  async initializeNotifications(): Promise<void> {
-    // Запрашиваем разрешения
-    const { status } = await Notifications.requestPermissionsAsync();
-    
-    if (status !== 'granted') {
-      console.warn('Notification permissions not granted');
-      return;
-    }
-
-    // Настраиваем категории уведомлений
-    await this.setupNotificationCategories();
-    
-    // Настраиваем обработчики
-    this.setupNotificationHandlers();
+  static getDailyTip(): RecoveryTip {
+    const dayOfYear = Math.floor((new Date().getTime() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
+    return this.tips[dayOfYear % this.tips.length];
   }
 
-  // Создание персонализированных напоминаний для пользователя
-  async createPersonalizedReminders(userId: string, preferences?: any): Promise<void> {
-    const userProfile = this.getUserProfile(userId);
-    const baseReminders = this.getBaseReminderTemplates();
-    
-    const personalizedReminders = baseReminders.map(reminder => 
-      this.personalizeReminder(reminder, userProfile, preferences)
-    );
-
-    // Добавляем специальные напоминания на основе прогресса
-    const progressReminders = await this.generateProgressBasedReminders(userId);
-    personalizedReminders.push(...progressReminders);
-
-    // Сохраняем напоминания
-    this.reminders.set(userId, personalizedReminders);
-    
-    // Планируем уведомления
-    await this.scheduleAllReminders(userId, personalizedReminders);
+  static getRandomQuote(): MotivationQuote {
+    return this.quotes[Math.floor(Math.random() * this.quotes.length)];
   }
 
-  // Базовые шаблоны напоминаний
-  private getBaseReminderTemplates(): DailyReminder[] {
-    return [
-      {
-        id: 'morning_motivation',
-        type: 'motivation',
-        title: '🌅 Доброе утро!',
-        body: 'Новый день - новые возможности для роста и исцеления',
-        scheduledTime: '08:00',
-        frequency: 'daily',
-        enabled: true,
-        personalized: true,
-        category: 'morning',
-        priority: 'medium',
-        actionButtons: [
-          { id: 'set_intention', title: 'Поставить цель дня', action: 'open_goal_setting' },
-          { id: 'morning_meditation', title: 'Утренняя медитация', action: 'start_meditation' }
-        ]
-      },
-      {
-        id: 'midday_checkin',
-        type: 'check_in',
-        title: '☀️ Как дела?',
-        body: 'Время проверить, как вы себя чувствуете',
-        scheduledTime: '13:00',
-        frequency: 'daily',
-        enabled: true,
-        personalized: true,
-        category: 'wellness',
-        priority: 'low',
-        actionButtons: [
-          { id: 'mood_check', title: 'Отметить настроение', action: 'open_mood_tracker' },
-          { id: 'quick_technique', title: 'Быстрая техника', action: 'suggest_technique' }
-        ]
-      },
-      {
-        id: 'evening_reflection',
-        type: 'wellness',
-        title: '🌙 Время размышлений',
-        body: 'Что хорошего произошло сегодня?',
-        scheduledTime: '21:00',
-        frequency: 'daily',
-        enabled: true,
-        personalized: true,
-        category: 'evening',
-        priority: 'medium',
-        actionButtons: [
-          { id: 'gratitude_log', title: 'Записать благодарность', action: 'open_gratitude' },
-          { id: 'day_reflection', title: 'Отразить день', action: 'open_reflection' }
-        ]
-      },
-      {
-        id: 'weekly_milestone',
-        type: 'milestone',
-        title: '🎉 Еженедельный прогресс',
-        body: 'Время отметить ваши достижения за неделю!',
-        scheduledTime: '19:00',
-        frequency: 'weekly',
-        enabled: true,
-        personalized: true,
-        category: 'achievement',
-        priority: 'high'
-      },
-      {
-        id: 'technique_reminder',
-        type: 'technique',
-        title: '🧘 Время для практики',
-        body: 'Несколько минут практики могут изменить весь день',
-        scheduledTime: '16:00',
-        frequency: 'daily',
-        enabled: true,
-        personalized: true,
-        category: 'practice',
-        priority: 'medium'
-      },
-      {
-        id: 'social_connection',
-        type: 'social',
-        title: '👥 Связь с близкими',
-        body: 'Поддержка других людей важна для выздоровления',
-        scheduledTime: '18:30',
-        frequency: 'weekdays',
-        enabled: false, // По умолчанию выключено
-        personalized: true,
-        category: 'social',
-        priority: 'low'
-      }
-    ];
-  }
-
-  // Персонализация напоминания
-  private personalizeReminder(
-    reminder: DailyReminder, 
-    profile: UserMotivationProfile,
-    preferences?: any
-  ): DailyReminder {
-    const personalized = { ...reminder };
-    
-    // Адаптируем время на основе предпочтений пользователя
-    if (profile.preferredTimes.length > 0) {
-      const preferredTime = profile.preferredTimes.find(time => 
-        Math.abs(this.timeToMinutes(time) - this.timeToMinutes(reminder.scheduledTime)) < 120
-      );
-      if (preferredTime) {
-        personalized.scheduledTime = preferredTime;
-      }
-    }
-
-    // Адаптируем стиль мотивации
-    personalized.body = this.adaptMessageStyle(reminder.body, profile.motivationStyle);
-    
-    // Включаем/выключаем на основе эффективности
-    if (profile.responseToReminders === 'low' && reminder.priority === 'low') {
-      personalized.enabled = false;
-    }
-
-    return personalized;
-  }
-
-  // Генерация напоминаний на основе прогресса
-  private async generateProgressBasedReminders(userId: string): Promise<DailyReminder[]> {
-    const progressReminders: DailyReminder[] = [];
-    
-    // Здесь можно добавить логику для создания напоминаний на основе:
-    // - Серии трезвых дней
-    // - Пройденных техник
-    // - Достигнутых целей
-    // - Предстоящих сложных дат
-
-    // Пример: напоминание о серии
-    progressReminders.push({
-      id: `streak_reminder_${userId}`,
-      type: 'milestone',
-      title: '🔥 Ваша серия растет!',
-      body: 'Каждый день трезвости - это победа. Продолжайте!',
-      scheduledTime: '20:00',
-      frequency: 'weekly',
-      enabled: true,
-      personalized: true,
-      category: 'achievement',
-      priority: 'high'
-    });
-
-    return progressReminders;
-  }
-
-  // Планирование уведомлений
-  private async scheduleAllReminders(userId: string, reminders: DailyReminder[]): Promise<void> {
-    // Отменяем существующие уведомления для пользователя
-    await this.cancelUserNotifications(userId);
-    
-    for (const reminder of reminders) {
-      if (reminder.enabled) {
-        await this.scheduleReminder(userId, reminder);
-      }
-    }
-  }
-
-  // Планирование отдельного напоминания
-  private async scheduleReminder(userId: string, reminder: DailyReminder): Promise<void> {
-    const notificationId = `${userId}_${reminder.id}`;
-    
-    try {
-      const trigger = this.createNotificationTrigger(reminder);
-      
-      await Notifications.scheduleNotificationAsync({
-        identifier: notificationId,
-        content: {
-          title: reminder.title,
-          body: this.getPersonalizedContent(userId, reminder),
-          data: {
-            userId,
-            reminderId: reminder.id,
-            type: reminder.type,
-            category: reminder.category
-          },
-          categoryIdentifier: reminder.category,
-          sound: 'default'
-        },
-        trigger
-      });
-    } catch (error) {
-      console.error('Error scheduling reminder:', error);
-    }
-  }
-
-  // Создание триггера уведомления
-  private createNotificationTrigger(reminder: DailyReminder): any {
-    const [hours, minutes] = reminder.scheduledTime.split(':').map(Number);
-    
-    switch (reminder.frequency) {
-      case 'daily':
-        return {
-          hour: hours,
-          minute: minutes,
-          repeats: true
-        };
-      
-      case 'weekly':
-        return {
-          weekday: 1, // Понедельник
-          hour: hours,
-          minute: minutes,
-          repeats: true
-        };
-      
-      case 'weekdays':
-        // Планируем для каждого рабочего дня отдельно
-        return {
-          weekday: [2, 3, 4, 5, 6], // Вт-Сб (в iOS воскресенье = 1)
-          hour: hours,
-          minute: minutes,
-          repeats: true
-        };
-      
-      case 'weekends':
-        return {
-          weekday: [1, 7], // Вс, Сб
-          hour: hours,
-          minute: minutes,
-          repeats: true
-        };
-      
-      case 'custom':
-        if (reminder.customDays) {
-          return reminder.customDays.map(day => ({
-            weekday: day + 1, // iOS использует 1-7
-            hour: hours,
-            minute: minutes,
-            repeats: true
-          }));
-        }
-        break;
-    }
-    
-    return null;
-  }
-
-  // Получение персонализированного контента
-  private getPersonalizedContent(userId: string, reminder: DailyReminder): string {
-    if (!reminder.personalized) {
-      return reminder.body;
-    }
-
-    const profile = this.getUserProfile(userId);
-    
-    // Выбираем мотивационный контент на основе профиля
-    const relevantContent = this.motivationalLibrary.filter(content => 
-      content.category === reminder.category || 
-      profile.effectiveCategories.includes(content.category)
-    );
-
-    if (relevantContent.length > 0) {
-      const selectedContent = relevantContent[Math.floor(Math.random() * relevantContent.length)];
-      return this.adaptMessageStyle(selectedContent.content, profile.motivationStyle);
-    }
-
-    return reminder.body;
-  }
-
-  // Адаптация стиля сообщения
-  private adaptMessageStyle(message: string, style: string): string {
-    switch (style) {
-      case 'gentle':
-        return message.replace(/!/g, '.').replace(/\b(должны|нужно)\b/g, 'можете');
-      
-      case 'direct':
-        return message + ' Сделайте это прямо сейчас.';
-      
-      case 'inspirational':
-        return '✨ ' + message + ' Вы способны на великие дела!';
-      
-      case 'practical':
-        return message + ' Это займет всего несколько минут.';
-      
-      default:
-        return message;
-    }
-  }
-
-  // Инициализация мотивационного контента
-  private initializeMotivationalContent(): MotivationalContent[] {
-    return [
-      {
-        id: 'quote_001',
-        type: 'quote',
-        content: 'Каждый день трезвости - это день, когда вы выбираете себя',
-        category: 'morning',
-        mood: 'uplifting',
-        difficultyLevel: 'easy',
-        personalityMatch: ['gentle', 'inspirational']
-      },
-      {
-        id: 'affirmation_001',
-        type: 'affirmation',
-        content: 'Я достоин любви, здоровья и счастья',
-        category: 'morning',
-        mood: 'uplifting',
-        difficultyLevel: 'easy',
-        personalityMatch: ['gentle', 'inspirational']
-      },
-      {
-        id: 'reminder_001',
-        type: 'reminder',
-        content: 'Помните: прогресс не всегда линеен, но каждый шаг имеет значение',
-        category: 'evening',
-        mood: 'encouraging',
-        difficultyLevel: 'challenging',
-        personalityMatch: ['direct', 'practical']
-      },
-      {
-        id: 'tip_001',
-        type: 'tip',
-        content: 'Когда чувствуете тягу, попробуйте технику "Остановись-Подыши-Наблюдай-Продолжай"',
-        category: 'practice',
-        mood: 'practical',
-        difficultyLevel: 'easy',
-        personalityMatch: ['practical', 'direct']
-      },
-      {
-        id: 'achievement_001',
-        type: 'achievement',
-        content: 'Вы уже прошли самую трудную часть - решили изменить свою жизнь',
-        category: 'achievement',
-        mood: 'encouraging',
-        difficultyLevel: 'inspiring',
-        personalityMatch: ['inspirational', 'gentle']
-      },
-      {
-        id: 'story_001',
-        type: 'story',
-        content: 'Каждый рассвет напоминает нам: у нас есть еще один шанс начать заново',
-        category: 'morning',
-        mood: 'reflective',
-        difficultyLevel: 'inspiring',
-        personalityMatch: ['inspirational', 'gentle']
-      }
-    ];
-  }
-
-  // Настройка категорий уведомлений
-  private async setupNotificationCategories(): Promise<void> {
-    const categories = [
-      {
-        identifier: 'morning',
-        actions: [
-          { identifier: 'set_intention', title: 'Поставить цель' },
-          { identifier: 'morning_meditation', title: 'Медитация' }
-        ]
-      },
-      {
-        identifier: 'wellness',
-        actions: [
-          { identifier: 'mood_check', title: 'Настроение' },
-          { identifier: 'quick_technique', title: 'Техника' }
-        ]
-      },
-      {
-        identifier: 'evening',
-        actions: [
-          { identifier: 'gratitude_log', title: 'Благодарность' },
-          { identifier: 'day_reflection', title: 'Размышления' }
-        ]
-      }
-    ];
-
-    if (Platform.OS === 'ios') {
-      await Notifications.setNotificationCategoryAsync(
-        'morning',
-        categories[0].actions.map(action => ({
-          identifier: action.identifier,
-          buttonTitle: action.title,
-          options: { foreground: true }
-        }))
-      );
-    }
-  }
-
-  // Настройка обработчиков уведомлений
-  private setupNotificationHandlers(): void {
-    // Обработчик нажатия на уведомление
-    Notifications.addNotificationResponseReceivedListener(response => {
-      const { userId, reminderId, type } = response.notification.request.content.data as any;
-      this.handleNotificationResponse(userId, reminderId, type, response.actionIdentifier);
-    });
-
-    // Обработчик получения уведомления в активном приложении
-    Notifications.addNotificationReceivedListener(notification => {
-      console.log('Notification received while app is active:', notification);
-    });
-  }
-
-  // Обработка ответов на уведомления
-  private handleNotificationResponse(
-    userId: string, 
-    reminderId: string, 
-    type: string, 
-    actionId: string
-  ): void {
-    console.log('Notification response:', { userId, reminderId, type, actionId });
-    
-    // Здесь можно добавить логику для обработки различных действий
-    switch (actionId) {
-      case 'set_intention':
-        // Открыть экран постановки целей
-        break;
-      case 'morning_meditation':
-        // Запустить медитацию
-        break;
-      case 'mood_check':
-        // Открыть трекер настроения
-        break;
-      // ... другие действия
-    }
-
-    // Записываем статистику взаимодействия
-    this.recordNotificationInteraction(userId, reminderId, actionId);
-  }
-
-  // Запись статистики взаимодействий
-  private recordNotificationInteraction(
-    userId: string, 
-    reminderId: string, 
-    actionId: string
-  ): void {
-    // Здесь можно сохранять статистику для улучшения персонализации
-    console.log('Recording interaction:', { userId, reminderId, actionId });
-  }
-
-  // Отмена уведомлений пользователя
-  private async cancelUserNotifications(userId: string): Promise<void> {
-    const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
-    
-    const userNotifications = scheduledNotifications.filter(notification => 
-      notification.identifier.startsWith(userId)
-    );
-
-    for (const notification of userNotifications) {
-      await Notifications.cancelScheduledNotificationAsync(notification.identifier);
-    }
-  }
-
-  // Вспомогательные методы
-  private getUserProfile(userId: string): UserMotivationProfile {
-    let profile = this.userProfiles.get(userId);
-    
-    if (!profile) {
-      profile = {
-        userId,
-        preferredTimes: ['08:00', '13:00', '21:00'],
-        motivationStyle: 'gentle',
-        responseToReminders: 'medium',
-        effectiveCategories: ['morning', 'evening'],
-        skipDays: [],
-        personalizedQuotes: [],
-        milestonePreferences: [
-          { type: 'daily', frequency: 1, celebrationStyle: 'quiet' },
-          { type: 'weekly', frequency: 7, celebrationStyle: 'enthusiastic' }
-        ]
-      };
-      this.userProfiles.set(userId, profile);
-    }
-    
-    return profile;
-  }
-
-  private timeToMinutes(time: string): number {
-    const [hours, minutes] = time.split(':').map(Number);
-    return hours * 60 + minutes;
-  }
-
-  // Публичные методы для управления напоминаниями
-  async updateReminderSettings(
-    userId: string, 
-    reminderId: string, 
-    settings: Partial<DailyReminder>
-  ): Promise<void> {
-    const userReminders = this.reminders.get(userId);
-    if (!userReminders) return;
-
-    const reminderIndex = userReminders.findIndex(r => r.id === reminderId);
-    if (reminderIndex === -1) return;
-
-    // Обновляем настройки
-    userReminders[reminderIndex] = { ...userReminders[reminderIndex], ...settings };
-    
-    // Перепланируем уведомления
-    await this.scheduleAllReminders(userId, userReminders);
-  }
-
-  async getUserReminders(userId: string): Promise<DailyReminder[]> {
-    return this.reminders.get(userId) || [];
-  }
-
-  async enableReminder(userId: string, reminderId: string): Promise<void> {
-    await this.updateReminderSettings(userId, reminderId, { enabled: true });
-  }
-
-  async disableReminder(userId: string, reminderId: string): Promise<void> {
-    await this.updateReminderSettings(userId, reminderId, { enabled: false });
+  static getRandomTip(): RecoveryTip {
+    return this.tips[Math.floor(Math.random() * this.tips.length)];
   }
 }
-
-export default DailyMotivationSystem;

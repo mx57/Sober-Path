@@ -9,6 +9,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAICoachViewModel, ChatMessage } from '../../hooks/useAICoachViewModel';
+import { useRouter } from 'expo-router';
 import Animated, {
   FadeInUp,
 } from 'react-native-reanimated';
@@ -16,7 +17,12 @@ import Animated, {
 const { width: screenWidth } = Dimensions.get('window');
 
 // Refactored Message component
-const MessageBubble = React.memo(({ message }: { message: ChatMessage }) => {
+const MessageBubble = React.memo(({ message, onArticlePress, onSpeak, isSpeaking }: {
+  message: ChatMessage,
+  onArticlePress: (id: string) => void,
+  onSpeak: (text: string) => void,
+  isSpeaking: boolean
+}) => {
   const isUser = message.isUser;
   return (
     <Animated.View
@@ -26,8 +32,17 @@ const MessageBubble = React.memo(({ message }: { message: ChatMessage }) => {
       <View style={[styles.messageBubble, isUser ? styles.userBubble : styles.aiBubble]}>
         {!isUser && (
           <View style={styles.aiHeader}>
-            <MaterialIcons name="psychology" size={16} color="#2E7D4A" />
-            <Text style={styles.aiLabel}>AI-Коуч</Text>
+            <View style={styles.aiLabelRow}>
+              <MaterialIcons name="psychology" size={16} color="#2E7D4A" />
+              <Text style={styles.aiLabel}>AI-Коуч</Text>
+            </View>
+            <TouchableOpacity onPress={() => onSpeak(message.text)} style={styles.speakButton}>
+              <MaterialIcons
+                name={isSpeaking ? "volume-up" : "volume-mute"}
+                size={18}
+                color="#2E7D4A"
+              />
+            </TouchableOpacity>
           </View>
         )}
         <Text style={[styles.messageText, isUser ? styles.userMessageText : styles.aiMessageText]}>
@@ -36,6 +51,22 @@ const MessageBubble = React.memo(({ message }: { message: ChatMessage }) => {
         <Text style={styles.timestamp}>
           {message.timestamp.toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })}
         </Text>
+
+        {!isUser && message.recommendedArticles && message.recommendedArticles.length > 0 && (
+          <View style={styles.recommendationsContainer}>
+            <Text style={styles.recommendationTitle}>Рекомендуемые статьи:</Text>
+            {message.recommendedArticles.map(article => (
+              <TouchableOpacity
+                key={article.id}
+                style={styles.articleLink}
+                onPress={() => onArticlePress(article.id)}
+              >
+                <MaterialIcons name="article" size={16} color="#2E7D4A" />
+                <Text style={styles.articleLinkText}>{article.title}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
       </View>
     </Animated.View>
   );
@@ -45,6 +76,7 @@ export default function EnhancedAICoach() {
   const insets = useSafeAreaInsets();
   const vm = useAICoachViewModel();
   const scrollViewRef = useRef<ScrollView>(null);
+  const router = useRouter();
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -83,7 +115,15 @@ export default function EnhancedAICoach() {
               style={styles.messagesContainer}
               onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
             >
-              {vm.messages.map(m => <MessageBubble key={m.id} message={m} />)}
+              {vm.messages.map(m => (
+                <MessageBubble
+                  key={m.id}
+                  message={m}
+                  onArticlePress={(id) => router.push('/articles')}
+                  onSpeak={vm.speak}
+                  isSpeaking={vm.isSpeaking}
+                />
+              ))}
               {vm.isTyping && <ActivityIndicator color="#2E7D4A" style={{ margin: 10 }} />}
             </ScrollView>
 
@@ -200,9 +240,38 @@ const styles = StyleSheet.create({
   messageText: { fontSize: 16 },
   userMessageText: { color: 'white' },
   aiMessageText: { color: '#333' },
-  aiHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+  aiHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
+  aiLabelRow: { flexDirection: 'row', alignItems: 'center' },
   aiLabel: { fontSize: 10, fontWeight: 'bold', color: '#2E7D4A', marginLeft: 4 },
+  speakButton: { padding: 4 },
   timestamp: { fontSize: 10, color: '#999', marginTop: 4, alignSelf: 'flex-end' },
+  recommendationsContainer: {
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+  },
+  recommendationTitle: {
+    fontSize: 11,
+    color: '#666',
+    marginBottom: 6,
+    fontWeight: '600',
+  },
+  articleLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    padding: 8,
+    borderRadius: 8,
+    marginBottom: 4,
+    gap: 6,
+  },
+  articleLinkText: {
+    fontSize: 12,
+    color: '#2E7D4A',
+    fontWeight: '500',
+    flex: 1,
+  },
   suggestionsContainer: {
     maxHeight: 50,
     backgroundColor: '#F8F9FA',
