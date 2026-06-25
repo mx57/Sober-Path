@@ -17,7 +17,12 @@ import Animated, {
 const { width: screenWidth } = Dimensions.get('window');
 
 // Refactored Message component
-const MessageBubble = React.memo(({ message, onArticlePress }: { message: ChatMessage, onArticlePress: (id: string) => void }) => {
+const MessageBubble = React.memo(({ message, onArticlePress, onSpeak, isSpeaking }: {
+  message: ChatMessage,
+  onArticlePress: (id: string) => void,
+  onSpeak: (text: string) => void,
+  isSpeaking: boolean
+}) => {
   const isUser = message.isUser;
   return (
     <Animated.View
@@ -27,8 +32,17 @@ const MessageBubble = React.memo(({ message, onArticlePress }: { message: ChatMe
       <View style={[styles.messageBubble, isUser ? styles.userBubble : styles.aiBubble]}>
         {!isUser && (
           <View style={styles.aiHeader}>
-            <MaterialIcons name="psychology" size={16} color="#2E7D4A" />
-            <Text style={styles.aiLabel}>AI-Коуч</Text>
+            <View style={styles.aiLabelRow}>
+              <MaterialIcons name="psychology" size={16} color="#2E7D4A" />
+              <Text style={styles.aiLabel}>AI-Коуч</Text>
+            </View>
+            <TouchableOpacity onPress={() => onSpeak(message.text)} style={styles.speakButton}>
+              <MaterialIcons
+                name={isSpeaking ? "volume-up" : "volume-mute"}
+                size={18}
+                color="#2E7D4A"
+              />
+            </TouchableOpacity>
           </View>
         )}
         <Text style={[styles.messageText, isUser ? styles.userMessageText : styles.aiMessageText]}>
@@ -106,6 +120,8 @@ export default function EnhancedAICoach() {
                   key={m.id}
                   message={m}
                   onArticlePress={(id) => router.push('/articles')}
+                  onSpeak={vm.speak}
+                  isSpeaking={vm.isSpeaking}
                 />
               ))}
               {vm.isTyping && <ActivityIndicator color="#2E7D4A" style={{ margin: 10 }} />}
@@ -224,8 +240,10 @@ const styles = StyleSheet.create({
   messageText: { fontSize: 16 },
   userMessageText: { color: 'white' },
   aiMessageText: { color: '#333' },
-  aiHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+  aiHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
+  aiLabelRow: { flexDirection: 'row', alignItems: 'center' },
   aiLabel: { fontSize: 10, fontWeight: 'bold', color: '#2E7D4A', marginLeft: 4 },
+  speakButton: { padding: 4 },
   timestamp: { fontSize: 10, color: '#999', marginTop: 4, alignSelf: 'flex-end' },
   recommendationsContainer: {
     marginTop: 10,

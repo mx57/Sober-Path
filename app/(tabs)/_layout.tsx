@@ -12,6 +12,7 @@ const TabLayout = () => {
   return React.createElement(Tabs, { screenOptions: tabOptions },
     React.createElement(Tabs.Screen, { name: 'index', options: { title: 'Главная', tabBarIcon: ({ color, size }) => React.createElement(MaterialIcons, { name: 'home', size, color }) } }),
     React.createElement(Tabs.Screen, { name: 'ai-coach', options: { title: 'Коуч', tabBarIcon: ({ color, size }) => React.createElement(MaterialIcons, { name: 'psychology', size, color }) } }),
+    React.createElement(Tabs.Screen, { name: 'journal', options: { title: 'Дневник', tabBarIcon: ({ color, size }) => React.createElement(MaterialIcons, { name: 'edit-note', size, color }) } }),
     React.createElement(Tabs.Screen, { name: 'articles', options: { title: 'База знаний', tabBarIcon: ({ color, size }) => React.createElement(MaterialIcons, { name: 'menu-book', size, color }) } }),
     React.createElement(Tabs.Screen, { name: 'community', options: { title: 'Сообщество', tabBarIcon: ({ color, size }) => React.createElement(MaterialIcons, { name: 'groups', size, color }) } }),
     React.createElement(Tabs.Screen, { name: 'enhanced-exercises', options: { title: 'Техники', tabBarIcon: ({ color, size }) => React.createElement(MaterialIcons, { name: 'science', size, color }) } }),

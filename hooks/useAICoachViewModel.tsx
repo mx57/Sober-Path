@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { AICoachService, RecommendedArticle } from '../services/AICoachService';
 import { useRecovery } from './useRecovery';
 import NotificationService from '../services/notificationService';
+import * as Speech from 'expo-speech';
 
 export interface ChatMessage {
   id: string;
@@ -22,13 +23,13 @@ export function useAICoachViewModel() {
   const [insights, setInsights] = useState<any>(null);
   const [triggers, setTriggers] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   useEffect(() => {
     initialize();
   }, [soberDays, userProfile?.id]);
 
   const initialize = async () => {
-    // Initial welcome message
     const welcome: ChatMessage = {
       id: 'welcome',
       text: `Привет! Я ваш AI-коуч. У вас ${soberDays} дней трезвости. Как я могу помочь сегодня?`,
@@ -39,11 +40,29 @@ export function useAICoachViewModel() {
     };
     setMessages([welcome]);
 
-    // Load data
     const aiInsights = AICoachService.getUserInsights(userProfile?.id || 'default');
     setInsights(aiInsights);
     setTriggers(AICoachService.detectTriggerPatterns(userProfile?.id || 'default'));
     setNotifications(NotificationService.getNotifications());
+  };
+
+  const speak = (text: string) => {
+    if (isSpeaking) {
+      Speech.stop();
+      setIsSpeaking(false);
+    } else {
+      setIsSpeaking(true);
+      Speech.speak(text, {
+        language: 'ru',
+        onDone: () => setIsSpeaking(false),
+        onError: () => setIsSpeaking(false)
+      });
+    }
+  };
+
+  const stopSpeaking = () => {
+    Speech.stop();
+    setIsSpeaking(false);
   };
 
   const sendMessage = async (overrideText?: string) => {
@@ -106,6 +125,9 @@ export function useAICoachViewModel() {
     notifications,
     sendMessage,
     soberDays,
-    getStreakDays
+    getStreakDays,
+    speak,
+    stopSpeaking,
+    isSpeaking
   };
 }

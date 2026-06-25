@@ -5,7 +5,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   Modal,
   Platform,
@@ -22,6 +21,7 @@ import Animated, {
   withTiming,
   runOnJS
 } from 'react-native-reanimated';
+import { FlashList } from "@shopify/flash-list";
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -39,16 +39,13 @@ interface Article {
 
 import { articlesDatabase } from '../../services/articlesDatabase';
 
-// Используем базу данных статей
 const articles: Article[] = articlesDatabase;
 
-// Компоненты
 const MemoizedArticleCard = React.memo(({ article, onPress }: {
   article: Article;
   onPress: () => void;
 }) => {
   const scaleValue = useSharedValue(1);
-  
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scaleValue.value }]
   }));
@@ -97,7 +94,6 @@ const MemoizedFilterChip = React.memo(({ label, selected, onPress, count }: {
   count: number;
 }) => {
   const scaleValue = useSharedValue(1);
-  
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scaleValue.value }]
   }));
@@ -135,19 +131,6 @@ export default function ArticlesPage() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
 
-  const fadeInValue = useSharedValue(0);
-  const slideValue = useSharedValue(30);
-
-  const fadeInAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: fadeInValue.value,
-    transform: [{ translateY: slideValue.value }]
-  }));
-
-  React.useEffect(() => {
-    fadeInValue.value = withTiming(1, { duration: 800 });
-    slideValue.value = withTiming(0, { duration: 800 });
-  }, []);
-
   const categories = useMemo(() => {
     const cats = new Set(articles.map(a => a.category));
     return ['Все', ...Array.from(cats)].sort();
@@ -155,11 +138,9 @@ export default function ArticlesPage() {
 
   const filteredArticles = useMemo(() => {
     let result = articles;
-
     if (selectedCategory !== 'Все') {
       result = result.filter(a => a.category === selectedCategory);
     }
-
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter(a =>
@@ -168,7 +149,6 @@ export default function ArticlesPage() {
         a.tags.some(t => t.toLowerCase().includes(q))
       );
     }
-
     return result;
   }, [selectedCategory, searchQuery]);
 
@@ -180,6 +160,52 @@ export default function ArticlesPage() {
   const handleArticlePress = useCallback((article: Article) => {
     setSelectedArticle(article);
   }, []);
+
+  const renderHeader = () => (
+    <View>
+      {!searchQuery && (
+        <View style={styles.statsContainer}>
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>{articles.length}</Text>
+            <Text style={styles.statLabel}>Статей</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>{categories.length - 1}</Text>
+            <Text style={styles.statLabel}>Категорий</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>5.0</Text>
+            <Text style={styles.statLabel}>Рейтинг</Text>
+          </View>
+        </View>
+      )}
+
+      {!searchQuery && (
+        <View style={styles.filtersSection}>
+          <Text style={styles.filterTitle}>Выберите категорию</Text>
+          <FlashList
+            data={categories}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            renderItem={({ item }) => (
+              <MemoizedFilterChip
+                label={item}
+                selected={selectedCategory === item}
+                onPress={() => setSelectedCategory(item)}
+                count={getCategoryCount(item)}
+              />
+            )}
+            estimatedItemSize={120}
+            contentContainerStyle={styles.filtersContainer}
+          />
+        </View>
+      )}
+
+      <Text style={styles.sectionTitle}>
+        {searchQuery ? `Результаты поиска (${filteredArticles.length})` : `📚 Статьи (${filteredArticles.length})`}
+      </Text>
+    </View>
+  );
 
   return (
     <View style={styles.container}>
@@ -206,77 +232,35 @@ export default function ArticlesPage() {
         </View>
       </LinearGradient>
 
-      <ScrollView style={styles.scrollView}>
-        <Animated.View style={[styles.content, fadeInAnimatedStyle]}>
-          {!searchQuery && (
-            <>
-              <View style={styles.statsContainer}>
-                <View style={styles.statItem}>
-                  <Text style={styles.statNumber}>{articles.length}</Text>
-                  <Text style={styles.statLabel}>Статей</Text>
-                </View>
-                <View style={styles.statItem}>
-                  <Text style={styles.statNumber}>{categories.length - 1}</Text>
-                  <Text style={styles.statLabel}>Категорий</Text>
-                </View>
-                <View style={styles.statItem}>
-                  <Text style={styles.statNumber}>5.0</Text>
-                  <Text style={styles.statLabel}>Рейтинг</Text>
-                </View>
-              </View>
-
-              <View style={styles.filtersSection}>
-                <Text style={styles.filterTitle}>Выберите категорию</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  <View style={styles.filtersContainer}>
-                    {categories.map((category) => (
-                      <MemoizedFilterChip
-                        key={category}
-                        label={category}
-                        selected={selectedCategory === category}
-                        onPress={() => setSelectedCategory(category)}
-                        count={getCategoryCount(category)}
-                      />
-                    ))}
-                  </View>
-                </ScrollView>
-              </View>
-            </>
+      <View style={{ flex: 1 }}>
+        <FlashList
+          data={filteredArticles}
+          renderItem={({ item }) => (
+            <MemoizedArticleCard
+              article={item}
+              onPress={() => handleArticlePress(item)}
+            />
           )}
-
-          <View style={styles.articlesContainer}>
-            <Text style={styles.sectionTitle}>
-              {searchQuery ? `Результаты поиска (${filteredArticles.length})` : `📚 Статьи (${filteredArticles.length})`}
-            </Text>
-
-            {filteredArticles.length > 0 ? (
-              <View style={styles.articlesList}>
-                {filteredArticles.map((article) => (
-                  <MemoizedArticleCard
-                    key={article.id}
-                    article={article}
-                    onPress={() => handleArticlePress(article)}
-                  />
-                ))}
-              </View>
-            ) : (
-              <View style={styles.emptyContainer}>
-                <MaterialIcons name="search-off" size={64} color="#CCC" />
-                <Text style={styles.emptyText}>Ничего не найдено</Text>
-                <TouchableOpacity
-                  style={styles.resetButton}
-                  onPress={() => {
-                    setSearchQuery('');
-                    setSelectedCategory('Все');
-                  }}
-                >
-                  <Text style={styles.resetButtonText}>Сбросить фильтры</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-        </Animated.View>
-      </ScrollView>
+          estimatedItemSize={200}
+          ListHeaderComponent={renderHeader}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <MaterialIcons name="search-off" size={64} color="#CCC" />
+              <Text style={styles.emptyText}>Ничего не найдено</Text>
+              <TouchableOpacity
+                style={styles.resetButton}
+                onPress={() => {
+                  setSearchQuery('');
+                  setSelectedCategory('Все');
+                }}
+              >
+                <Text style={styles.resetButtonText}>Сбросить фильтры</Text>
+              </TouchableOpacity>
+            </View>
+          }
+          contentContainerStyle={styles.listContent}
+        />
+      </View>
 
       <Modal
         visible={selectedArticle !== null}
@@ -300,7 +284,7 @@ export default function ArticlesPage() {
               </View>
             </View>
 
-            <ScrollView style={styles.modalContent}>
+            <Animated.ScrollView style={styles.modalContent}>
               <View style={[styles.iconBadge, styles.largeIconBadge, { backgroundColor: selectedArticle.color }]}>
                 <MaterialIcons name={selectedArticle.icon as any} size={40} color="white" />
               </View>
@@ -320,18 +304,10 @@ export default function ArticlesPage() {
               <View style={styles.articleBody}>
                 {selectedArticle.content.split('\n').map((paragraph, index) => {
                   if (!paragraph.trim()) return null;
-                  
                   const isBold = paragraph.startsWith('**') && paragraph.endsWith('**');
                   const cleanText = isBold ? paragraph.slice(2, -2) : paragraph;
-                  
                   return (
-                    <Text
-                      key={index}
-                      style={[
-                        styles.articleParagraph,
-                        isBold && styles.boldParagraph
-                      ]}
-                    >
+                    <Text key={index} style={[styles.articleParagraph, isBold && styles.boldParagraph]}>
                       {cleanText}
                     </Text>
                   );
@@ -348,7 +324,7 @@ export default function ArticlesPage() {
                   <Text style={styles.actionButtonText}>Поделиться</Text>
                 </TouchableOpacity>
               </View>
-            </ScrollView>
+            </Animated.ScrollView>
           </View>
         )}
       </Modal>
@@ -357,28 +333,10 @@ export default function ArticlesPage() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8F9FA'
-  },
-  header: {
-    padding: 20,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    paddingBottom: 25,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 15
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: 'white',
-    marginLeft: 10
-  },
+  container: { flex: 1, backgroundColor: '#F8F9FA' },
+  header: { padding: 20, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, paddingBottom: 25 },
+  headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 15 },
+  headerTitle: { fontSize: 24, fontWeight: 'bold', color: 'white', marginLeft: 10 },
   searchContainer: {
     flexDirection: 'row',
     backgroundColor: 'white',
@@ -392,263 +350,71 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-  searchIcon: {
-    marginRight: 8
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: '#333',
-    paddingVertical: 8
-  },
-  scrollView: {
-    flex: 1
-  },
-  content: {
-    padding: 20
-  },
+  searchIcon: { marginRight: 8 },
+  searchInput: { flex: 1, fontSize: 16, color: '#333', paddingVertical: 8 },
+  listContent: { padding: 20 },
   statsContainer: {
     flexDirection: 'row',
     backgroundColor: 'white',
     borderRadius: 15,
     padding: 15,
     marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3
+    elevation: 3,
   },
-  statItem: {
-    flex: 1,
-    alignItems: 'center'
-  },
-  statNumber: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#2E7D4A'
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 4
-  },
-  filtersSection: {
-    marginBottom: 20
-  },
-  filterTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 12
-  },
-  filtersContainer: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingRight: 20
-  },
+  statItem: { flex: 1, alignItems: 'center' },
+  statNumber: { fontSize: 22, fontWeight: 'bold', color: '#2E7D4A' },
+  statLabel: { fontSize: 12, color: '#666', marginTop: 4 },
+  filtersSection: { marginBottom: 20 },
+  filterTitle: { fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 12 },
+  filtersContainer: { gap: 8, paddingRight: 20 },
   filterChip: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     backgroundColor: '#E0E0E0',
     borderWidth: 2,
-    borderColor: 'transparent'
+    borderColor: 'transparent',
+    marginRight: 8
   },
-  selectedChip: {
-    backgroundColor: '#2E7D4A',
-    borderColor: '#1B4D2E'
-  },
-  filterChipText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#666'
-  },
-  selectedChipText: {
-    color: 'white'
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2E7D4A',
-    marginBottom: 16
-  },
-  articlesContainer: {
-    marginBottom: 20
-  },
-  articlesList: {
-    gap: 12
-  },
+  selectedChip: { backgroundColor: '#2E7D4A', borderColor: '#1B4D2E' },
+  filterChipText: { fontSize: 13, fontWeight: '600', color: '#666' },
+  selectedChipText: { color: 'white' },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#2E7D4A', marginBottom: 16 },
   articleCard: {
     backgroundColor: 'white',
     borderRadius: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3
+    marginBottom: 12,
+    elevation: 3,
   },
-  articleContent: {
-    padding: 16
-  },
-  articleHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12
-  },
-  iconBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  articleMeta: {
-    marginLeft: 12,
-    flex: 1
-  },
-  categoryText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#666',
-    marginBottom: 2
-  },
-  readTimeText: {
-    fontSize: 10,
-    color: '#999'
-  },
-  articleTitle: {
-    fontSize: 17,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 6
-  },
-  articlePreview: {
-    fontSize: 13,
-    color: '#666',
-    lineHeight: 18,
-    marginBottom: 10
-  },
-  tagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6
-  },
-  tag: {
-    backgroundColor: '#F0F0F0',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8
-  },
-  tagText: {
-    fontSize: 10,
-    color: '#666',
-    fontWeight: '500'
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 40,
-    marginTop: 20
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#999',
-    marginTop: 15,
-    marginBottom: 20
-  },
-  resetButton: {
-    backgroundColor: '#2E7D4A',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 12
-  },
-  resetButtonText: {
-    color: 'white',
-    fontWeight: 'bold'
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: 'white'
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0'
-  },
-  closeButton: {
-    padding: 8
-  },
-  modalHeaderInfo: {
-    flex: 1,
-    marginLeft: 12
-  },
-  modalCategory: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#666',
-    marginBottom: 2
-  },
-  modalReadTime: {
-    fontSize: 11,
-    color: '#999'
-  },
-  modalContent: {
-    flex: 1,
-    padding: 20
-  },
-  largeIconBadge: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    alignSelf: 'center',
-    marginBottom: 20
-  },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 16,
-    textAlign: 'center'
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#E0E0E0',
-    marginVertical: 15
-  },
-  articleBody: {
-    marginBottom: 30
-  },
-  articleParagraph: {
-    fontSize: 16,
-    color: '#333',
-    lineHeight: 24,
-    marginBottom: 14
-  },
-  boldParagraph: {
-    fontWeight: 'bold',
-    fontSize: 17,
-    color: '#2E7D4A',
-    marginTop: 8
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 40
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: '#E8F5E8',
-    gap: 6
-  },
-  actionButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#2E7D4A'
-  }
+  articleContent: { padding: 16 },
+  articleHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  iconBadge: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
+  articleMeta: { marginLeft: 12, flex: 1 },
+  categoryText: { fontSize: 11, fontWeight: '600', color: '#666', marginBottom: 2 },
+  readTimeText: { fontSize: 10, color: '#999' },
+  articleTitle: { fontSize: 17, fontWeight: 'bold', color: '#333', marginBottom: 6 },
+  articlePreview: { fontSize: 13, color: '#666', lineHeight: 18, marginBottom: 10 },
+  tagsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  tag: { backgroundColor: '#F0F0F0', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  tagText: { fontSize: 10, color: '#666', fontWeight: '500' },
+  emptyContainer: { alignItems: 'center', justifyContent: 'center', padding: 40, marginTop: 20 },
+  emptyText: { fontSize: 16, color: '#999', marginTop: 15, marginBottom: 20 },
+  resetButton: { backgroundColor: '#2E7D4A', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12 },
+  resetButtonText: { color: 'white', fontWeight: 'bold' },
+  modalContainer: { flex: 1, backgroundColor: 'white' },
+  modalHeader: { flexDirection: 'row', alignItems: 'center', padding: 15, borderBottomWidth: 1, borderBottomColor: '#E0E0E0' },
+  closeButton: { padding: 8 },
+  modalHeaderInfo: { flex: 1, marginLeft: 12 },
+  modalCategory: { fontSize: 13, fontWeight: '600', color: '#666', marginBottom: 2 },
+  modalReadTime: { fontSize: 11, color: '#999' },
+  modalContent: { flex: 1, padding: 20 },
+  largeIconBadge: { width: 70, height: 70, borderRadius: 35, alignSelf: 'center', marginBottom: 20 },
+  modalTitle: { fontSize: 22, fontWeight: 'bold', color: '#333', marginBottom: 16, textAlign: 'center' },
+  divider: { height: 1, backgroundColor: '#E0E0E0', marginVertical: 15 },
+  articleBody: { marginBottom: 30 },
+  articleParagraph: { fontSize: 16, color: '#333', lineHeight: 24, marginBottom: 14 },
+  boldParagraph: { fontWeight: 'bold', fontSize: 17, color: '#2E7D4A', marginTop: 8 },
+  actionButtons: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 40 },
+  actionButton: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 12, backgroundColor: '#E8F5E8', gap: 6 },
+  actionButtonText: { fontSize: 13, fontWeight: '600', color: '#2E7D4A' }
 });
