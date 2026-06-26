@@ -7,6 +7,8 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CommunityService, SuccessStory, SupportPost } from '../../services/communityService';
+import LottieView from 'lottie-react-native';
+import Animated, { FadeInUp, FadeInRight, useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -24,6 +26,9 @@ const SuccessStoryCard = ({ story }: { story: SuccessStory }) => (
 );
 
 const SupportPostItem = ({ post }: { post: SupportPost }) => {
+  const [liked, setLiked] = React.useState(false);
+  const lottieRef = React.useRef<LottieView>(null);
+
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'motivation': return 'auto-awesome';
@@ -33,27 +38,74 @@ const SupportPostItem = ({ post }: { post: SupportPost }) => {
     }
   };
 
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case 'motivation': return '#FFC107';
+      case 'question': return '#2196F3';
+      case 'milestone': return '#E91E63';
+      default: return '#2E7D4A';
+    }
+  };
+
+  const handleLike = () => {
+    if (!liked) {
+      lottieRef.current?.play();
+      setLiked(true);
+    } else {
+      setLiked(false);
+    }
+  };
+
   return (
-    <View style={styles.postCard}>
+    <Animated.View entering={FadeInUp.delay(100)} style={styles.postCard}>
       <View style={styles.postHeader}>
-        <View style={styles.categoryIconContainer}>
-          <MaterialIcons name={getCategoryIcon(post.category)} size={20} color="#2E7D4A" />
+        <View style={[styles.categoryIconContainer, { backgroundColor: getCategoryColor(post.category) + '20' }]}>
+          <MaterialIcons name={getCategoryIcon(post.category)} size={20} color={getCategoryColor(post.category)} />
         </View>
-        <Text style={styles.authorName}>{post.author}</Text>
-        <Text style={styles.timeAgo}>{post.timeAgo}</Text>
+        <View style={styles.authorInfo}>
+          <Text style={styles.authorName}>{post.author}</Text>
+          <Text style={styles.timeAgo}>{post.timeAgo}</Text>
+        </View>
+        <View style={[styles.categoryBadge, { backgroundColor: getCategoryColor(post.category) }]}>
+            <Text style={styles.categoryBadgeText}>{post.category}</Text>
+        </View>
       </View>
+
       <Text style={styles.postContent}>{post.content}</Text>
+
       <View style={styles.postFooter}>
-        <TouchableOpacity style={styles.actionButton}>
-          <MaterialIcons name="favorite-border" size={18} color="#666" />
-          <Text style={styles.actionText}>{post.likes}</Text>
+        <TouchableOpacity style={styles.actionButton} onPress={handleLike}>
+          <View style={styles.iconContainer}>
+            <MaterialIcons
+              name={liked ? "favorite" : "favorite-border"}
+              size={20}
+              color={liked ? "#E91E63" : "#666"}
+            />
+            {liked && (
+              <LottieView
+                ref={lottieRef}
+                source={require('../../assets/lottie/celebration.json')}
+                style={styles.likeAnimation}
+                loop={false}
+                autoPlay={false}
+              />
+            )}
+          </View>
+          <Text style={[styles.actionText, liked && { color: '#E91E63' }]}>
+            {liked ? post.likes + 1 : post.likes}
+          </Text>
         </TouchableOpacity>
+
         <TouchableOpacity style={styles.actionButton}>
-          <MaterialIcons name="chat-bubble-outline" size={18} color="#666" />
+          <MaterialIcons name="chat-bubble-outline" size={20} color="#666" />
           <Text style={styles.actionText}>{post.comments}</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity style={[styles.actionButton, { marginLeft: 'auto' }]}>
+          <MaterialIcons name="share" size={20} color="#666" />
+        </TouchableOpacity>
       </View>
-    </View>
+    </Animated.View>
   );
 };
 
@@ -220,15 +272,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center'
   },
+  authorInfo: {
+    flex: 1
+  },
   authorName: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#333',
-    flex: 1
+    color: '#333'
   },
   timeAgo: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#999'
+  },
+  categoryBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  categoryBadgeText: {
+    fontSize: 10,
+    color: 'white',
+    fontWeight: 'bold',
+    textTransform: 'uppercase'
   },
   postContent: {
     fontSize: 15,
@@ -251,6 +316,20 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: 14,
     color: '#666'
+  },
+  iconContainer: {
+    position: 'relative',
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  likeAnimation: {
+    position: 'absolute',
+    width: 80,
+    height: 80,
+    top: -28,
+    left: -28,
   },
   fab: {
     position: 'absolute',

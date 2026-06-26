@@ -1,6 +1,6 @@
 // Образовательные статьи о борьбе с алкогольной зависимостью
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useLocalSearchParams } from 'expo-router';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -127,9 +128,19 @@ const MemoizedFilterChip = React.memo(({ label, selected, onPress, count }: {
 
 export default function ArticlesPage() {
   const insets = useSafeAreaInsets();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const [selectedCategory, setSelectedCategory] = useState<string>('Все');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
+
+  useEffect(() => {
+    if (id) {
+      const article = articles.find(a => a.id === id);
+      if (article) {
+        setSelectedArticle(article);
+      }
+    }
+  }, [id]);
 
   const categories = useMemo(() => {
     const cats = new Set(articles.map(a => a.category));

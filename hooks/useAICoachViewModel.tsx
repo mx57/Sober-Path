@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { AICoachService, RecommendedArticle } from '../services/AICoachService';
+import { useState, useEffect, useCallback } from 'react';
+import { AICoachService, RecommendedArticle, AICoachChallenge } from '../services/AICoachService';
 import { useRecovery } from './useRecovery';
 import NotificationService from '../services/notificationService';
 import * as Speech from 'expo-speech';
@@ -22,6 +22,7 @@ export function useAICoachViewModel() {
   const [activeTab, setActiveTab] = useState<'chat' | 'insights' | 'notifications'>('chat');
   const [insights, setInsights] = useState<any>(null);
   const [triggers, setTriggers] = useState<any[]>([]);
+  const [challenges, setChallenges] = useState<AICoachChallenge[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [isSpeaking, setIsSpeaking] = useState(false);
 
@@ -44,7 +45,15 @@ export function useAICoachViewModel() {
     setInsights(aiInsights);
     setTriggers(AICoachService.detectTriggerPatterns(userProfile?.id || 'default'));
     setNotifications(NotificationService.getNotifications());
+    setChallenges(AICoachService.getChallenges(userProfile?.id || 'default'));
   };
+
+  const completeChallenge = useCallback((challengeId: string) => {
+    const result = AICoachService.completeChallenge(userProfile?.id || 'default', challengeId);
+    if (result.success) {
+      setChallenges(result.data);
+    }
+  }, [userProfile?.id]);
 
   const speak = (text: string) => {
     if (isSpeaking) {
@@ -123,6 +132,8 @@ export function useAICoachViewModel() {
     insights,
     triggers,
     notifications,
+    challenges,
+    completeChallenge,
     sendMessage,
     soberDays,
     getStreakDays,
