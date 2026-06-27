@@ -10,8 +10,6 @@ jobs:
   build-release-apks:
     runs-on: ubuntu-latest
     env:
-      # When not set, setup-java will define JAVA_HOME for the job.
-      # Avoid forcing Java 11 here so setup-java can install Java 17.
       NODE_OPTIONS: --max_old_space_size=4096
     steps:
       - name: Checkout
@@ -68,14 +66,12 @@ jobs:
           echo "Using sdkmanager: $SDKMANAGER"
           "$SDKMANAGER" --version || true
 
-          # Install required packages explicitly
           PACKAGES=("platform-tools" "platforms;android-33" "build-tools;33.0.2")
           for p in "${PACKAGES[@]}"; do
             echo "Installing package: $p"
             $SDKMANAGER --install "$p"
           done
 
-          # Accept licenses (try normally, then with SKIP if needed)
           if $SDKMANAGER --licenses --sdk_root=/usr/local/lib/android/sdk; then
             echo "SDK licenses accepted"
           else
@@ -84,7 +80,32 @@ jobs:
           fi
 
       - name: Prebuild Android (Expo)
-        run: npx expo prebuild -p android --no-install --no-interactive
+        # Try multiple variants to support different expo versions; auto-accept prompts
+        run: |
+          set -euo pipefail
+          echo "Expo version:"
+          npx expo --version || true
+          cmds=(
+            "npx expo prebuild -p android --no-install --non-interactive"
+            "npx expo prebuild -p android --no-install --no-interactive"
+            "npx expo prebuild -p android --no-install --yes"
+            "yes | npx expo prebuild -p android --no-install"
+          )
+          success=0
+          for c in "${cmds[@]}"; do
+            echo "Trying: $c"
+            if bash -lc "$c"; then
+              echo "prebuild succeeded with: $c"
+              success=1
+              break
+            else
+              echo "Failed: $c" >&2
+            fi
+          done
+          if [ $success -ne 1 ]; then
+            echo "All prebuild attempts failed" >&2
+            exit 1
+          fi
 
       - name: Ensure android/gradlew is executable
         run: |
@@ -97,7 +118,6 @@ jobs:
             if grep -q "splits {" "$file"; then
               echo "splits already present"
             else
-              # insert splits block before first occurrence of "buildTypes"
               awk 'BEGIN{p=1} /buildTypes\s*\{/ && p==1{print "    splits {\n        abi {\n            enable true\n            reset()\n            include '"'"'armeabi-v7a'"'"', '"'"'arm64-v8a'"'"'\n            universalApk false\n        }\n    }\n"; p=0} {print}' "$file" > "$file.tmp" && mv "$file.tmp" "$file"
             fi
           else
