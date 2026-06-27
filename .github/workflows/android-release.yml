@@ -1,0 +1,108 @@
+name: Android Release APKs
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch: {}
+
+jobs:
+  build-release-apks:
+    runs-on: ubuntu-latest
+    env:
+      JAVA_HOME: /usr/lib/jvm/java-11-openjdk-amd64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install JDK 11
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '11'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          api-level: 33
+          build-tools: 33.0.2
+
+      - name: Accept Android SDK licenses
+        run: yes | sdkmanager --licenses
+
+      - name: Prebuild Android (Expo)
+        run: npx expo prebuild -p android --no-install --no-interactive
+
+      - name: Ensure android/gradlew is executable
+        run: |
+          if [ -f android/gradlew ]; then chmod +x android/gradlew; fi
+
+      - name: Add ABI splits (armeabi-v7a, arm64-v8a)
+        run: |
+          file="android/app/build.gradle"
+          if grep -q "splits {" "$file"; then
+            echo "splits already present"
+          else
+            # insert splits block before first occurrence of "buildTypes"
+            awk 'BEGIN{p=1} /buildTypes\s*\{/ && p==1{print "    splits {\n        abi {\n            enable true\n            reset()\n            include '"'"'armeabi-v7a'"'"', '"'"'arm64-v8a'"'"'\n            universalApk false\n        }\n    }\n"; p=0} {print}' "$file" > "$file.tmp" && mv "$file.tmp" "$file"
+          fi
+
+      - name: Generate test keystore
+        run: |
+          mkdir -p android/app
+          keytool -genkeypair -v -storetype JKS -keystore android/app/release.keystore -alias release -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=example, OU=example, O=example, L=example, S=example, C=US"
+
+      - name: Build release APK(s)
+        working-directory: android
+        run: ./gradlew clean assembleRelease --no-daemon --no-parallel
+
+      - name: Find APKs
+        run: |
+          mkdir -p $GITHUB_WORKSPACE/artifacts
+          find android/app/build/outputs -type f -name "*.apk" -print -exec cp {} $GITHUB_WORKSPACE/artifacts/ \;
+          ls -la $GITHUB_WORKSPACE/artifacts || true
+
+      - name: Sign APKs with generated keystore
+        env:
+          KEYSTORE_PATH: ${{ github.workspace }}/android/app/release.keystore
+          KEYSTORE_PASS: android
+          KEY_ALIAS: release
+          KEY_PASS: android
+          ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
+        run: |
+          set -e
+          build_tools_dir=$(ls -d "$ANDROID_HOME/build-tools"/*/ | sort -V | tail -n1)
+          apksigner="$build_tools_dir/apksigner"
+          if [ ! -x "$apksigner" ]; then echo "apksigner not found at $apksigner"; exit 1; fi
+          for apk in $GITHUB_WORKSPACE/artifacts/*.apk; do
+            base=$(basename "$apk")
+            unsigned="$apk"
+            signed="$GITHUB_WORKSPACE/artifacts/signed-$base"
+            echo "Signing $unsigned -> $signed"
+            "$apksigner" sign --ks "$KEYSTORE_PATH" --ks-pass pass:$KEYSTORE_PASS --key-pass pass:$KEY_PASS --ks-key-alias $KEY_ALIAS --out "$signed" "$unsigned" || { echo "Signing failed for $apk"; exit 1; }
+          done
+          ls -la $GITHUB_WORKSPACE/artifacts
+
+      - name: Upload APK artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-apks
+          path: artifacts/
