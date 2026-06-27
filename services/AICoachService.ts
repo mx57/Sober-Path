@@ -250,6 +250,7 @@ export class AICoachService {
       averageMood: memory.emotionalPattern.averageMood,
       moodTrend: memory.emotionalPattern.moodTrend,
       commonTopics: memory.emotionalPattern.commonEmotions,
+      achievements: memory.userPreferences.goalsSet,
       progressSummary: memory.emotionalPattern.moodTrend === 'improving'
         ? 'Ваше состояние улучшается.'
         : 'Мы продолжаем работу.'
