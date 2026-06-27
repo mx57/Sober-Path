@@ -7,8 +7,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CommunityService, SuccessStory, SupportPost } from '../../services/communityService';
-import LottieView from 'lottie-react-native';
-import Animated, { FadeInUp, FadeInRight, useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import Animated, { FadeInUp, useSharedValue, useAnimatedStyle, withSpring, withSequence, withTiming } from 'react-native-reanimated';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -27,7 +26,8 @@ const SuccessStoryCard = ({ story }: { story: SuccessStory }) => (
 
 const SupportPostItem = ({ post }: { post: SupportPost }) => {
   const [liked, setLiked] = React.useState(false);
-  const lottieRef = React.useRef<LottieView>(null);
+  const heartScale = useSharedValue(1);
+  const heartAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: heartScale.value }] }));
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
@@ -49,7 +49,10 @@ const SupportPostItem = ({ post }: { post: SupportPost }) => {
 
   const handleLike = () => {
     if (!liked) {
-      lottieRef.current?.play();
+      heartScale.value = withSequence(
+        withSpring(1.5),
+        withTiming(1, { duration: 200 })
+      );
       setLiked(true);
     } else {
       setLiked(false);
@@ -75,22 +78,13 @@ const SupportPostItem = ({ post }: { post: SupportPost }) => {
 
       <View style={styles.postFooter}>
         <TouchableOpacity style={styles.actionButton} onPress={handleLike}>
-          <View style={styles.iconContainer}>
+          <Animated.View style={[styles.iconContainer, heartAnimStyle]}>
             <MaterialIcons
               name={liked ? "favorite" : "favorite-border"}
               size={20}
               color={liked ? "#E91E63" : "#666"}
             />
-            {liked && (
-              <LottieView
-                ref={lottieRef}
-                source={require('../../assets/lottie/celebration.json')}
-                style={styles.likeAnimation}
-                loop={false}
-                autoPlay={false}
-              />
-            )}
-          </View>
+          </Animated.View>
           <Text style={[styles.actionText, liked && { color: '#E91E63' }]}>
             {liked ? post.likes + 1 : post.likes}
           </Text>
@@ -318,18 +312,10 @@ const styles = StyleSheet.create({
     color: '#666'
   },
   iconContainer: {
-    position: 'relative',
     width: 24,
     height: 24,
     alignItems: 'center',
     justifyContent: 'center'
-  },
-  likeAnimation: {
-    position: 'absolute',
-    width: 80,
-    height: 80,
-    top: -28,
-    left: -28,
   },
   fab: {
     position: 'absolute',
