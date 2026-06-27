@@ -44,6 +44,22 @@ export class CommunityService {
         story: 'Трезвость — это не ограничение, это свобода. Свобода выбора, как провести свой вечер и свою жизнь.',
         avatar: 'https://i.pravatar.cc/150?u=dmitry',
         date: '2024-03-15'
+      },
+      {
+        id: '4',
+        userName: 'Сергей',
+        daysSober: 730,
+        story: 'Два года назад я не мог представить себе и дня без выпивки. Сегодня я пробежал свой первый марафон. Трезвость открыла во мне суперсилы.',
+        avatar: 'https://i.pravatar.cc/150?u=sergey',
+        date: '2024-03-22'
+      },
+      {
+        id: '5',
+        userName: 'Ольга',
+        daysSober: 30,
+        story: 'Первый месяц был самым сложным, но поддержка в этом приложении помогла мне не сорваться в критические моменты. Иду дальше!',
+        avatar: 'https://i.pravatar.cc/150?u=olga',
+        date: '2024-03-24'
       }
     ];
   }
@@ -76,6 +92,33 @@ export class CommunityService {
         comments: 2,
         timeAgo: '8ч назад',
         category: 'motivation'
+      },
+      {
+        id: 'p4',
+        author: 'Виктор',
+        content: 'Заметил, что тяга стала намного меньше после того, как я начал заниматься йогой по утрам. Всем советую!',
+        likes: 31,
+        comments: 4,
+        timeAgo: '10ч назад',
+        category: 'support'
+      },
+      {
+        id: 'p5',
+        author: 'Светлана',
+        content: 'У кого-нибудь была бессонница на второй неделе? Как справлялись?',
+        likes: 8,
+        comments: 24,
+        timeAgo: '12ч назад',
+        category: 'question'
+      },
+      {
+        id: 'p6',
+        author: 'Максим',
+        content: 'Сегодня ровно 100 дней! Чувствую себя другим человеком. Энергия зашкаливает!',
+        likes: 89,
+        comments: 12,
+        timeAgo: '1д назад',
+        category: 'milestone'
       }
     ];
   }

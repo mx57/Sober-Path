@@ -74,8 +74,20 @@ export interface EnhancedAIResponse {
   recommendedArticles?: RecommendedArticle[];
 }
 
+export interface AICoachChallenge {
+  id: string;
+  title: string;
+  description: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  type: 'mindfulness' | 'social' | 'physical' | 'educational';
+  completed: boolean;
+  rewardPoints: number;
+  icon: string;
+}
+
 export class AICoachService {
   private static memory: Map<string, ConversationMemory> = new Map();
+  private static userChallenges: Map<string, AICoachChallenge[]> = new Map();
 
   static initializeUserMemory(userId: string): void {
     if (!this.memory.has(userId)) {
@@ -246,6 +258,73 @@ export class AICoachService {
     if (soberDays === 0) return "Начало пути - самый сложный и важный шаг. Вы уже здесь, и это победа!";
     if (soberDays % 7 === 0) return `Вы трезвы уже ${soberDays / 7} недель! Это потрясающий результат.`;
     return `Поздравляю с ${soberDays} днями трезвости! Каждый день делает вас сильнее.`;
+  }
+
+  static generateDailyChallenges(userId: string, soberDays: number): AICoachChallenge[] {
+    const challenges: AICoachChallenge[] = [
+      {
+        id: 'ch1',
+        title: 'Минута тишины',
+        description: 'Проведите 5 минут в полной тишине, наблюдая за дыханием.',
+        difficulty: 'easy',
+        type: 'mindfulness',
+        completed: false,
+        rewardPoints: 10,
+        icon: 'self-improvement'
+      },
+      {
+        id: 'ch2',
+        title: 'Трезвый диалог',
+        description: 'Поделитесь своими чувствами с близким человеком или в сообществе.',
+        difficulty: 'medium',
+        type: 'social',
+        completed: false,
+        rewardPoints: 20,
+        icon: 'chat'
+      },
+      {
+        id: 'ch3',
+        title: 'Новое знание',
+        description: 'Прочитайте одну статью из базы знаний сегодня.',
+        difficulty: 'easy',
+        type: 'educational',
+        completed: false,
+        rewardPoints: 15,
+        icon: 'book'
+      }
+    ];
+
+    if (soberDays > 30) {
+        challenges.push({
+            id: 'ch4',
+            title: 'Наставничество',
+            description: 'Оставьте поддерживающий комментарий новичку в сообществе.',
+            difficulty: 'hard',
+            type: 'social',
+            completed: false,
+            rewardPoints: 50,
+            icon: 'stars'
+        });
+    }
+
+    this.userChallenges.set(userId, challenges);
+    return challenges;
+  }
+
+  static getChallenges(userId: string): AICoachChallenge[] {
+    if (!this.userChallenges.has(userId)) {
+        return this.generateDailyChallenges(userId, 0);
+    }
+    return this.userChallenges.get(userId)!;
+  }
+
+  static completeChallenge(userId: string, challengeId: string): Result<AICoachChallenge[]> {
+    const challenges = this.getChallenges(userId);
+    const updated = challenges.map(ch =>
+        ch.id === challengeId ? { ...ch, completed: true } : ch
+    );
+    this.userChallenges.set(userId, updated);
+    return success(updated);
   }
 
   private static extractTopics(message: string): string[] {

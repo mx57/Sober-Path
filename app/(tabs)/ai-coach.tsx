@@ -9,12 +9,44 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAICoachViewModel, ChatMessage } from '../../hooks/useAICoachViewModel';
+import { AICoachChallenge } from '../../services/AICoachService';
 import { useRouter } from 'expo-router';
 import Animated, {
   FadeInUp,
+  FadeInRight,
 } from 'react-native-reanimated';
 
 const { width: screenWidth } = Dimensions.get('window');
+
+const ChallengeCard = React.memo(({ challenge, onComplete }: {
+  challenge: AICoachChallenge,
+  onComplete: (id: string) => void
+}) => (
+  <Animated.View
+    entering={FadeInRight.delay(200)}
+    style={[styles.challengeCard, challenge.completed && styles.challengeCompleted]}
+  >
+    <View style={styles.challengeIconContainer}>
+      <MaterialIcons name={challenge.icon} size={24} color={challenge.completed ? "#FFF" : "#2E7D4A"} />
+    </View>
+    <View style={styles.challengeInfo}>
+      <Text style={[styles.challengeTitle, challenge.completed && styles.challengeCompletedText]}>
+        {challenge.title}
+      </Text>
+      <Text style={[styles.challengePoints, challenge.completed && styles.challengeCompletedText]}>
+        +{challenge.rewardPoints} XP
+      </Text>
+    </View>
+    {!challenge.completed && (
+      <TouchableOpacity
+        style={styles.completeButton}
+        onPress={() => onComplete(challenge.id)}
+      >
+        <MaterialIcons name="check" size={20} color="white" />
+      </TouchableOpacity>
+    )}
+  </Animated.View>
+));
 
 // Refactored Message component
 const MessageBubble = React.memo(({ message, onArticlePress, onSpeak, isSpeaking }: {
@@ -110,6 +142,25 @@ export default function EnhancedAICoach() {
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={{ flex: 1 }}
           >
+            {vm.challenges && vm.challenges.length > 0 && (
+              <View style={styles.challengesSection}>
+                <Text style={styles.sectionSmallTitle}>Ежедневные испытания</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.challengesScroll}
+                >
+                  {vm.challenges.map(ch => (
+                    <ChallengeCard
+                      key={ch.id}
+                      challenge={ch}
+                      onComplete={vm.completeChallenge}
+                    />
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
             <ScrollView
               ref={scrollViewRef}
               style={styles.messagesContainer}
@@ -119,7 +170,7 @@ export default function EnhancedAICoach() {
                 <MessageBubble
                   key={m.id}
                   message={m}
-                  onArticlePress={(id) => router.push('/articles')}
+                  onArticlePress={(id) => router.push({ pathname: '/articles', params: { id } })}
                   onSpeak={vm.speak}
                   isSpeaking={vm.isSpeaking}
                 />
@@ -316,6 +367,40 @@ const styles = StyleSheet.create({
   statValue: { fontSize: 20, fontWeight: 'bold', color: '#2E7D4A' },
   statLabel: { fontSize: 12, color: '#666' },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 15 },
+  sectionSmallTitle: { fontSize: 14, fontWeight: 'bold', color: '#2E7D4A', marginHorizontal: 15, marginTop: 10, marginBottom: 5 },
+  challengesSection: { backgroundColor: '#E8F5E8', paddingVertical: 10 },
+  challengesScroll: { paddingHorizontal: 10, gap: 10 },
+  challengeCard: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    minWidth: 180,
+    elevation: 2,
+    gap: 10
+  },
+  challengeCompleted: { backgroundColor: '#2E7D4A' },
+  challengeIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F0F0F0',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  challengeInfo: { flex: 1 },
+  challengeTitle: { fontSize: 14, fontWeight: 'bold', color: '#333' },
+  challengePoints: { fontSize: 12, color: '#2E7D4A', fontWeight: '600' },
+  challengeCompletedText: { color: 'white' },
+  completeButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#2E7D4A',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
   triggerCard: {
     backgroundColor: 'white',
     borderRadius: 16,
