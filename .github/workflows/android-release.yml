@@ -30,8 +30,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install dependencies (allow legacy peer deps to avoid conflicts)
+        run: npm ci --legacy-peer-deps
 
       - name: Install JDK 11
         uses: actions/setup-java@v4
