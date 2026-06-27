@@ -233,6 +233,19 @@ export default function EnhancedAICoach() {
                 <View style={styles.insightCard}>
                   <Text style={styles.cardTitle}>Прогресс</Text>
                   <Text style={styles.statusText}>{vm.insights.progressSummary}</Text>
+
+                  {vm.insights.achievements && vm.insights.achievements.length > 0 && (
+                    <View style={styles.achievementsMemory}>
+                      <Text style={styles.achievementsMemoryTitle}>Зафиксированные успехи:</Text>
+                      {vm.insights.achievements.map((ach: string, idx: number) => (
+                        <View key={idx} style={styles.achievementMemoryItem}>
+                          <MaterialIcons name="stars" size={16} color="#FFC107" />
+                          <Text style={styles.achievementMemoryText}>{ach.replace('Упоминание прогресса: ', '')}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
                   <View style={styles.statsRow}>
                     <View style={styles.statItem}>
                       <Text style={styles.statValue}>{vm.insights.conversationCount}</Text>
@@ -435,6 +448,28 @@ const styles = StyleSheet.create({
   countermeasuresContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   cmBadge: { backgroundColor: '#F0F0F0', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
   cmText: { fontSize: 12, color: '#444' },
+  achievementsMemory: {
+    backgroundColor: '#FFFDE7',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 15,
+  },
+  achievementsMemoryTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#F57F17',
+    marginBottom: 8,
+  },
+  achievementMemoryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  achievementMemoryText: {
+    fontSize: 13,
+    color: '#5D4037',
+  },
   emptyText: { textAlign: 'center', color: '#999', marginTop: 20, fontStyle: 'italic' },
   startersContainer: {
     padding: 15,
