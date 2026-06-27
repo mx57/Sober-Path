@@ -14,6 +14,9 @@ interface RecoveryContextType {
   getTotalSoberDays: () => number;
   getDayStatus: (date: string) => 'sober' | 'relapse' | 'no-entry';
   getCalendarMarks: () => Record<string, any>;
+  favoriteArticleIds: string[];
+  toggleFavoriteArticle: (articleId: string) => Promise<void>;
+  isArticleFavorite: (articleId: string) => boolean;
   loading: boolean;
   error: string | null;
 }
@@ -37,6 +40,7 @@ const validateUserProfile = (profile: any): boolean => {
 export function RecoveryProvider({ children }: { children: ReactNode }) {
   const [progress, setProgress] = useState<ProgressEntry[]>([]);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [favoriteArticleIds, setFavoriteArticleIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,10 +53,15 @@ export function RecoveryProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       setError(null);
 
-      const [progressData, profileData] = await Promise.all([
+      const [progressData, profileData, favoritesData] = await Promise.all([
         AsyncStorage.getItem('recovery_progress'),
-        AsyncStorage.getItem('user_profile')
+        AsyncStorage.getItem('user_profile'),
+        AsyncStorage.getItem('favorite_articles')
       ]);
+
+      if (favoritesData) {
+        setFavoriteArticleIds(JSON.parse(favoritesData));
+      }
 
       if (progressData) {
         try {
@@ -278,6 +287,23 @@ export function RecoveryProvider({ children }: { children: ReactNode }) {
     return marks;
   }, [progress]);
 
+  const toggleFavoriteArticle = useCallback(async (articleId: string) => {
+    try {
+      const updatedFavorites = favoriteArticleIds.includes(articleId)
+        ? favoriteArticleIds.filter(id => id !== articleId)
+        : [...favoriteArticleIds, articleId];
+
+      setFavoriteArticleIds(updatedFavorites);
+      await AsyncStorage.setItem('favorite_articles', JSON.stringify(updatedFavorites));
+    } catch (error) {
+      console.error('Error toggling favorite article:', error);
+    }
+  }, [favoriteArticleIds]);
+
+  const isArticleFavorite = useCallback((articleId: string) => {
+    return favoriteArticleIds.includes(articleId);
+  }, [favoriteArticleIds]);
+
   const contextValue = useMemo(() => ({
     progress,
     userProfile,
@@ -290,6 +316,9 @@ export function RecoveryProvider({ children }: { children: ReactNode }) {
     getTotalSoberDays,
     getDayStatus,
     getCalendarMarks,
+    favoriteArticleIds,
+    toggleFavoriteArticle,
+    isArticleFavorite,
     loading,
     error
   }), [
@@ -303,6 +332,9 @@ export function RecoveryProvider({ children }: { children: ReactNode }) {
     getTotalSoberDays,
     getDayStatus,
     getCalendarMarks,
+    favoriteArticleIds,
+    toggleFavoriteArticle,
+    isArticleFavorite,
     loading,
     error
   ]);

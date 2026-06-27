@@ -151,6 +151,7 @@ export class AICoachService {
       userMood: number;
       soberDays: number;
       cravingLevel: number;
+      stressLevel?: number;
       timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night';
     }
   ): Promise<Result<EnhancedAIResponse>> {
@@ -178,13 +179,19 @@ export class AICoachService {
           followUpQuestions = ['Как прошел ваш день?', 'Что сейчас больше всего беспокоит?'];
         }
 
+        // Проактивная поддержка при высоком стрессе
+        if (context.stressLevel && context.stressLevel >= 4 && !topics.includes('Стресс')) {
+          response = `Я заметил, что у вас высокий уровень стресса. Это может быть триггером. ${response}`;
+          suggestions.unshift('Снять напряжение');
+        }
+
         const recommendedArticles = this.recommendArticles(topics);
         this.updateMemory(userId, userMessage, response, context.userMood, topics);
 
         return success({
           message: response,
           emotionalTone,
-          suggestions,
+          suggestions: Array.from(new Set(suggestions)).slice(0, 4),
           followUpQuestions,
           memoryUpdates: [`Updated memory for ${userId}`, `Detected topics: ${topics.join(', ')}`],
           confidenceLevel: knowledgeMatch ? 0.95 : 0.6,
@@ -193,6 +200,28 @@ export class AICoachService {
     } catch (e) {
         return failure(e as Error);
     }
+  }
+
+  static getChatStarters(context: {
+    mood: number;
+    soberDays: number;
+    lastAchievement?: string
+  }): string[] {
+    const starters = ['Как дела?'];
+
+    if (context.mood <= 2) {
+      starters.push('Мне грустно', 'Как справиться со стрессом?');
+    } else if (context.mood >= 4) {
+      starters.push('У меня отличный день!', 'Как закрепить успех?');
+    }
+
+    if (context.soberDays % 7 === 0 && context.soberDays > 0) {
+      starters.push('Сегодня юбилей трезвости!');
+    }
+
+    starters.push('Нужна мотивация', 'Техника на сегодня');
+
+    return Array.from(new Set(starters)).slice(0, 4);
   }
 
   private static determineTone(category: string): 'empathetic' | 'motivational' | 'educational' | 'supportive' {
@@ -381,6 +410,14 @@ export class AICoachService {
       userMood,
       topics
     });
+
+    // Обнаружение достижений
+    if (userMessage.toLowerCase().includes('дней') || userMessage.toLowerCase().includes('неделя')) {
+      const achievement = `Упоминание прогресса: "${userMessage}"`;
+      if (!memory.userPreferences.goalsSet.includes(achievement)) {
+        memory.userPreferences.goalsSet.push(achievement);
+      }
+    }
 
     // Обновляем статистику по эмоциям/топикам
     if (topics.length > 0) {

@@ -119,7 +119,107 @@ export class CommunityService {
         comments: 12,
         timeAgo: '1д назад',
         category: 'milestone'
+      },
+      {
+        id: 'p7',
+        author: 'Николай',
+        content: 'Вчера чуть не сорвался на дне рождения друга, но вовремя открыл это приложение и прочитал статью про триггеры. Помогло!',
+        likes: 56,
+        comments: 8,
+        timeAgo: '1д назад',
+        category: 'support'
+      },
+      {
+        id: 'p8',
+        author: 'Елена В.',
+        content: 'Как вы объясняете друзьям, почему перестали пить? Особенно тем, кто постоянно уговаривает "ну одну-то можно".',
+        likes: 19,
+        comments: 32,
+        timeAgo: '2д назад',
+        category: 'question'
+      },
+      {
+        id: 'p9',
+        author: 'Артем',
+        content: 'Полгода трезвости! За это время купил машину на деньги, которые раньше уходили на алкоголь и бары. Лучшая инвестиция.',
+        likes: 124,
+        comments: 15,
+        timeAgo: '2д назад',
+        category: 'milestone'
+      },
+      {
+        id: 'p10',
+        author: 'Ирина',
+        content: 'Для тех, кто в начале пути: тяга — это просто мысль, а не приказ к действию. Вы сильнее своих мыслей.',
+        likes: 72,
+        comments: 4,
+        timeAgo: '3д назад',
+        category: 'motivation'
+      },
+      {
+        id: 'p11',
+        author: 'Павел',
+        content: 'Снова 1-й день. Обидно, но я не сдаюсь. Главное — проанализировать ошибку и идти дальше.',
+        likes: 48,
+        comments: 21,
+        timeAgo: '3д назад',
+        category: 'support'
+      },
+      {
+        id: 'p12',
+        author: 'Оксана',
+        content: 'Сегодня проснулась в 6 утра сама, без будильника и похмелья. Это потрясающее чувство!',
+        likes: 95,
+        comments: 6,
+        timeAgo: '4д назад',
+        category: 'milestone'
+      },
+      {
+        id: 'p13',
+        author: 'Макс',
+        content: 'Кто-нибудь пробовал медитацию при острой тяге? Насколько реально помогает?',
+        likes: 15,
+        comments: 42,
+        timeAgo: '5д назад',
+        category: 'question'
+      },
+      {
+        id: 'p14',
+        author: 'Юлия',
+        content: 'Ребята, спасибо за поддержку на прошлой неделе. Без вас я бы не справилась. Идем дальше!',
+        likes: 88,
+        comments: 10,
+        timeAgo: '5д назад',
+        category: 'support'
+      },
+      {
+        id: 'p15',
+        author: 'Денис',
+        content: 'Заменил пиво по вечерам на безалкогольные коктейли и чтение. Мозг начал работать намного яснее.',
+        likes: 64,
+        comments: 7,
+        timeAgo: '6д назад',
+        category: 'motivation'
+      },
+      {
+        id: 'p16',
+        author: 'Марина',
+        content: 'Год и два месяца. Жизнь заиграла новыми красками. Всем новичкам — терпения, оно того стоит!',
+        likes: 210,
+        comments: 34,
+        timeAgo: '1нед назад',
+        category: 'milestone'
       }
+    ];
+  }
+
+  static getCircles(): { id: string; name: string; icon: string; color: string }[] {
+    return [
+      { id: 'all', name: 'Все', icon: 'apps', color: '#2E7D4A' },
+      { id: 'motivation', name: 'Мотивация', icon: 'auto-awesome', color: '#FFC107' },
+      { id: 'question', name: 'Вопросы', icon: 'help-outline', color: '#2196F3' },
+      { id: 'support', name: 'Поддержка', icon: 'favorite-border', color: '#4CAF50' },
+      { id: 'milestone', name: 'Достижения', icon: 'emoji-events', color: '#E91E63' }
     ];
   }
 }
