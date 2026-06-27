@@ -22,6 +22,7 @@ import Animated, {
 import { MemoizedHealthMetric } from '../../components/home/HealthMetric';
 import { StatCard } from '../../components/home/StatCard';
 import { DailyMotivationService, MotivationQuote, RecoveryTip } from '../../services/dailyMotivationService';
+import { LineChart } from 'react-native-chart-kit';
 
 const AchievementSystem = React.lazy(() => import('../../components/AchievementSystem'));
 const CrisisIntervention = React.lazy(() => import('../../components/CrisisIntervention'));
@@ -118,7 +119,7 @@ function HomePage() {
     getCalendarMarks,
     loading 
   } = useRecovery();
-  const { addMoodEntry } = useAnalytics();
+  const { addMoodEntry, moodEntries, getMoodTrend } = useAnalytics();
   
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [mood, setMood] = useState<1 | 2 | 3 | 4 | 5>(3);
@@ -149,7 +150,7 @@ function HomePage() {
     );
     setDailyQuote(DailyMotivationService.getDailyQuote());
     setDailyTip(DailyMotivationService.getDailyTip());
-  }, []);
+  }, [pulseValue]);
 
   const showWebAlert = useCallback((title: string, message: string, onOk?: () => void) => {
     if (Platform.OS === 'web') {
@@ -161,6 +162,20 @@ function HomePage() {
 
   const streakDays = useMemo(() => getStreakDays(), [getStreakDays]);
   const totalSoberDays = useMemo(() => getTotalSoberDays(), [getTotalSoberDays]);
+
+  const moodChartData = useMemo(() => {
+    const last7Days = moodEntries.slice(-7);
+    if (last7Days.length === 0) return null;
+
+    return {
+      labels: last7Days.map(e => new Date(e.date).toLocaleDateString('ru-RU', { weekday: 'short' })),
+      datasets: [{
+        data: last7Days.map(e => e.mood),
+        color: (opacity = 1) => `rgba(46, 125, 74, ${opacity})`,
+        strokeWidth: 2
+      }]
+    };
+  }, [moodEntries]);
   const todayStatus = useMemo(() => getDayStatus(selectedDate), [getDayStatus, selectedDate]);
   const calendarMarks = useMemo(() => getCalendarMarks(), [getCalendarMarks]);
 
@@ -310,6 +325,46 @@ function HomePage() {
           <StatCard icon="local-fire-department" number={streakDays} label={t('home.streak')} />
           <StatCard icon="check-circle" number={totalSoberDays} label={t('home.totalSober')} />
         </View>
+
+        {moodChartData && (
+          <View style={styles.chartCard}>
+            <View style={styles.chartHeader}>
+              <Text style={styles.chartTitle}>Тренд настроения</Text>
+              <View style={[styles.trendBadge, { backgroundColor: getMoodTrend() === 'improving' ? '#E8F5E8' : '#FFF3E0' }]}>
+                <MaterialIcons
+                  name={getMoodTrend() === 'improving' ? 'trending-up' : getMoodTrend() === 'declining' ? 'trending-down' : 'trending-flat'}
+                  size={16}
+                  color={getMoodTrend() === 'improving' ? '#2E7D4A' : '#EF6C00'}
+                />
+                <Text style={[styles.trendText, { color: getMoodTrend() === 'improving' ? '#2E7D4A' : '#EF6C00' }]}>
+                  {getMoodTrend() === 'improving' ? 'Улучшается' : 'Стабильно'}
+                </Text>
+              </View>
+            </View>
+            <LineChart
+              data={moodChartData}
+              width={screenWidth - 80}
+              height={120}
+              chartConfig={{
+                backgroundColor: '#ffffff',
+                backgroundGradientFrom: '#ffffff',
+                backgroundGradientTo: '#ffffff',
+                decimalPlaces: 1,
+                color: (opacity = 1) => `rgba(46, 125, 74, ${opacity})`,
+                labelColor: (opacity = 1) => `rgba(102, 102, 102, ${opacity})`,
+                style: { borderRadius: 16 },
+                propsForDots: { r: "4", strokeWidth: "2", stroke: "#2E7D4A" },
+                propsForBackgroundLines: { strokeDasharray: "" }
+              }}
+              bezier
+              style={styles.chart}
+              withInnerLines={false}
+              withOuterLines={false}
+              withVerticalLines={false}
+              withHorizontalLines={false}
+            />
+          </View>
+        )}
       </View>
 
       {healthMetrics.length > 0 && (
@@ -828,6 +883,45 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#2E7D4A',
     marginBottom: 15
+  },
+  chartCard: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 15,
+    marginTop: 5,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  chartHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10
+  },
+  chartTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333'
+  },
+  trendBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4
+  },
+  trendText: {
+    fontSize: 12,
+    fontWeight: 'bold'
+  },
+  chart: {
+    marginVertical: 8,
+    borderRadius: 16,
+    marginLeft: -20
   },
   modalContainer: {
     flex: 1,

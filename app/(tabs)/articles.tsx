@@ -23,6 +23,7 @@ import Animated, {
   runOnJS
 } from 'react-native-reanimated';
 import { FlashList } from "@shopify/flash-list";
+import { useRecovery } from '../../hooks/useRecovery';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -42,9 +43,11 @@ import { articlesDatabase } from '../../services/articlesDatabase';
 
 const articles: Article[] = articlesDatabase;
 
-const MemoizedArticleCard = React.memo(({ article, onPress }: {
+const MemoizedArticleCard = React.memo(({ article, onPress, isFavorite, onToggleFavorite }: {
   article: Article;
   onPress: () => void;
+  isFavorite: boolean;
+  onToggleFavorite: (id: string) => void;
 }) => {
   const scaleValue = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({
@@ -69,6 +72,19 @@ const MemoizedArticleCard = React.memo(({ article, onPress }: {
             <Text style={styles.categoryText}>{article.category}</Text>
             <Text style={styles.readTimeText}>{article.readTime} мин чтения</Text>
           </View>
+          <TouchableOpacity
+            onPress={(e) => {
+              e.stopPropagation();
+              onToggleFavorite(article.id);
+            }}
+            style={styles.favoriteBadge}
+          >
+            <MaterialIcons
+              name={isFavorite ? "favorite" : "favorite-border"}
+              size={20}
+              color={isFavorite ? "#E91E63" : "#CCC"}
+            />
+          </TouchableOpacity>
         </View>
         
         <Text style={styles.articleTitle}>{article.title}</Text>
@@ -129,6 +145,7 @@ const MemoizedFilterChip = React.memo(({ label, selected, onPress, count }: {
 export default function ArticlesPage() {
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { isArticleFavorite, toggleFavoriteArticle, favoriteArticleIds } = useRecovery();
   const [selectedCategory, setSelectedCategory] = useState<string>('Все');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
@@ -144,12 +161,14 @@ export default function ArticlesPage() {
 
   const categories = useMemo(() => {
     const cats = new Set(articles.map(a => a.category));
-    return ['Все', ...Array.from(cats)].sort();
+    return ['Все', 'Избранное', ...Array.from(cats)].sort();
   }, []);
 
   const filteredArticles = useMemo(() => {
     let result = articles;
-    if (selectedCategory !== 'Все') {
+    if (selectedCategory === 'Избранное') {
+      result = result.filter(a => favoriteArticleIds.includes(a.id));
+    } else if (selectedCategory !== 'Все') {
       result = result.filter(a => a.category === selectedCategory);
     }
     if (searchQuery.trim()) {
@@ -165,8 +184,9 @@ export default function ArticlesPage() {
 
   const getCategoryCount = useCallback((category: string) => {
     if (category === 'Все') return articles.length;
+    if (category === 'Избранное') return favoriteArticleIds.length;
     return articles.filter(a => a.category === category).length;
-  }, []);
+  }, [favoriteArticleIds]);
 
   const handleArticlePress = useCallback((article: Article) => {
     setSelectedArticle(article);
@@ -250,6 +270,8 @@ export default function ArticlesPage() {
             <MemoizedArticleCard
               article={item}
               onPress={() => handleArticlePress(item)}
+              isFavorite={isArticleFavorite(item.id)}
+              onToggleFavorite={toggleFavoriteArticle}
             />
           )}
           estimatedItemSize={200}
@@ -326,9 +348,21 @@ export default function ArticlesPage() {
               </View>
               
               <View style={styles.actionButtons}>
-                <TouchableOpacity style={styles.actionButton}>
-                  <MaterialIcons name="bookmark-border" size={20} color="#2E7D4A" />
-                  <Text style={styles.actionButtonText}>Сохранить</Text>
+                <TouchableOpacity
+                  style={[styles.actionButton, isArticleFavorite(selectedArticle.id) && styles.activeActionButton]}
+                  onPress={() => toggleFavoriteArticle(selectedArticle.id)}
+                >
+                  <MaterialIcons
+                    name={isArticleFavorite(selectedArticle.id) ? "favorite" : "favorite-border"}
+                    size={20}
+                    color={isArticleFavorite(selectedArticle.id) ? "white" : "#2E7D4A"}
+                  />
+                  <Text style={[
+                    styles.actionButtonText,
+                    isArticleFavorite(selectedArticle.id) && styles.activeActionButtonText
+                  ]}>
+                    {isArticleFavorite(selectedArticle.id) ? 'В избранном' : 'В избранное'}
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.actionButton}>
                   <MaterialIcons name="share" size={20} color="#2E7D4A" />
@@ -403,6 +437,10 @@ const styles = StyleSheet.create({
   articleMeta: { marginLeft: 12, flex: 1 },
   categoryText: { fontSize: 11, fontWeight: '600', color: '#666', marginBottom: 2 },
   readTimeText: { fontSize: 10, color: '#999' },
+  favoriteBadge: {
+    padding: 8,
+    marginRight: -8
+  },
   articleTitle: { fontSize: 17, fontWeight: 'bold', color: '#333', marginBottom: 6 },
   articlePreview: { fontSize: 13, color: '#666', lineHeight: 18, marginBottom: 10 },
   tagsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
@@ -425,7 +463,9 @@ const styles = StyleSheet.create({
   articleBody: { marginBottom: 30 },
   articleParagraph: { fontSize: 16, color: '#333', lineHeight: 24, marginBottom: 14 },
   boldParagraph: { fontWeight: 'bold', fontSize: 17, color: '#2E7D4A', marginTop: 8 },
-  actionButtons: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 40 },
-  actionButton: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 12, backgroundColor: '#E8F5E8', gap: 6 },
-  actionButtonText: { fontSize: 13, fontWeight: '600', color: '#2E7D4A' }
+  actionButtons: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 40, gap: 12 },
+  actionButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 12, borderRadius: 12, backgroundColor: '#E8F5E8', gap: 6 },
+  activeActionButton: { backgroundColor: '#E91E63' },
+  actionButtonText: { fontSize: 13, fontWeight: '600', color: '#2E7D4A' },
+  activeActionButtonText: { color: 'white' }
 });

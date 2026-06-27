@@ -166,6 +166,23 @@ export default function EnhancedAICoach() {
               style={styles.messagesContainer}
               onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
             >
+              {vm.messages.length === 1 && vm.chatStarters.length > 0 && (
+                <View style={styles.startersContainer}>
+                  <Text style={styles.startersTitle}>Частые вопросы:</Text>
+                  <View style={styles.startersGrid}>
+                    {vm.chatStarters.map((starter, index) => (
+                      <TouchableOpacity
+                        key={index}
+                        style={styles.starterButton}
+                        onPress={() => vm.sendMessage(starter)}
+                      >
+                        <Text style={styles.starterText}>{starter}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              )}
+
               {vm.messages.map(m => (
                 <MessageBubble
                   key={m.id}
@@ -418,5 +435,35 @@ const styles = StyleSheet.create({
   countermeasuresContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   cmBadge: { backgroundColor: '#F0F0F0', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
   cmText: { fontSize: 12, color: '#444' },
-  emptyText: { textAlign: 'center', color: '#999', marginTop: 20, fontStyle: 'italic' }
+  emptyText: { textAlign: 'center', color: '#999', marginTop: 20, fontStyle: 'italic' },
+  startersContainer: {
+    padding: 15,
+    backgroundColor: '#F0F7F0',
+    borderRadius: 16,
+    marginBottom: 15,
+  },
+  startersTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#2E7D4A',
+    marginBottom: 10,
+    textTransform: 'uppercase',
+  },
+  startersGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  starterButton: {
+    backgroundColor: 'white',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  starterText: {
+    fontSize: 13,
+    color: '#444',
+  }
 });

@@ -107,14 +107,54 @@ export default function CommunityPage() {
   const insets = useSafeAreaInsets();
   const [stories, setStories] = useState<SuccessStory[]>([]);
   const [posts, setPosts] = useState<SupportPost[]>([]);
+  const [circles, setCircles] = useState<any[]>([]);
+  const [selectedCircle, setSelectedCircle] = useState('all');
 
   useEffect(() => {
     setStories(CommunityService.getSuccessStories());
     setPosts(CommunityService.getSupportPosts());
+    setCircles(CommunityService.getCircles());
   }, []);
+
+  const filteredPosts = posts.filter(post =>
+    selectedCircle === 'all' || post.category === selectedCircle
+  );
 
   const renderHeader = () => (
     <View>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Круги поддержки</Text>
+      </View>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.circlesContainer}
+      >
+        {circles.map(circle => (
+          <TouchableOpacity
+            key={circle.id}
+            style={[
+              styles.circleButton,
+              selectedCircle === circle.id && { backgroundColor: circle.color }
+            ]}
+            onPress={() => setSelectedCircle(circle.id)}
+          >
+            <MaterialIcons
+              name={circle.icon}
+              size={20}
+              color={selectedCircle === circle.id ? 'white' : circle.color}
+            />
+            <Text style={[
+              styles.circleText,
+              selectedCircle === circle.id && { color: 'white' }
+            ]}>
+              {circle.name}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Истории успеха</Text>
         <TouchableOpacity>
@@ -146,7 +186,7 @@ export default function CommunityPage() {
       </LinearGradient>
 
       <FlatList
-        data={posts}
+        data={filteredPosts}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <SupportPostItem post={item} />}
         ListHeaderComponent={renderHeader}
@@ -165,6 +205,30 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8F9FA'
+  },
+  circlesContainer: {
+    paddingHorizontal: 20,
+    gap: 12,
+    marginBottom: 10
+  },
+  circleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    gap: 8,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  circleText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333'
   },
   header: {
     padding: 20,

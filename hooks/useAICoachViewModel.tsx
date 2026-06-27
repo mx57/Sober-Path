@@ -25,6 +25,7 @@ export function useAICoachViewModel() {
   const [challenges, setChallenges] = useState<AICoachChallenge[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [chatStarters, setChatStarters] = useState<string[]>([]);
 
   useEffect(() => {
     initialize();
@@ -46,6 +47,7 @@ export function useAICoachViewModel() {
     setTriggers(AICoachService.detectTriggerPatterns(userProfile?.id || 'default'));
     setNotifications(NotificationService.getNotifications());
     setChallenges(AICoachService.getChallenges(userProfile?.id || 'default'));
+    setChatStarters(AICoachService.getChatStarters({ mood: 3, soberDays }));
   };
 
   const completeChallenge = useCallback((challengeId: string) => {
@@ -139,6 +141,7 @@ export function useAICoachViewModel() {
     getStreakDays,
     speak,
     stopSpeaking,
-    isSpeaking
+    isSpeaking,
+    chatStarters
   };
 }
