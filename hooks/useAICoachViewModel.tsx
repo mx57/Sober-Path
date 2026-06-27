@@ -24,6 +24,9 @@ export function useAICoachViewModel() {
   const [triggers, setTriggers] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isRoleplayActive, setIsRoleplayActive] = useState(false);
+  const [currentScenario, setCurrentScenario] = useState<string | null>(null);
+  const [recommendedChallenges, setRecommendedChallenges] = useState<string[]>([]);
 
   useEffect(() => {
     initialize();
@@ -65,9 +68,44 @@ export function useAICoachViewModel() {
     setIsSpeaking(false);
   };
 
+  const startRoleplay = (scenarioId: string) => {
+    const scenario = AICoachService.getRoleplayScenarios().find(s => s.id === scenarioId);
+    if (!scenario) return;
+
+    setIsRoleplayActive(true);
+    setCurrentScenario(scenarioId);
+
+    const aiMsg: ChatMessage = {
+      id: `rp_${Date.now()}`,
+      text: `Начинаем ролевую игру: ${scenario.title}\n\nКонтекст: ${scenario.context}\n\n${scenario.initialMessage}`,
+      isUser: false,
+      timestamp: new Date(),
+      suggestions: ['Нет, спасибо', 'Я не пью', 'Давай лучше сок']
+    };
+    setMessages(prev => [...prev, aiMsg]);
+  };
+
+  const endRoleplay = () => {
+    setIsRoleplayActive(false);
+    setCurrentScenario(null);
+    const aiMsg: ChatMessage = {
+      id: `rp_end_${Date.now()}`,
+      text: 'Ролевая игра завершена. Надеюсь, это было полезно!',
+      isUser: false,
+      timestamp: new Date()
+    };
+    setMessages(prev => [...prev, aiMsg]);
+  };
+
   const sendMessage = async (overrideText?: string) => {
     const textToSend = typeof overrideText === 'string' ? overrideText : inputText;
     if (!textToSend.trim() || isTyping) return;
+
+    if (textToSend === 'Закончить' && isRoleplayActive) {
+      endRoleplay();
+      setInputText('');
+      return;
+    }
 
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
@@ -81,6 +119,22 @@ export function useAICoachViewModel() {
     setIsTyping(true);
 
     try {
+      if (isRoleplayActive && currentScenario) {
+        const rpResponse = await AICoachService.handleRoleplayInput(currentScenario, textToSend);
+        const aiMsg: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          text: rpResponse.message,
+          isUser: false,
+          timestamp: new Date(),
+          suggestions: rpResponse.suggestions
+        };
+        setMessages(prev => [...prev, aiMsg]);
+        setIsTyping(false);
+        return;
+      }
+
+      setRecommendedChallenges(AICoachService.recommendChallenges(textToSend));
+
       const response = await AICoachService.getEnhancedResponse(
         userProfile?.id || 'default',
         textToSend,
@@ -128,6 +182,11 @@ export function useAICoachViewModel() {
     getStreakDays,
     speak,
     stopSpeaking,
-    isSpeaking
+    isSpeaking,
+    isRoleplayActive,
+    startRoleplay,
+    endRoleplay,
+    recommendedChallenges,
+    scenarios: AICoachService.getRoleplayScenarios()
   };
 }

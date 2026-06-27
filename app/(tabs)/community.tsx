@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
-  FlatList, Image, Dimensions
+  FlatList, Image, Dimensions, Modal, TextInput, KeyboardAvoidingView, Platform
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { CommunityService, SuccessStory, SupportPost } from '../../services/communityService';
+import { CommunityService, SuccessStory, SupportPost, PostComment } from '../../services/communityService';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -23,7 +23,9 @@ const SuccessStoryCard = ({ story }: { story: SuccessStory }) => (
   </View>
 );
 
-const SupportPostItem = ({ post }: { post: SupportPost }) => {
+const SupportPostItem = ({ post, onComment }: { post: SupportPost, onComment: (postId: string) => void }) => {
+  const [showComments, setShowComments] = useState(false);
+
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'motivation': return 'auto-awesome';
@@ -48,11 +50,31 @@ const SupportPostItem = ({ post }: { post: SupportPost }) => {
           <MaterialIcons name="favorite-border" size={18} color="#666" />
           <Text style={styles.actionText}>{post.likes}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => setShowComments(!showComments)}
+        >
           <MaterialIcons name="chat-bubble-outline" size={18} color="#666" />
           <Text style={styles.actionText}>{post.comments}</Text>
         </TouchableOpacity>
+        <TouchableOpacity style={styles.actionButton} onPress={() => onComment(post.id)}>
+          <Text style={styles.replyText}>Ответить</Text>
+        </TouchableOpacity>
       </View>
+
+      {showComments && post.replies && post.replies.length > 0 && (
+        <View style={styles.commentsSection}>
+          {post.replies.map(comment => (
+            <View key={comment.id} style={styles.commentItem}>
+              <View style={styles.commentHeader}>
+                <Text style={styles.commentAuthor}>{comment.author}</Text>
+                <Text style={styles.commentTime}>{comment.timeAgo}</Text>
+              </View>
+              <Text style={styles.commentContent}>{comment.content}</Text>
+            </View>
+          ))}
+        </View>
+      )}
     </View>
   );
 };
@@ -61,11 +83,42 @@ export default function CommunityPage() {
   const insets = useSafeAreaInsets();
   const [stories, setStories] = useState<SuccessStory[]>([]);
   const [posts, setPosts] = useState<SupportPost[]>([]);
+  const [isModalVisible, setModalVisible] = useState(false);
+  const [isCommentModalVisible, setCommentModalVisible] = useState(false);
+  const [newPostContent, setNewPostContent] = useState('');
+  const [newCommentContent, setNewCommentContent] = useState('');
+  const [activePostId, setActivePostId] = useState<string | null>(null);
 
   useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = () => {
     setStories(CommunityService.getSuccessStories());
     setPosts(CommunityService.getSupportPosts());
-  }, []);
+  };
+
+  const handleCreatePost = () => {
+    if (!newPostContent.trim()) return;
+    CommunityService.createPost('Вы', newPostContent, 'support');
+    setNewPostContent('');
+    setModalVisible(false);
+    loadData();
+  };
+
+  const handleAddComment = () => {
+    if (!newCommentContent.trim() || !activePostId) return;
+    CommunityService.addComment(activePostId, 'Вы', newCommentContent);
+    setNewCommentContent('');
+    setCommentModalVisible(false);
+    setActivePostId(null);
+    loadData();
+  };
+
+  const openCommentModal = (postId: string) => {
+    setActivePostId(postId);
+    setCommentModalVisible(true);
+  };
 
   const renderHeader = () => (
     <View>
@@ -102,15 +155,66 @@ export default function CommunityPage() {
       <FlatList
         data={posts}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <SupportPostItem post={item} />}
+        renderItem={({ item }) => <SupportPostItem post={item} onComment={openCommentModal} />}
         ListHeaderComponent={renderHeader}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       />
 
-      <TouchableOpacity style={styles.fab}>
+      <TouchableOpacity style={styles.fab} onPress={() => setModalVisible(true)}>
         <MaterialIcons name="edit" size={24} color="white" />
       </TouchableOpacity>
+
+      {/* Модальное окно создания поста */}
+      <Modal visible={isModalVisible} animationType="slide">
+        <View style={[styles.modalContainer, { paddingTop: insets.top }]}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setModalVisible(false)}>
+              <MaterialIcons name="close" size={24} color="#666" />
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Новый пост</Text>
+            <TouchableOpacity onPress={handleCreatePost}>
+              <Text style={styles.postButton}>Опубликовать</Text>
+            </TouchableOpacity>
+          </View>
+          <TextInput
+            style={styles.textInput}
+            placeholder="Поделитесь своими мыслями или прогрессом..."
+            multiline
+            value={newPostContent}
+            onChangeText={setNewPostContent}
+            autoFocus
+          />
+        </View>
+      </Modal>
+
+      {/* Модальное окно создания комментария */}
+      <Modal visible={isCommentModalVisible} transparent animationType="fade">
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.centeredView}
+        >
+          <View style={styles.commentModalView}>
+            <Text style={styles.modalTitle}>Ваш ответ</Text>
+            <TextInput
+              style={styles.commentInput}
+              placeholder="Напишите слова поддержки..."
+              multiline
+              value={newCommentContent}
+              onChangeText={setNewCommentContent}
+              autoFocus
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setCommentModalVisible(false)}>
+                <Text style={styles.cancelText}>Отмена</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.submitBtn} onPress={handleAddComment}>
+                <Text style={styles.submitText}>Ответить</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -267,5 +371,118 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'white'
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0'
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333'
+  },
+  postButton: {
+    color: '#2E7D4A',
+    fontWeight: 'bold',
+    fontSize: 16
+  },
+  textInput: {
+    flex: 1,
+    padding: 20,
+    fontSize: 16,
+    textAlignVertical: 'top'
+  },
+  replyText: {
+    color: '#2E7D4A',
+    fontSize: 14,
+    fontWeight: '600'
+  },
+  commentsSection: {
+    marginTop: 15,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+    gap: 12
+  },
+  commentItem: {
+    backgroundColor: '#F8F9FA',
+    padding: 12,
+    borderRadius: 12
+  },
+  commentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4
+  },
+  commentAuthor: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#333'
+  },
+  commentTime: {
+    fontSize: 11,
+    color: '#999'
+  },
+  commentContent: {
+    fontSize: 14,
+    color: '#555',
+    lineHeight: 20
+  },
+  centeredView: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)'
+  },
+  commentModalView: {
+    width: screenWidth * 0.85,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5
+  },
+  commentInput: {
+    height: 100,
+    borderColor: '#E0E0E0',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 15,
+    textAlignVertical: 'top'
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 15,
+    gap: 15
+  },
+  cancelBtn: {
+    padding: 10
+  },
+  cancelText: {
+    color: '#666',
+    fontWeight: '600'
+  },
+  submitBtn: {
+    backgroundColor: '#2E7D4A',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8
+  },
+  submitText: {
+    color: 'white',
+    fontWeight: 'bold'
   }
 });

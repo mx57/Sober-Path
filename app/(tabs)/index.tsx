@@ -310,6 +310,27 @@ function HomePage() {
           <StatCard icon="local-fire-department" number={streakDays} label={t('home.streak')} />
           <StatCard icon="check-circle" number={totalSoberDays} label={t('home.totalSober')} />
         </View>
+
+        {/* Виджет активных вызовов */}
+        <View style={styles.activeChallengesWidget}>
+          <View style={styles.widgetHeader}>
+            <MaterialIcons name="assignment" size={24} color="#2E7D4A" />
+            <Text style={styles.widgetTitle}>Активные вызовы</Text>
+          </View>
+          <View style={styles.challengeItem}>
+            <Text style={styles.challengeName}>Утренний ритуал</Text>
+            <View style={styles.progressContainer}>
+              <View style={[styles.progressFill, { width: '70%' }]} />
+            </View>
+            <Text style={styles.progressLabel}>5 / 7 дней</Text>
+          </View>
+          <Link href="/gamification" asChild>
+            <TouchableOpacity style={styles.moreButton}>
+              <Text style={styles.moreButtonText}>Все вызовы</Text>
+              <MaterialIcons name="chevron-right" size={20} color="#2E7D4A" />
+            </TouchableOpacity>
+          </Link>
+        </View>
       </View>
 
       {healthMetrics.length > 0 && (
@@ -828,6 +849,66 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#2E7D4A',
     marginBottom: 15
+  },
+  activeChallengesWidget: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 10,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  widgetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12
+  },
+  widgetTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333'
+  },
+  challengeItem: {
+    marginBottom: 10
+  },
+  challengeName: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 6
+  },
+  progressContainer: {
+    height: 8,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 4
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#4CAF50',
+    borderRadius: 4
+  },
+  progressLabel: {
+    fontSize: 11,
+    color: '#999',
+    textAlign: 'right'
+  },
+  moreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0'
+  },
+  moreButtonText: {
+    fontSize: 14,
+    color: '#2E7D4A',
+    fontWeight: '600'
   },
   modalContainer: {
     flex: 1,

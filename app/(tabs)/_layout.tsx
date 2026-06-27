@@ -17,6 +17,7 @@ const TabLayout = () => {
     React.createElement(Tabs.Screen, { name: 'community', options: { title: 'Сообщество', tabBarIcon: ({ color, size }) => React.createElement(MaterialIcons, { name: 'groups', size, color }) } }),
     React.createElement(Tabs.Screen, { name: 'enhanced-exercises', options: { title: 'Техники', tabBarIcon: ({ color, size }) => React.createElement(MaterialIcons, { name: 'science', size, color }) } }),
     React.createElement(Tabs.Screen, { name: 'enhanced-settings', options: { title: 'Настройки', tabBarIcon: ({ color, size }) => React.createElement(MaterialIcons, { name: 'settings', size, color }) } }),
+    React.createElement(Tabs.Screen, { name: 'micro-courses', options: { title: 'Курсы', tabBarIcon: ({ color, size }) => React.createElement(MaterialIcons, { name: 'school', size, color }) } }),
     React.createElement(Tabs.Screen, { name: 'ai-chat', options: { href: null } }),
     React.createElement(Tabs.Screen, { name: 'mini-games', options: { href: null } }),
     React.createElement(Tabs.Screen, { name: 'personalized-recommendations', options: { href: null } }),

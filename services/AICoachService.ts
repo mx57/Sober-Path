@@ -72,6 +72,14 @@ export interface EnhancedAIResponse {
   memoryUpdates: string[];
   confidenceLevel: number;
   recommendedArticles?: RecommendedArticle[];
+  isRoleplay?: boolean;
+}
+
+export interface RoleplayScenario {
+  id: string;
+  title: string;
+  context: string;
+  initialMessage: string;
 }
 
 export class AICoachService {
@@ -246,6 +254,59 @@ export class AICoachService {
     if (soberDays === 0) return "Начало пути - самый сложный и важный шаг. Вы уже здесь, и это победа!";
     if (soberDays % 7 === 0) return `Вы трезвы уже ${soberDays / 7} недель! Это потрясающий результат.`;
     return `Поздравляю с ${soberDays} днями трезвости! Каждый день делает вас сильнее.`;
+  }
+
+  static getRoleplayScenarios(): RoleplayScenario[] {
+    return [
+      {
+        id: 'bar_with_friends',
+        title: 'Встреча в баре',
+        context: 'Друзья пригласили вас в бар и настаивают на заказе пива.',
+        initialMessage: 'Привет! Давно не виделись. Давай по кружечке за встречу?'
+      },
+      {
+        id: 'stressful_day',
+        title: 'Стресс после работы',
+        context: 'Был очень тяжелый день, и вы привыкли снимать стресс бокалом вина.',
+        initialMessage: 'Какой ужасный день... Может, стоит расслабиться и выпить немного?'
+      }
+    ];
+  }
+
+  static async handleRoleplayInput(scenarioId: string, userInput: string): Promise<EnhancedAIResponse> {
+    // Имитация логики ролевой игры
+    const lowercaseInput = userInput.toLowerCase();
+    let message = '';
+    let suggestions: string[] = [];
+
+    if (lowercaseInput.includes('нет') || lowercaseInput.includes('не буду') || lowercaseInput.includes('воду')) {
+      message = 'Отличный ответ! Вы успешно отстояли свои границы. Хотите попробовать еще один вариант ответа или закончить практику?';
+      suggestions = ['Еще вариант', 'Закончить'];
+    } else {
+      message = 'Это сложный момент. В такой ситуации лучше четко сказать "Нет" или предложить альтернативу. Попробуйте еще раз?';
+      suggestions = ['Попробовать снова', 'Нужна помощь'];
+    }
+
+    return {
+      message,
+      emotionalTone: 'supportive',
+      suggestions,
+      followUpQuestions: [],
+      memoryUpdates: [],
+      confidenceLevel: 1,
+      isRoleplay: true
+    };
+  }
+
+  static recommendChallenges(userMessage: string): string[] {
+    const lowerMessage = userMessage.toLowerCase();
+    if (lowerMessage.includes('стресс') || lowerMessage.includes('устал')) {
+      return ['Медитация 10 мин', 'Прогулка'];
+    }
+    if (lowerMessage.includes('утро') || lowerMessage.includes('просну')) {
+      return ['Утренняя зарядка', 'Контрастный душ'];
+    }
+    return ['Дневник благодарности', 'Чтение статьи'];
   }
 
   private static extractTopics(message: string): string[] {

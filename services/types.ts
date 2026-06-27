@@ -15,3 +15,21 @@ export interface UIState<T> {
   isLoading: boolean;
   error: string | null;
 }
+
+export interface MicroCourseLesson {
+  id: string;
+  title: string;
+  content: string;
+  duration: number; // в минутах
+  order: number;
+}
+
+export interface MicroCourse {
+  id: string;
+  title: string;
+  description: string;
+  category: 'CBT' | 'DBT' | 'Mindfulness' | 'General';
+  lessons: MicroCourseLesson[];
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  thumbnail?: string;
+}
