@@ -9,6 +9,10 @@ on:
 jobs:
   build-release-apks:
     runs-on: ubuntu-latest
+    env:
+      # When not set, setup-java will define JAVA_HOME for the job.
+      # Avoid forcing Java 11 here so setup-java can install Java 17.
+      NODE_OPTIONS: --max_old_space_size=4096
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -37,29 +41,46 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Verify Java
+      - name: Export JAVA_HOME
         run: |
-          echo "Java version:" && java -version || true
-          echo "JAVA_HOME=$JAVA_HOME"
+          echo "JAVA_HOME=$(dirname $(dirname $(readlink -f $(which java))))" >> $GITHUB_ENV
+          echo "JAVA_HOME set to $(dirname $(dirname $(readlink -f $(which java))))"
+          java -version
 
-      - name: Set up Android SDK (install required packages)
-        uses: android-actions/setup-android@v4
-        with:
-          cmdline-tools-version: '12.0'
-          packages: |
-            platform-tools
-            platforms;android-33
-            build-tools;33.0.2
-
-      - name: Accept Android SDK licenses (with JDK-check fallback)
+      - name: Ensure sdkmanager available and install SDK packages
         run: |
           set -e
-          echo "Attempting to accept SDK licenses..."
-          if sdkmanager --licenses; then
-            echo "Accepted SDK licenses"
+          # Path to sdkmanager; try known locations
+          if [ -x "/usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager" ]; then
+            SDKMANAGER="/usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager"
+          elif [ -x "/usr/local/lib/android/sdk/cmdline-tools/12.0/bin/sdkmanager" ]; then
+            SDKMANAGER="/usr/local/lib/android/sdk/cmdline-tools/12.0/bin/sdkmanager"
           else
-            echo "Initial sdkmanager --licenses failed; retrying with SKIP_JDK_VERSION_CHECK=true"
-            SKIP_JDK_VERSION_CHECK=true sdkmanager --licenses || { echo "Accepting SDK licenses failed even with SKIP_JDK_VERSION_CHECK"; exit 1; }
+            echo "Downloading commandline tools..."
+            TMPDIR=$(mktemp -d)
+            curl -sSLo "$TMPDIR/cmdline-tools.zip" https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+            unzip -q "$TMPDIR/cmdline-tools.zip" -d "$TMPDIR"
+            mkdir -p /usr/local/lib/android/sdk/cmdline-tools/12.0
+            mv "$TMPDIR/cmdline-tools"/* /usr/local/lib/android/sdk/cmdline-tools/12.0/
+            SDKMANAGER="/usr/local/lib/android/sdk/cmdline-tools/12.0/bin/sdkmanager"
+          fi
+
+          echo "Using sdkmanager: $SDKMANAGER"
+          "$SDKMANAGER" --version || true
+
+          # Install required packages explicitly
+          PACKAGES=("platform-tools" "platforms;android-33" "build-tools;33.0.2")
+          for p in "${PACKAGES[@]}"; do
+            echo "Installing package: $p"
+            $SDKMANAGER --install "$p"
+          done
+
+          # Accept licenses (try normally, then with SKIP if needed)
+          if $SDKMANAGER --licenses --sdk_root=/usr/local/lib/android/sdk; then
+            echo "SDK licenses accepted"
+          else
+            echo "Retry accepting SDK licenses with SKIP_JDK_VERSION_CHECK"
+            SKIP_JDK_VERSION_CHECK=true $SDKMANAGER --licenses --sdk_root=/usr/local/lib/android/sdk || true
           fi
 
       - name: Prebuild Android (Expo)
