@@ -9,8 +9,6 @@ on:
 jobs:
   build-release-apks:
     runs-on: ubuntu-latest
-    env:
-      JAVA_HOME: /usr/lib/jvm/java-11-openjdk-amd64
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,20 +31,36 @@ jobs:
       - name: Install dependencies (allow legacy peer deps to avoid conflicts)
         run: npm ci --legacy-peer-deps
 
-      - name: Install JDK 11
+      - name: Install JDK 17 (must run before Android SDK setup)
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '11'
+          java-version: '17'
 
-      - name: Set up Android SDK
+      - name: Verify Java
+        run: |
+          echo "Java version:" && java -version || true
+          echo "JAVA_HOME=$JAVA_HOME"
+
+      - name: Set up Android SDK (install required packages)
         uses: android-actions/setup-android@v4
         with:
-          api-level: 33
-          build-tools: 33.0.2
+          cmdline-tools-version: '12.0'
+          packages: |
+            platform-tools
+            platforms;android-33
+            build-tools;33.0.2
 
-      - name: Accept Android SDK licenses
-        run: yes | sdkmanager --licenses
+      - name: Accept Android SDK licenses (with JDK-check fallback)
+        run: |
+          set -e
+          echo "Attempting to accept SDK licenses..."
+          if sdkmanager --licenses; then
+            echo "Accepted SDK licenses"
+          else
+            echo "Initial sdkmanager --licenses failed; retrying with SKIP_JDK_VERSION_CHECK=true"
+            SKIP_JDK_VERSION_CHECK=true sdkmanager --licenses || { echo "Accepting SDK licenses failed even with SKIP_JDK_VERSION_CHECK"; exit 1; }
+          fi
 
       - name: Prebuild Android (Expo)
         run: npx expo prebuild -p android --no-install --no-interactive
@@ -55,14 +69,18 @@ jobs:
         run: |
           if [ -f android/gradlew ]; then chmod +x android/gradlew; fi
 
-      - name: Add ABI splits (armeabi-v7a, arm64-v8a)
+      - name: Add ABI splits (armeabi-v7a, arm64-v8a) if file exists
         run: |
           file="android/app/build.gradle"
-          if grep -q "splits {" "$file"; then
-            echo "splits already present"
+          if [ -f "$file" ]; then
+            if grep -q "splits {" "$file"; then
+              echo "splits already present"
+            else
+              # insert splits block before first occurrence of "buildTypes"
+              awk 'BEGIN{p=1} /buildTypes\s*\{/ && p==1{print "    splits {\n        abi {\n            enable true\n            reset()\n            include '"'"'armeabi-v7a'"'"', '"'"'arm64-v8a'"'"'\n            universalApk false\n        }\n    }\n"; p=0} {print}' "$file" > "$file.tmp" && mv "$file.tmp" "$file"
+            fi
           else
-            # insert splits block before first occurrence of "buildTypes"
-            awk 'BEGIN{p=1} /buildTypes\s*\{/ && p==1{print "    splits {\n        abi {\n            enable true\n            reset()\n            include '"'"'armeabi-v7a'"'"', '"'"'arm64-v8a'"'"'\n            universalApk false\n        }\n    }\n"; p=0} {print}' "$file" > "$file.tmp" && mv "$file.tmp" "$file"
+            echo "$file not found, skipping splits injection"
           fi
 
       - name: Generate test keystore
@@ -86,13 +104,16 @@ jobs:
           KEYSTORE_PASS: android
           KEY_ALIAS: release
           KEY_PASS: android
-          ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
         run: |
           set -e
-          build_tools_dir=$(ls -d "$ANDROID_HOME/build-tools"/*/ | sort -V | tail -n1)
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          build_tools_dir=$(ls -d "$ANDROID_SDK_ROOT/build-tools"/*/ | sort -V | tail -n1)
+          echo "Using build-tools dir: $build_tools_dir"
           apksigner="$build_tools_dir/apksigner"
-          if [ ! -x "$apksigner" ]; then echo "apksigner not found at $apksigner"; exit 1; fi
+          if [ ! -x "$apksigner" ]; then echo "apksigner not found at $apksigner"; ls -la "$ANDROID_SDK_ROOT/build-tools" || true; exit 1; fi
           for apk in $GITHUB_WORKSPACE/artifacts/*.apk; do
+            [ -f "$apk" ] || continue
             base=$(basename "$apk")
             unsigned="$apk"
             signed="$GITHUB_WORKSPACE/artifacts/signed-$base"
