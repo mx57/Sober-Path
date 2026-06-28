@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
-  FlatList, Image, Dimensions
+  FlatList, Image, Dimensions, Modal, TextInput, Alert
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CommunityService, SuccessStory, SupportPost } from '../../services/communityService';
 import Animated, { FadeInUp, useSharedValue, useAnimatedStyle, withSpring, withSequence, withTiming } from 'react-native-reanimated';
+import { Skeleton } from '../../components/Skeleton';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -24,7 +25,7 @@ const SuccessStoryCard = ({ story }: { story: SuccessStory }) => (
   </View>
 );
 
-const SupportPostItem = ({ post }: { post: SupportPost }) => {
+const SupportPostItem = ({ post, onCommentPress }: { post: SupportPost, onCommentPress: (post: SupportPost) => void }) => {
   const [liked, setLiked] = React.useState(false);
   const heartScale = useSharedValue(1);
   const heartAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: heartScale.value }] }));
@@ -90,7 +91,7 @@ const SupportPostItem = ({ post }: { post: SupportPost }) => {
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionButton}>
+        <TouchableOpacity style={styles.actionButton} onPress={() => onCommentPress(post)}>
           <MaterialIcons name="chat-bubble-outline" size={20} color="#666" />
           <Text style={styles.actionText}>{post.comments}</Text>
         </TouchableOpacity>
@@ -109,12 +110,62 @@ export default function CommunityPage() {
   const [posts, setPosts] = useState<SupportPost[]>([]);
   const [circles, setCircles] = useState<any[]>([]);
   const [selectedCircle, setSelectedCircle] = useState('all');
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isCommentModalVisible, setIsCommentModalVisible] = useState(false);
+  const [selectedPostForComment, setSelectedPostForComment] = useState<SupportPost | null>(null);
+  const [newCommentText, setNewCommentText] = useState('');
+  const [newPostContent, setNewPostContent] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<'motivation' | 'question' | 'support' | 'milestone'>('support');
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setStories(CommunityService.getSuccessStories());
-    setPosts(CommunityService.getSupportPosts());
-    setCircles(CommunityService.getCircles());
+    const loadData = async () => {
+      setIsLoading(true);
+      // Simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      setStories(CommunityService.getSuccessStories());
+      setPosts(CommunityService.getSupportPosts());
+      setCircles(CommunityService.getCircles());
+      setIsLoading(false);
+    };
+    loadData();
   }, []);
+
+  const handleCreatePost = () => {
+    if (!newPostContent.trim()) {
+      Alert.alert('Ошибка', 'Пожалуйста, введите текст поста');
+      return;
+    }
+
+    const newPost: SupportPost = {
+      id: `p${Date.now()}`,
+      author: 'Вы',
+      content: newPostContent,
+      likes: 0,
+      comments: 0,
+      timeAgo: 'Только что',
+      category: selectedCategory
+    };
+
+    setPosts([newPost, ...posts]);
+    setNewPostContent('');
+    setIsModalVisible(false);
+    Alert.alert('Успех', 'Ваш пост опубликован!');
+  };
+
+  const handleAddComment = () => {
+    if (!newCommentText.trim() || !selectedPostForComment) return;
+
+    setPosts(posts.map(p =>
+      p.id === selectedPostForComment.id
+        ? { ...p, comments: p.comments + 1 }
+        : p
+    ));
+
+    setNewCommentText('');
+    setIsCommentModalVisible(false);
+    Alert.alert('Комментарий добавлен', 'Ваше мнение важно для сообщества!');
+  };
 
   const filteredPosts = posts.filter(post =>
     selectedCircle === 'all' || post.category === selectedCircle
@@ -131,35 +182,41 @@ export default function CommunityPage() {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.circlesContainer}
       >
-        {circles.map(circle => (
-          <TouchableOpacity
-            key={circle.id}
-            style={[
-              styles.circleButton,
-              selectedCircle === circle.id && { backgroundColor: circle.color }
-            ]}
-            onPress={() => setSelectedCircle(circle.id)}
-          >
-            <MaterialIcons
-              name={circle.icon}
-              size={20}
-              color={selectedCircle === circle.id ? 'white' : circle.color}
-            />
-            <Text style={[
-              styles.circleText,
-              selectedCircle === circle.id && { color: 'white' }
-            ]}>
-              {circle.name}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        {isLoading ? (
+          [1, 2, 3, 4].map(i => <Skeleton key={i} width={100} height={40} borderRadius={20} />)
+        ) : (
+          circles.map(circle => (
+            <TouchableOpacity
+              key={circle.id}
+              style={[
+                styles.circleButton,
+                selectedCircle === circle.id && { backgroundColor: circle.color }
+              ]}
+              onPress={() => setSelectedCircle(circle.id)}
+            >
+              <MaterialIcons
+                name={circle.icon}
+                size={20}
+                color={selectedCircle === circle.id ? 'white' : circle.color}
+              />
+              <Text style={[
+                styles.circleText,
+                selectedCircle === circle.id && { color: 'white' }
+              ]}>
+                {circle.name}
+              </Text>
+            </TouchableOpacity>
+          ))
+        )}
       </ScrollView>
 
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Истории успеха</Text>
-        <TouchableOpacity>
-          <Text style={styles.seeAllText}>Все</Text>
-        </TouchableOpacity>
+        {!isLoading && (
+          <TouchableOpacity>
+            <Text style={styles.seeAllText}>Все</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <ScrollView
@@ -167,9 +224,13 @@ export default function CommunityPage() {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.storiesContainer}
       >
-        {stories.map(story => (
-          <SuccessStoryCard key={story.id} story={story} />
-        ))}
+        {isLoading ? (
+          [1, 2].map(i => <Skeleton key={i} width={screenWidth * 0.7} height={120} borderRadius={16} />)
+        ) : (
+          stories.map(story => (
+            <SuccessStoryCard key={story.id} story={story} />
+          ))
+        )}
       </ScrollView>
 
       <View style={styles.sectionHeader}>
@@ -185,18 +246,149 @@ export default function CommunityPage() {
         <Text style={styles.subtitle}>Вместе мы сильнее</Text>
       </LinearGradient>
 
-      <FlatList
-        data={filteredPosts}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <SupportPostItem post={item} />}
-        ListHeaderComponent={renderHeader}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      />
+      {isLoading ? (
+        <ScrollView contentContainerStyle={styles.content}>
+          {renderHeader()}
+          {[1, 2, 3].map(i => (
+            <View key={i} style={[styles.postCard, { gap: 10 }]}>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <Skeleton width={32} height={32} borderRadius={16} />
+                <View style={{ flex: 1, gap: 5 }}>
+                  <Skeleton width="40%" height={15} />
+                  <Skeleton width="20%" height={10} />
+                </View>
+              </View>
+              <Skeleton width="100%" height={60} />
+              <View style={{ flexDirection: 'row', gap: 20 }}>
+                <Skeleton width={50} height={20} />
+                <Skeleton width={50} height={20} />
+              </View>
+            </View>
+          ))}
+        </ScrollView>
+      ) : (
+        <FlatList
+          data={filteredPosts}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <SupportPostItem
+              post={item}
+              onCommentPress={(post) => {
+                setSelectedPostForComment(post);
+                setIsCommentModalVisible(true);
+              }}
+            />
+          )}
+          ListHeaderComponent={renderHeader}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
 
-      <TouchableOpacity style={styles.fab}>
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => setIsModalVisible(true)}
+      >
         <MaterialIcons name="edit" size={24} color="white" />
       </TouchableOpacity>
+
+      <Modal
+        visible={isModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setIsModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Новый пост</Text>
+              <TouchableOpacity onPress={() => setIsModalVisible(false)}>
+                <MaterialIcons name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.categoryPicker}>
+              {circles.filter(c => c.id !== 'all').map(circle => (
+                <TouchableOpacity
+                  key={circle.id}
+                  style={[
+                    styles.categoryOption,
+                    selectedCategory === circle.id && { backgroundColor: circle.color }
+                  ]}
+                  onPress={() => setSelectedCategory(circle.id)}
+                >
+                  <Text style={[
+                    styles.categoryOptionText,
+                    selectedCategory === circle.id && { color: 'white' }
+                  ]}>
+                    {circle.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TextInput
+              style={styles.postInput}
+              placeholder="Поделитесь своими мыслями или вопросом..."
+              multiline
+              numberOfLines={6}
+              value={newPostContent}
+              onChangeText={setNewPostContent}
+              textAlignVertical="top"
+            />
+
+            <TouchableOpacity
+              style={styles.submitButton}
+              onPress={handleCreatePost}
+            >
+              <Text style={styles.submitButtonText}>Опубликовать</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={isCommentModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setIsCommentModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Комментарий</Text>
+              <TouchableOpacity onPress={() => setIsCommentModalVisible(false)}>
+                <MaterialIcons name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+
+            {selectedPostForComment && (
+              <View style={styles.targetPostPreview}>
+                <Text style={styles.targetPostAuthor}>{selectedPostForComment.author}:</Text>
+                <Text style={styles.targetPostText} numberOfLines={2}>{selectedPostForComment.content}</Text>
+              </View>
+            )}
+
+            <TextInput
+              style={styles.postInput}
+              placeholder="Напишите слова поддержки..."
+              multiline
+              numberOfLines={4}
+              value={newCommentText}
+              onChangeText={setNewCommentText}
+              textAlignVertical="top"
+              autoFocus
+            />
+
+            <TouchableOpacity
+              style={styles.submitButton}
+              onPress={handleAddComment}
+            >
+              <Text style={styles.submitButtonText}>Ответить</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -396,5 +588,87 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end'
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    minHeight: 400
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333'
+  },
+  categoryPicker: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 20
+  },
+  categoryOption: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0'
+  },
+  categoryOptionText: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '600'
+  },
+  postInput: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 16,
+    padding: 15,
+    fontSize: 16,
+    color: '#333',
+    minHeight: 150,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#E0E0E0'
+  },
+  submitButton: {
+    backgroundColor: '#2E7D4A',
+    borderRadius: 16,
+    paddingVertical: 15,
+    alignItems: 'center'
+  },
+  submitButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold'
+  },
+  targetPostPreview: {
+    backgroundColor: '#F0F7F0',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 15,
+    borderLeftWidth: 3,
+    borderLeftColor: '#2E7D4A'
+  },
+  targetPostAuthor: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#2E7D4A',
+    marginBottom: 4
+  },
+  targetPostText: {
+    fontSize: 13,
+    color: '#666',
+    fontStyle: 'italic'
   }
 });

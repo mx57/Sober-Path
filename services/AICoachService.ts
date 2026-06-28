@@ -173,10 +173,27 @@ export class AICoachService {
           suggestions = knowledgeMatch.techniques.slice(0, 3);
           followUpQuestions = this.generateFollowUp(knowledgeMatch.category);
         } else {
-          response = "Я рядом и готов поддержать вас на пути к трезвости. Расскажите подробнее, что вы сейчас чувствуете?";
+          // Контекстные ответы на основе прогресса
+          if (context.soberDays > 365) {
+            response = `Ваш путь длиной в ${context.soberDays} дней — это настоящее вдохновение. Как опытный человек в трезвости, что вы чувствуете сегодня?`;
+          } else if (context.soberDays > 30) {
+            response = `Поздравляю с ${context.soberDays} днями трезвости! Вы уже заложили крепкий фундамент. О чем бы вы хотели поговорить сегодня?`;
+          } else if (context.soberDays > 0) {
+            response = `Каждый день сейчас на вес золота. Идет ${context.soberDays}-й день вашего нового пути. Как ваша тяга и настроение сейчас?`;
+          } else {
+            response = "Я рядом и готов поддержать вас в самом начале пути к трезвости. Расскажите подробнее, что вы сейчас чувствуете? Первый шаг самый важный.";
+          }
+
           emotionalTone = 'supportive';
           suggestions = ['Дыхательное упражнение', 'Прогулка', 'HALT проверка'];
           followUpQuestions = ['Как прошел ваш день?', 'Что сейчас больше всего беспокоит?'];
+        }
+
+        // Интеграция личных достижений из памяти
+        const achievements = memory.userPreferences.goalsSet;
+        if (achievements.length > 0 && Math.random() > 0.7) {
+          const lastAchievement = achievements[achievements.length - 1];
+          response = `${response}\n\nКстати, я помню ваш успех: ${lastAchievement.replace('Упоминание прогресса: ', '')}. Это было круто!`;
         }
 
         // Проактивная поддержка при высоком стрессе
