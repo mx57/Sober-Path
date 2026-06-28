@@ -24,6 +24,8 @@ import Animated, {
   runOnJS
 } from 'react-native-reanimated';
 import { AICoachService } from '../../services/AICoachService';
+import { Skeleton } from '../../components/Skeleton';
+import { useRecovery } from '../../hooks/useRecovery';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -81,12 +83,13 @@ const MessageBubble = React.memo(({ message, onSuggestionPress }: {
 
   const getBubbleColor = () => {
     if (isEmergency) return ['#FF5722', '#FF3D00'];
-    if (isUser) return ['#2196F3', '#1976D2'];
-    return ['#4CAF50', '#388E3C'];
+    if (isUser) return ['#2E7D4A', '#1B5E20'];
+    return ['#FFFFFF', '#F1F8E9'];
   };
 
   const getTextColor = () => {
-    return isUser || isEmergency ? 'white' : 'white';
+    if (isEmergency || isUser) return 'white';
+    return '#333333';
   };
 
   return (
@@ -100,14 +103,15 @@ const MessageBubble = React.memo(({ message, onSuggestionPress }: {
         style={[
           styles.messageBubble,
           isUser ? styles.userBubble : styles.aiBubble,
-          isEmergency && styles.emergencyBubble
+          isEmergency && styles.emergencyBubble,
+          !isUser && !isEmergency && styles.aiBubbleShadow
         ]}
       >
         {!isUser && (
-          <View style={styles.aiAvatar}>
+          <View style={[styles.aiAvatar, { backgroundColor: '#2E7D4A' }]}>
             <MaterialIcons 
               name={isEmergency ? "emergency" : "psychology"} 
-              size={16} 
+              size={12}
               color="white" 
             />
           </View>
@@ -117,7 +121,7 @@ const MessageBubble = React.memo(({ message, onSuggestionPress }: {
           {message.content}
         </Text>
         
-        <Text style={styles.messageTime}>
+        <Text style={[styles.messageTime, { color: isUser || isEmergency ? 'rgba(255,255,255,0.7)' : '#999' }]}>
           {message.timestamp.toLocaleTimeString('ru-RU', { 
             hour: '2-digit', 
             minute: '2-digit' 
@@ -257,16 +261,22 @@ const TypingIndicator = React.memo(() => {
 const AIAssistantPage: React.FC<AIAssistantPageProps> = ({ initialContext }) => {
   const insets = useSafeAreaInsets();
   const scrollViewRef = useRef<ScrollView>(null);
+  const { soberDays } = useRecovery();
   
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [currentContext, setCurrentContext] = useState(
     initialContext || { mood: 3, cravingLevel: 2, stressLevel: 3 }
   );
 
   // Приветственное сообщение при первом запуске
   useEffect(() => {
+    const initChat = async () => {
+      setIsLoading(true);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
     const welcomeMessage: ChatMessage = {
       id: 'welcome_1',
       senderId: 'ai_coach',
@@ -295,10 +305,14 @@ const AIAssistantPage: React.FC<AIAssistantPageProps> = ({ initialContext }) => 
     };
     
     setMessages([welcomeMessage]);
+    setIsLoading(false);
+    };
+    initChat();
   }, []);
 
   // Отправка сообщения
-  const sendMessage = useCallback(async (text: string) => {
+  const sendMessage = useCallback(async (textOverride?: string) => {
+    const text = typeof textOverride === 'string' ? textOverride : inputText;
     if (!text.trim()) return;
 
     // Добавляем сообщение пользователя
@@ -319,7 +333,7 @@ const AIAssistantPage: React.FC<AIAssistantPageProps> = ({ initialContext }) => 
       // Получаем ответ от ИИ
       const aiResponse = await AICoachService.getEnhancedResponse('user_1', text.trim(), {
         userMood: currentContext.mood,
-        soberDays: 0,
+        soberDays: soberDays,
         cravingLevel: currentContext.cravingLevel,
         timeOfDay: new Date().getHours() > 12 ? 'afternoon' : 'morning',
       });
@@ -368,7 +382,7 @@ const AIAssistantPage: React.FC<AIAssistantPageProps> = ({ initialContext }) => 
       
       setMessages(prev => [...prev, errorMessage]);
     }
-  }, [currentContext]);
+  }, [currentContext, inputText]);
 
   // Обработка предложенных действий
   const handleSuggestionPress = useCallback((suggestion: ActionSuggestion) => {
@@ -486,15 +500,29 @@ const AIAssistantPage: React.FC<AIAssistantPageProps> = ({ initialContext }) => 
         showsVerticalScrollIndicator={false}
         onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
       >
-        {messages.map(message => (
-          <MessageBubble
-            key={message.id}
-            message={message}
-            onSuggestionPress={handleSuggestionPress}
-          />
-        ))}
-        
-        {isTyping && <TypingIndicator />}
+        {isLoading ? (
+          <View style={{ padding: 15, gap: 20 }}>
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <Skeleton width={30} height={30} borderRadius={15} />
+              <Skeleton width="70%" height={80} borderRadius={20} />
+            </View>
+            <View style={{ alignSelf: 'flex-end', width: '60%', height: 40 }}>
+              <Skeleton width="100%" height={40} borderRadius={20} />
+            </View>
+          </View>
+        ) : (
+          <>
+            {messages.map(message => (
+              <MessageBubble
+                key={message.id}
+                message={message}
+                onSuggestionPress={handleSuggestionPress}
+              />
+            ))}
+
+            {isTyping && <TypingIndicator />}
+          </>
+        )}
       </ScrollView>
 
 
@@ -526,13 +554,13 @@ const AIAssistantPage: React.FC<AIAssistantPageProps> = ({ initialContext }) => 
               styles.sendButton,
               !inputText.trim() && styles.sendButtonDisabled
             ]}
-            onPress={() => sendMessage(inputText)}
+            onPress={() => sendMessage()}
             disabled={!inputText.trim()}
           >
             <MaterialIcons 
               name="send" 
               size={20} 
-              color={inputText.trim() ? '#4CAF50' : '#CCC'} 
+              color={inputText.trim() ? '#2E7D4A' : '#CCC'}
             />
           </TouchableOpacity>
         </View>
@@ -574,7 +602,9 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 20,
-    paddingVertical: 15
+    paddingVertical: 15,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
   headerContent: {
     flexDirection: 'row',
@@ -659,7 +689,16 @@ const styles = StyleSheet.create({
   },
   aiBubble: {
     marginRight: screenWidth * 0.25,
-    paddingTop: 15
+    paddingTop: 15,
+    borderWidth: 1,
+    borderColor: '#E8F5E9'
+  },
+  aiBubbleShadow: {
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
   emergencyBubble: {
     borderWidth: 2,
@@ -682,10 +721,8 @@ const styles = StyleSheet.create({
   },
   messageTime: {
     fontSize: 11,
-    opacity: 0.7,
     marginTop: 4,
     alignSelf: 'flex-end',
-    color: 'white'
   },
   suggestionsContainer: {
     marginTop: 8,
@@ -749,16 +786,16 @@ const styles = StyleSheet.create({
     gap: 8
   },
   quickResponseButton: {
-    backgroundColor: '#F0F8FF',
+    backgroundColor: '#E8F5E9',
     paddingHorizontal: 15,
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#2196F3'
+    borderColor: '#2E7D4A'
   },
   quickResponseText: {
     fontSize: 13,
-    color: '#2196F3',
+    color: '#2E7D4A',
     fontWeight: '500'
   },
   inputContainer: {
