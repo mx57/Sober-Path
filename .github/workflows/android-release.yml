@@ -3,7 +3,7 @@ name: Android Release APKs
 on:
   push:
     tags:
-      - 'v*'
+      - '*'
   workflow_dispatch: {}
 
 jobs:
@@ -168,3 +168,37 @@ jobs:
         with:
           name: release-apks
           path: artifacts/
+
+      - name: Create GitHub Release
+        id: create_release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload APKs to Release
+        if: steps.create_release.outputs.upload_url != ''
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          UPLOAD_URL: ${{ steps.create_release.outputs.upload_url }}
+        run: |
+          set -e
+          for f in artifacts/*.apk; do
+            [ -f "$f" ] || continue
+            name=$(basename "$f")
+            echo "Uploading $name to release"
+            curl -sS -X POST -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/vnd.android.package-archive" --data-binary @"$f" "${UPLOAD_URL}?name=$name" || { echo "Upload failed for $name"; exit 1; }
+          done
+
+      - name: Upload APK artifacts (fallback)
+        if: steps.create_release.outputs.upload_url == ''
+        run: echo "Release not created (not a tag push) — artifacts are available in Actions run"
+
+      - name: Upload APK artifacts (debug list)
+        run: ls -la artifacts || true
+
