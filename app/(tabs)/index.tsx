@@ -160,8 +160,8 @@ function HomePage() {
     }
   }, []);
 
-  const streakDays = useMemo(() => getStreakDays(), [getStreakDays]);
-  const totalSoberDays = useMemo(() => getTotalSoberDays(), [getTotalSoberDays]);
+  const streakDays = useMemo(() => getStreakDays(), [getStreakDays, loading]);
+  const totalSoberDays = useMemo(() => getTotalSoberDays(), [getTotalSoberDays, loading]);
 
   const moodChartData = useMemo(() => {
     const last7Days = moodEntries.slice(-7);
@@ -253,8 +253,8 @@ function HomePage() {
       >
         <View style={styles.welcomeContainer}>
           <MaterialIcons name="eco" size={100} color="#2E7D4A" />
-          <Text style={styles.welcomeTitle}>Путь к Трезвости</Text>
-          <Text style={styles.welcomeSubtitle}>Ваш персональный помощник</Text>
+          <Text style={styles.welcomeTitle}>Sober Path</Text>
+          <Text style={styles.welcomeSubtitle}>Ваш проводник к новой жизни</Text>
           <Text style={styles.welcomeText}>
             Начните свой путь к здоровой жизни без алкоголя. 
             Получите поддержку, отслеживайте прогресс и достигайте целей.
@@ -723,8 +723,13 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0'
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
   headerContent: {
     flexDirection: 'row',

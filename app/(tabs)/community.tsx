@@ -111,10 +111,12 @@ export default function CommunityPage() {
   const [circles, setCircles] = useState<any[]>([]);
   const [selectedCircle, setSelectedCircle] = useState('all');
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isStoryModalVisible, setIsStoryModalVisible] = useState(false);
   const [isCommentModalVisible, setIsCommentModalVisible] = useState(false);
   const [selectedPostForComment, setSelectedPostForComment] = useState<SupportPost | null>(null);
   const [newCommentText, setNewCommentText] = useState('');
   const [newPostContent, setNewPostContent] = useState('');
+  const [newStoryContent, setNewStoryContent] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<'motivation' | 'question' | 'support' | 'milestone'>('support');
   const [isLoading, setIsLoading] = useState(true);
 
@@ -124,14 +126,15 @@ export default function CommunityPage() {
       // Simulate network delay
       await new Promise(resolve => setTimeout(resolve, 1500));
       setStories(CommunityService.getSuccessStories());
-      setPosts(CommunityService.getSupportPosts());
+      const loadedPosts = await CommunityService.getSupportPosts();
+      setPosts(loadedPosts);
       setCircles(CommunityService.getCircles());
       setIsLoading(false);
     };
     loadData();
   }, []);
 
-  const handleCreatePost = () => {
+  const handleCreatePost = async () => {
     if (!newPostContent.trim()) {
       Alert.alert('Ошибка', 'Пожалуйста, введите текст поста');
       return;
@@ -147,15 +150,17 @@ export default function CommunityPage() {
       category: selectedCategory
     };
 
+    await CommunityService.saveUserPost(newPost);
     setPosts([newPost, ...posts]);
     setNewPostContent('');
     setIsModalVisible(false);
     Alert.alert('Успех', 'Ваш пост опубликован!');
   };
 
-  const handleAddComment = () => {
+  const handleAddComment = async () => {
     if (!newCommentText.trim() || !selectedPostForComment) return;
 
+    await CommunityService.addComment(selectedPostForComment.id);
     setPosts(posts.map(p =>
       p.id === selectedPostForComment.id
         ? { ...p, comments: p.comments + 1 }
@@ -165,6 +170,26 @@ export default function CommunityPage() {
     setNewCommentText('');
     setIsCommentModalVisible(false);
     Alert.alert('Комментарий добавлен', 'Ваше мнение важно для сообщества!');
+  };
+
+  const handleCreateStory = () => {
+    if (!newStoryContent.trim()) {
+      Alert.alert('Ошибка', 'Пожалуйста, введите вашу историю');
+      return;
+    }
+
+    const newStory: SuccessStory = {
+      id: `s${Date.now()}`,
+      userName: 'Вы',
+      daysSober: 0, // Should ideally come from context
+      story: newStoryContent,
+      date: new Date().toISOString()
+    };
+
+    setStories([newStory, ...stories]);
+    setNewStoryContent('');
+    setIsStoryModalVisible(false);
+    Alert.alert('Успех', 'Ваша история опубликована!');
   };
 
   const filteredPosts = posts.filter(post =>
@@ -213,8 +238,8 @@ export default function CommunityPage() {
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Истории успеха</Text>
         {!isLoading && (
-          <TouchableOpacity>
-            <Text style={styles.seeAllText}>Все</Text>
+          <TouchableOpacity onPress={() => setIsStoryModalVisible(true)}>
+            <Text style={styles.seeAllText}>Поделиться</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -342,6 +367,43 @@ export default function CommunityPage() {
               onPress={handleCreatePost}
             >
               <Text style={styles.submitButtonText}>Опубликовать</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={isStoryModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setIsStoryModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Ваша история успеха</Text>
+              <TouchableOpacity onPress={() => setIsStoryModalVisible(false)}>
+                <MaterialIcons name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.modalHelperText}>Поделитесь своим путем. Ваша история может вдохновить других!</Text>
+
+            <TextInput
+              style={styles.postInput}
+              placeholder="Как изменилась ваша жизнь? Какие советы вы дадите новичкам?"
+              multiline
+              numberOfLines={8}
+              value={newStoryContent}
+              onChangeText={setNewStoryContent}
+              textAlignVertical="top"
+            />
+
+            <TouchableOpacity
+              style={styles.submitButton}
+              onPress={handleCreateStory}
+            >
+              <Text style={styles.submitButtonText}>Опубликовать историю</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -670,5 +732,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#666',
     fontStyle: 'italic'
+  },
+  modalHelperText: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 15,
+    lineHeight: 20
   }
 });
