@@ -368,7 +368,7 @@ const AIAssistantPage: React.FC<AIAssistantPageProps> = ({ initialContext }) => 
       
       setMessages(prev => [...prev, errorMessage]);
     }
-  }, [aiChat, currentContext]);
+  }, [currentContext]);
 
   // Обработка предложенных действий
   const handleSuggestionPress = useCallback((suggestion: ActionSuggestion) => {

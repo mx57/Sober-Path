@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "onspace-app",
-    "slug": "onspace-app",
+    "name": "Sober Path",
+    "slug": "sober-path",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/logo.png",
-    "scheme": "onspaceapp",
+    "scheme": "soberpath",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {

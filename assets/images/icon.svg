@@ -1,0 +1,28 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background with Gradient -->
+  <rect width="1024" height="1024" rx="200" fill="url(#paint0_linear)"/>
+
+  <!-- Path / Road -->
+  <path d="M512 850C512 850 450 700 450 550C450 400 512 300 512 300C512 300 574 400 574 550C574 700 512 850 512 850Z" fill="white" fill-opacity="0.3"/>
+  <path d="M512 850L480 650L512 550L544 650L512 850Z" fill="white" fill-opacity="0.5"/>
+
+  <!-- Growing Plant / Sprout -->
+  <path d="M512 600V400" stroke="white" stroke-width="40" stroke-linecap="round"/>
+  <path d="M512 500C512 500 400 450 350 350C350 350 450 300 512 400" fill="#A8E0A0"/>
+  <path d="M512 450C512 450 624 400 674 300C674 300 574 250 512 350" fill="#81C784"/>
+
+  <!-- Sun / Light -->
+  <circle cx="512" cy="250" r="80" fill="#FFF176" fill-opacity="0.8"/>
+  <circle cx="512" cy="250" r="100" stroke="#FFF176" stroke-width="10" stroke-dasharray="30 20"/>
+
+  <!-- Psychology Symbol (Alpha/Psi inspired) subtle -->
+  <path d="M400 700C400 750 450 800 512 800C574 800 624 750 624 700" stroke="white" stroke-width="20" stroke-linecap="round" fill="none"/>
+  <path d="M512 700V800" stroke="white" stroke-width="20" stroke-linecap="round"/>
+
+  <defs>
+    <linearGradient id="paint0_linear" x1="512" y1="0" x2="512" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2E7D4A"/>
+      <stop offset="1" stop-color="#4CAF50"/>
+    </linearGradient>
+  </defs>
+</svg>
