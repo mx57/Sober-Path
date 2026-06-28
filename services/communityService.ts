@@ -8,6 +8,8 @@ export interface SuccessStory {
   date: string;
 }
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 export interface SupportPost {
   id: string;
   author: string;
@@ -18,7 +20,10 @@ export interface SupportPost {
   category: 'motivation' | 'question' | 'support' | 'milestone';
 }
 
+const POSTS_STORAGE_KEY = 'sober_path_community_posts';
+
 export class CommunityService {
+  private static userPosts: SupportPost[] = [];
   static getSuccessStories(): SuccessStory[] {
     return [
       {
@@ -88,8 +93,9 @@ export class CommunityService {
     ];
   }
 
-  static getSupportPosts(): SupportPost[] {
-    return [
+  static async getSupportPosts(): Promise<SupportPost[]> {
+    const localPosts = await this.loadUserPosts();
+    const staticPosts: SupportPost[] = [
       {
         id: 'p1',
         author: 'Мария',
@@ -289,6 +295,29 @@ export class CommunityService {
         category: 'motivation'
       }
     ];
+    return [...localPosts, ...staticPosts];
+  }
+
+  static async saveUserPost(post: SupportPost): Promise<void> {
+    const posts = await this.loadUserPosts();
+    const updated = [post, ...posts];
+    await AsyncStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(updated));
+  }
+
+  static async addComment(postId: string): Promise<void> {
+    const posts = await this.loadUserPosts();
+    const updated = posts.map(p => p.id === postId ? { ...p, comments: p.comments + 1 } : p);
+    await AsyncStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(updated));
+  }
+
+  private static async loadUserPosts(): Promise<SupportPost[]> {
+    try {
+      const stored = await AsyncStorage.getItem(POSTS_STORAGE_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+      console.error('Failed to load user posts', e);
+      return [];
+    }
   }
 
   static getCircles(): { id: string; name: string; icon: string; color: string }[] {

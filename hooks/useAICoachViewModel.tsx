@@ -32,6 +32,8 @@ export function useAICoachViewModel() {
   }, [soberDays, userProfile?.id]);
 
   const initialize = async () => {
+    await AICoachService.loadFromStorage();
+
     const welcome: ChatMessage = {
       id: 'welcome',
       text: `Привет! Я ваш AI-коуч. У вас ${soberDays} дней трезвости. Как я могу помочь сегодня?`,
@@ -46,12 +48,13 @@ export function useAICoachViewModel() {
     setInsights(aiInsights);
     setTriggers(AICoachService.detectTriggerPatterns(userProfile?.id || 'default'));
     setNotifications(NotificationService.getNotifications());
-    setChallenges(AICoachService.getChallenges(userProfile?.id || 'default'));
+    const initialChallenges = await AICoachService.getChallenges(userProfile?.id || 'default');
+    setChallenges(initialChallenges);
     setChatStarters(AICoachService.getChatStarters({ mood: 3, soberDays }));
   };
 
-  const completeChallenge = useCallback((challengeId: string) => {
-    const result = AICoachService.completeChallenge(userProfile?.id || 'default', challengeId);
+  const completeChallenge = useCallback(async (challengeId: string) => {
+    const result = await AICoachService.completeChallenge(userProfile?.id || 'default', challengeId);
     if (result.success) {
       setChallenges(result.data);
     }

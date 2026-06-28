@@ -1,6 +1,7 @@
 import { findRelevantKnowledge, psychologyKnowledgeBase } from './psychologyKnowledgeBase';
 import { Result, success, failure } from './types';
 import { articlesDatabase } from './articlesDatabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface AICoachMessage {
   id: string;
@@ -85,9 +86,44 @@ export interface AICoachChallenge {
   icon: string;
 }
 
+const MEMORY_STORAGE_KEY = 'sober_path_ai_memory';
+const CHALLENGES_STORAGE_KEY = 'sober_path_ai_challenges';
+
 export class AICoachService {
   private static memory: Map<string, ConversationMemory> = new Map();
   private static userChallenges: Map<string, AICoachChallenge[]> = new Map();
+  private static initialized = false;
+
+  static async loadFromStorage(): Promise<void> {
+    if (this.initialized) return;
+    try {
+      const storedMemory = await AsyncStorage.getItem(MEMORY_STORAGE_KEY);
+      if (storedMemory) {
+        const parsed = JSON.parse(storedMemory);
+        this.memory = new Map(Object.entries(parsed));
+      }
+      const storedChallenges = await AsyncStorage.getItem(CHALLENGES_STORAGE_KEY);
+      if (storedChallenges) {
+        const parsed = JSON.parse(storedChallenges);
+        this.userChallenges = new Map(Object.entries(parsed));
+      }
+      this.initialized = true;
+    } catch (e) {
+      console.error('Failed to load AI Coach data from storage', e);
+    }
+  }
+
+  private static async saveToStorage(): Promise<void> {
+    try {
+      const memoryObj = Object.fromEntries(this.memory.entries());
+      await AsyncStorage.setItem(MEMORY_STORAGE_KEY, JSON.stringify(memoryObj));
+
+      const challengesObj = Object.fromEntries(this.userChallenges.entries());
+      await AsyncStorage.setItem(CHALLENGES_STORAGE_KEY, JSON.stringify(challengesObj));
+    } catch (e) {
+      console.error('Failed to save AI Coach data to storage', e);
+    }
+  }
 
   static initializeUserMemory(userId: string): void {
     if (!this.memory.has(userId)) {
@@ -111,7 +147,12 @@ export class AICoachService {
 
   private static getUserMemory(userId: string): ConversationMemory {
     this.initializeUserMemory(userId);
-    return this.memory.get(userId)!;
+    return this.memory.get(userId) || {
+      userId,
+      conversations: [],
+      userPreferences: { preferredTechniques: [], triggersIdentified: [], goalsSet: [], challengesFaced: [] },
+      emotionalPattern: { averageMood: 3, moodTrend: 'stable', commonEmotions: [] }
+    };
   }
 
   static analyzeUserBehavior(data: {
@@ -203,7 +244,7 @@ export class AICoachService {
         }
 
         const recommendedArticles = this.recommendArticles(topics);
-        this.updateMemory(userId, userMessage, response, context.userMood, topics);
+        await this.updateMemory(userId, userMessage, response, context.userMood, topics);
 
         return success({
           message: response,
@@ -307,7 +348,7 @@ export class AICoachService {
     return `Поздравляю с ${soberDays} днями трезвости! Каждый день делает вас сильнее.`;
   }
 
-  static generateDailyChallenges(userId: string, soberDays: number): AICoachChallenge[] {
+  static async generateDailyChallenges(userId: string, soberDays: number): Promise<AICoachChallenge[]> {
     const challenges: AICoachChallenge[] = [
       {
         id: 'ch1',
@@ -355,22 +396,25 @@ export class AICoachService {
     }
 
     this.userChallenges.set(userId, challenges);
+    await this.saveToStorage();
     return challenges;
   }
 
-  static getChallenges(userId: string): AICoachChallenge[] {
+  static async getChallenges(userId: string): Promise<AICoachChallenge[]> {
+    await this.loadFromStorage();
     if (!this.userChallenges.has(userId)) {
-        return this.generateDailyChallenges(userId, 0);
+        return await this.generateDailyChallenges(userId, 0);
     }
     return this.userChallenges.get(userId)!;
   }
 
-  static completeChallenge(userId: string, challengeId: string): Result<AICoachChallenge[]> {
-    const challenges = this.getChallenges(userId);
+  static async completeChallenge(userId: string, challengeId: string): Promise<Result<AICoachChallenge[]>> {
+    const challenges = await this.getChallenges(userId);
     const updated = challenges.map(ch =>
         ch.id === challengeId ? { ...ch, completed: true } : ch
     );
     this.userChallenges.set(userId, updated);
+    await this.saveToStorage();
     return success(updated);
   }
 
@@ -413,13 +457,14 @@ export class AICoachService {
     return recommended;
   }
 
-  private static updateMemory(
+  private static async updateMemory(
     userId: string,
     userMessage: string,
     aiResponse: string,
     userMood: number,
     topics: string[]
-  ): void {
+  ): Promise<void> {
+    await this.loadFromStorage();
     const memory = this.getUserMemory(userId);
     memory.conversations.push({
       timestamp: new Date(),
@@ -442,5 +487,7 @@ export class AICoachService {
       const currentEmotions = [...memory.emotionalPattern.commonEmotions, ...topics];
       memory.emotionalPattern.commonEmotions = Array.from(new Set(currentEmotions)).slice(-10);
     }
+
+    await this.saveToStorage();
   }
 }
