@@ -6,7 +6,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { CommunityService, SuccessStory, SupportPost, ExpertQA } from '../../services/communityService';
+import { CommunityService, SuccessStory, SupportPost, ExpertQA, ReactionType } from '../../services/communityService';
 import Animated, { FadeInUp, useSharedValue, useAnimatedStyle, withSpring, withSequence, withTiming } from 'react-native-reanimated';
 import { Skeleton } from '../../components/Skeleton';
 
@@ -40,8 +40,6 @@ const ExpertQACard = ({ qa }: { qa: ExpertQA }) => (
     </View>
   </View>
 );
-
-import { CommunityService, SuccessStory, SupportPost, ExpertQA, ReactionType } from '../../services/communityService';
 
 const SupportPostItem = ({
   post,
