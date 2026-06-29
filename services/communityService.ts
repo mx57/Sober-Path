@@ -10,6 +10,8 @@ export interface SuccessStory {
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+export type ReactionType = 'support' | 'agree' | 'hug' | 'like';
+
 export interface SupportPost {
   id: string;
   author: string;
@@ -17,7 +19,8 @@ export interface SupportPost {
   likes: number;
   comments: number;
   timeAgo: string;
-  category: 'motivation' | 'question' | 'support' | 'milestone';
+  category: 'motivation' | 'question' | 'support' | 'milestone' | 'daily_thread';
+  reactions?: Record<ReactionType, number>;
 }
 
 export interface ExpertQA {
@@ -317,6 +320,33 @@ export class CommunityService {
     const posts = await this.loadUserPosts();
     const updated = posts.map(p => p.id === postId ? { ...p, comments: p.comments + 1 } : p);
     await AsyncStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(updated));
+  }
+
+  static async addReaction(postId: string, reaction: ReactionType): Promise<void> {
+    const posts = await this.loadUserPosts();
+    const updated = posts.map(p => {
+      if (p.id === postId) {
+        const reactions = p.reactions || { support: 0, agree: 0, hug: 0, like: 0 };
+        reactions[reaction] = (reactions[reaction] || 0) + 1;
+        return { ...p, reactions };
+      }
+      return p;
+    });
+    await AsyncStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(updated));
+  }
+
+  static getDailyThread(): SupportPost {
+    const today = new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+    return {
+      id: `daily_${new Date().toDateString()}`,
+      author: 'Sober Path Bot',
+      content: `🗓 Ежедневный поток поддержки: ${today}\n\nКак началось ваше утро? Поделитесь своими планами на сегодня и пожелайте друг другу трезвого дня! 👇`,
+      likes: 156,
+      comments: 42,
+      timeAgo: 'Сегодня',
+      category: 'daily_thread',
+      reactions: { support: 45, agree: 12, hug: 38, like: 61 }
+    };
   }
 
   private static async loadUserPosts(): Promise<SupportPost[]> {

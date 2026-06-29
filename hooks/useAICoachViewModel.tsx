@@ -14,6 +14,7 @@ export interface ChatMessage {
   recommendedCourses?: { id: string, title: string }[];
   followUpQuestions?: string[];
   isCheckIn?: boolean;
+  isReflection?: boolean;
 }
 
 export function useAICoachViewModel() {
@@ -53,6 +54,21 @@ export function useAICoachViewModel() {
     const initialChallenges = await AICoachService.getChallenges(userProfile?.id || 'default');
     setChallenges(initialChallenges);
     setChatStarters(AICoachService.getChatStarters({ mood: 3, soberDays }));
+
+    // Check for evening reflection (after 20:00)
+    const hours = new Date().getHours();
+    if (hours >= 20) {
+      const reflection = await AICoachService.getEveningReflection(userProfile?.id || 'default');
+      const reflectionMsg: ChatMessage = {
+        id: 'evening_reflection',
+        text: reflection.message,
+        isUser: false,
+        timestamp: new Date(),
+        suggestions: reflection.suggestions,
+        isReflection: true
+      };
+      setMessages(prev => [...prev, reflectionMsg]);
+    }
   };
 
   const completeChallenge = useCallback(async (challengeId: string) => {

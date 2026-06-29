@@ -41,8 +41,18 @@ const ExpertQACard = ({ qa }: { qa: ExpertQA }) => (
   </View>
 );
 
-const SupportPostItem = ({ post, onCommentPress }: { post: SupportPost, onCommentPress: (post: SupportPost) => void }) => {
-  const [liked, setLiked] = React.useState(false);
+import { CommunityService, SuccessStory, SupportPost, ExpertQA, ReactionType } from '../../services/communityService';
+
+const SupportPostItem = ({
+  post,
+  onCommentPress,
+  onReactionPress
+}: {
+  post: SupportPost,
+  onCommentPress: (post: SupportPost) => void,
+  onReactionPress: (postId: string, reaction: ReactionType) => void
+}) => {
+  const [showReactions, setShowReactions] = useState(false);
   const heartScale = useSharedValue(1);
   const heartAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: heartScale.value }] }));
 
@@ -51,6 +61,7 @@ const SupportPostItem = ({ post, onCommentPress }: { post: SupportPost, onCommen
       case 'motivation': return 'auto-awesome';
       case 'question': return 'help-outline';
       case 'milestone': return 'emoji-events';
+      case 'daily_thread': return 'today';
       default: return 'favorite-border';
     }
   };
@@ -60,24 +71,27 @@ const SupportPostItem = ({ post, onCommentPress }: { post: SupportPost, onCommen
       case 'motivation': return '#FFC107';
       case 'question': return '#2196F3';
       case 'milestone': return '#E91E63';
+      case 'daily_thread': return '#673AB7';
       default: return '#2E7D4A';
     }
   };
 
-  const handleLike = () => {
-    if (!liked) {
-      heartScale.value = withSequence(
-        withSpring(1.5),
-        withTiming(1, { duration: 200 })
-      );
-      setLiked(true);
-    } else {
-      setLiked(false);
-    }
+  const handleReaction = (type: ReactionType) => {
+    onReactionPress(post.id, type);
+    setShowReactions(false);
+    heartScale.value = withSequence(
+      withSpring(1.5),
+      withTiming(1, { duration: 200 })
+    );
   };
 
+  const reactions = post.reactions || { support: 0, agree: 0, hug: 0, like: 0 };
+
   return (
-    <Animated.View entering={FadeInUp.delay(100)} style={styles.postCard}>
+    <Animated.View entering={FadeInUp.delay(100)} style={[
+      styles.postCard,
+      post.category === 'daily_thread' && styles.dailyThreadCard
+    ]}>
       <View style={styles.postHeader}>
         <View style={[styles.categoryIconContainer, { backgroundColor: getCategoryColor(post.category) + '20' }]}>
           <MaterialIcons name={getCategoryIcon(post.category)} size={20} color={getCategoryColor(post.category)} />
@@ -87,35 +101,71 @@ const SupportPostItem = ({ post, onCommentPress }: { post: SupportPost, onCommen
           <Text style={styles.timeAgo}>{post.timeAgo}</Text>
         </View>
         <View style={[styles.categoryBadge, { backgroundColor: getCategoryColor(post.category) }]}>
-            <Text style={styles.categoryBadgeText}>{post.category}</Text>
+            <Text style={styles.categoryBadgeText}>{post.category === 'daily_thread' ? 'Дневной поток' : post.category}</Text>
         </View>
       </View>
 
-      <Text style={styles.postContent}>{post.content}</Text>
+      <Text style={[
+        styles.postContent,
+        post.category === 'daily_thread' && styles.dailyThreadText
+      ]}>{post.content}</Text>
+
+      {Object.values(reactions).some(v => v > 0) && (
+        <View style={styles.reactionsSummary}>
+          {reactions.support > 0 && <View style={styles.summaryBadge}><Text style={styles.summaryEmoji}>🛡️</Text><Text style={styles.summaryCount}>{reactions.support}</Text></View>}
+          {reactions.agree > 0 && <View style={styles.summaryBadge}><Text style={styles.summaryEmoji}>🤝</Text><Text style={styles.summaryCount}>{reactions.agree}</Text></View>}
+          {reactions.hug > 0 && <View style={styles.summaryBadge}><Text style={styles.summaryEmoji}>🫂</Text><Text style={styles.summaryCount}>{reactions.hug}</Text></View>}
+          {reactions.like > 0 && <View style={styles.summaryBadge}><Text style={styles.summaryEmoji}>❤️</Text><Text style={styles.summaryCount}>{reactions.like}</Text></View>}
+        </View>
+      )}
 
       <View style={styles.postFooter}>
-        <TouchableOpacity style={styles.actionButton} onPress={handleLike}>
-          <Animated.View style={[styles.iconContainer, heartAnimStyle]}>
-            <MaterialIcons
-              name={liked ? "favorite" : "favorite-border"}
-              size={20}
-              color={liked ? "#E91E63" : "#666"}
-            />
-          </Animated.View>
-          <Text style={[styles.actionText, liked && { color: '#E91E63' }]}>
-            {liked ? post.likes + 1 : post.likes}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.footerActions}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => setShowReactions(!showReactions)}
+          >
+            <Animated.View style={[styles.iconContainer, heartAnimStyle]}>
+              <MaterialIcons
+                name="add-reaction"
+                size={20}
+                color="#666"
+              />
+            </Animated.View>
+            <Text style={styles.actionText}>Реакция</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionButton} onPress={() => onCommentPress(post)}>
-          <MaterialIcons name="chat-bubble-outline" size={20} color="#666" />
-          <Text style={styles.actionText}>{post.comments}</Text>
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButton} onPress={() => onCommentPress(post)}>
+            <MaterialIcons name="chat-bubble-outline" size={20} color="#666" />
+            <Text style={styles.actionText}>{post.comments}</Text>
+          </TouchableOpacity>
+        </View>
 
-        <TouchableOpacity style={[styles.actionButton, { marginLeft: 'auto' }]}>
+        <TouchableOpacity style={styles.actionButton}>
           <MaterialIcons name="share" size={20} color="#666" />
         </TouchableOpacity>
       </View>
+
+      {showReactions && (
+        <Animated.View entering={FadeInUp} style={styles.reactionsPicker}>
+          <TouchableOpacity style={styles.reactionOption} onPress={() => handleReaction('support')}>
+            <Text style={styles.reactionEmoji}>🛡️</Text>
+            <Text style={styles.reactionLabel}>Поддержка</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.reactionOption} onPress={() => handleReaction('agree')}>
+            <Text style={styles.reactionEmoji}>🤝</Text>
+            <Text style={styles.reactionLabel}>Согласен</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.reactionOption} onPress={() => handleReaction('hug')}>
+            <Text style={styles.reactionEmoji}>🫂</Text>
+            <Text style={styles.reactionLabel}>Обнимаю</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.reactionOption} onPress={() => handleReaction('like')}>
+            <Text style={styles.reactionEmoji}>❤️</Text>
+            <Text style={styles.reactionLabel}>Люблю</Text>
+          </TouchableOpacity>
+        </Animated.View>
+      )}
     </Animated.View>
   );
 };
@@ -144,13 +194,36 @@ export default function CommunityPage() {
       await new Promise(resolve => setTimeout(resolve, 1500));
       setStories(CommunityService.getSuccessStories());
       setExpertQA(CommunityService.getExpertQA());
+
       const loadedPosts = await CommunityService.getSupportPosts();
-      setPosts(loadedPosts);
+      const dailyThread = CommunityService.getDailyThread();
+
+      // Ensure daily thread is at the top if it doesn't exist in loaded posts
+      if (!loadedPosts.find(p => p.id === dailyThread.id)) {
+        setPosts([dailyThread, ...loadedPosts]);
+      } else {
+        setPosts(loadedPosts);
+      }
+
       setCircles(CommunityService.getCircles());
       setIsLoading(false);
     };
     loadData();
   }, []);
+
+  const handleReactionPress = async (postId: string, reaction: ReactionType) => {
+    await CommunityService.addReaction(postId, reaction);
+    setPosts(currentPosts => currentPosts.map(p => {
+      if (p.id === postId) {
+        const reactions = p.reactions || { support: 0, agree: 0, hug: 0, like: 0 };
+        return {
+          ...p,
+          reactions: { ...reactions, [reaction]: (reactions[reaction] || 0) + 1 }
+        };
+      }
+      return p;
+    }));
+  };
 
   const handleCreatePost = async () => {
     if (!newPostContent.trim()) {
@@ -338,6 +411,7 @@ export default function CommunityPage() {
                 setSelectedPostForComment(post);
                 setIsCommentModalVisible(true);
               }}
+              onReactionPress={handleReactionPress}
             />
           )}
           ListHeaderComponent={renderHeader}
@@ -646,6 +720,64 @@ const styles = StyleSheet.create({
   expertTitle: {
     fontSize: 11,
     color: '#888'
+  },
+  dailyThreadCard: {
+    backgroundColor: '#F3E5F5',
+    borderColor: '#673AB7',
+    borderWidth: 1,
+  },
+  dailyThreadText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#4A148C',
+  },
+  reactionsSummary: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
+  summaryBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F0F0',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  summaryEmoji: {
+    fontSize: 12,
+  },
+  summaryCount: {
+    fontSize: 11,
+    color: '#666',
+    fontWeight: 'bold',
+  },
+  reactionsPicker: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: '#F8F9FA',
+    marginTop: 10,
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  reactionOption: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  reactionEmoji: {
+    fontSize: 20,
+  },
+  reactionLabel: {
+    fontSize: 9,
+    color: '#888',
+  },
+  footerActions: {
+    flexDirection: 'row',
+    gap: 15,
   },
   postCard: {
     backgroundColor: 'white',
