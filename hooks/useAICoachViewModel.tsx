@@ -15,6 +15,7 @@ export interface ChatMessage {
   followUpQuestions?: string[];
   isCheckIn?: boolean;
   isReflection?: boolean;
+  urgency?: 'low' | 'medium' | 'high' | 'critical';
 }
 
 export function useAICoachViewModel() {
@@ -134,7 +135,8 @@ export function useAICoachViewModel() {
           suggestions: data.suggestions,
           recommendedArticles: data.recommendedArticles,
           recommendedCourses: data.recommendedCourses,
-          followUpQuestions: data.followUpQuestions
+          followUpQuestions: data.followUpQuestions,
+          urgency: data.urgency
         };
 
         setMessages(prev => [...prev, aiMsg]);
