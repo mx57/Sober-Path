@@ -71,3 +71,30 @@ export interface NLPExercise {
 }
 
 export type NLPCategory = 'anchoring' | 'visualization' | 'reframing' | 'future_pacing';
+
+export interface MicroLesson {
+  id: string;
+  title: string;
+  content: string;
+  duration: number; // minutes
+  type: 'text' | 'exercise' | 'quiz';
+  exerciseId?: string;
+}
+
+export interface MicroCourse {
+  id: string;
+  title: string;
+  description: string;
+  category: 'foundation' | 'triggers' | 'growth' | 'lifestyle';
+  lessons: MicroLesson[];
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  icon: string;
+  points: number;
+}
+
+export interface UserCourseProgress {
+  courseId: string;
+  completedLessons: string[];
+  isCompleted: boolean;
+  lastAccessed: string;
+}

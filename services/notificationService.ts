@@ -323,6 +323,30 @@ class NotificationService {
     }
   }
 
+  // Планирование уведомления с задержкой (в секундах)
+  async scheduleDelayedNotification(title: string, body: string, seconds: number): Promise<void> {
+    if (Platform.OS === 'web') {
+      setTimeout(() => {
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification(title, { body });
+        }
+      }, seconds * 1000);
+      return;
+    }
+
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title,
+        body,
+        sound: 'default',
+      },
+      trigger: {
+        seconds,
+        repeats: false
+      },
+    });
+  }
+
   // Получение всех уведомлений
   getNotifications(): RecoveryNotification[] {
     return this.notifications;

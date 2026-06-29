@@ -49,9 +49,10 @@ const ChallengeCard = React.memo(({ challenge, onComplete }: {
 ));
 
 // Refactored Message component
-const MessageBubble = React.memo(({ message, onArticlePress, onSpeak, isSpeaking }: {
+const MessageBubble = React.memo(({ message, onArticlePress, onCoursePress, onSpeak, isSpeaking }: {
   message: ChatMessage,
   onArticlePress: (id: string) => void,
+  onCoursePress: (id: string) => void,
   onSpeak: (text: string) => void,
   isSpeaking: boolean
 }) => {
@@ -95,6 +96,22 @@ const MessageBubble = React.memo(({ message, onArticlePress, onSpeak, isSpeaking
               >
                 <MaterialIcons name="article" size={16} color="#2E7D4A" />
                 <Text style={styles.articleLinkText}>{article.title}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {!isUser && message.recommendedCourses && message.recommendedCourses.length > 0 && (
+          <View style={styles.recommendationsContainer}>
+            <Text style={styles.recommendationTitle}>Рекомендуемые курсы:</Text>
+            {message.recommendedCourses.map(course => (
+              <TouchableOpacity
+                key={course.id}
+                style={styles.articleLink}
+                onPress={() => onCoursePress(course.id)}
+              >
+                <MaterialIcons name="school" size={16} color="#2E7D4A" />
+                <Text style={styles.articleLinkText}>{course.title}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -188,6 +205,7 @@ export default function EnhancedAICoach() {
                   key={m.id}
                   message={m}
                   onArticlePress={(id) => router.push({ pathname: '/articles', params: { id } })}
+                  onCoursePress={(id) => router.push({ pathname: '/micro-courses', params: { id } })}
                   onSpeak={vm.speak}
                   isSpeaking={vm.isSpeaking}
                 />
