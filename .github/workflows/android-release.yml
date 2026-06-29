@@ -61,9 +61,7 @@ jobs:
       - name: Generate test keystore
         run: |
           mkdir -p android/app
-          if [ ! -f android/app/release.keystore ]; then
-            keytool -genkeypair -v -storetype JKS -keystore android/app/release.keystore -alias release -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=example, OU=example, O=example, L=example, S=example, C=US"
-          fi
+          keytool -genkeypair -v -storetype JKS -keystore android/app/release.keystore -alias release -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=example, OU=example, O=example, L=example, S=example, C=US"
 
       - name: Build release APK(s)
         working-directory: android
@@ -81,28 +79,11 @@ jobs:
           name: release-apks
           path: artifacts/
 
-      - name: Create GitHub Release
-        id: create_release
+      - name: Release
+        uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
-        uses: actions/create-release@v1
         with:
-          tag_name: ${{ github.ref_name }}
-          release_name: ${{ github.ref_name }}
-          draft: false
-          prerelease: false
+          files: artifacts/*.apk
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload APKs to Release
-        if: steps.create_release.outputs.upload_url != ''
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          UPLOAD_URL: ${{ steps.create_release.outputs.upload_url }}
-        run: |
-          set -e
-          for f in artifacts/*.apk; do
-            [ -f "$f" ] || continue
-            name=$(basename "$f")
-            echo "Uploading $name to release"
-            curl -sS -X POST -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/vnd.android.package-archive" --data-binary @"$f" "${UPLOAD_URL}?name=$name" || { echo "Upload failed for $name"; exit 1; }
-          done
