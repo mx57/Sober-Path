@@ -11,7 +11,9 @@ export interface ChatMessage {
   timestamp: Date;
   suggestions?: string[];
   recommendedArticles?: RecommendedArticle[];
+  recommendedCourses?: { id: string, title: string }[];
   followUpQuestions?: string[];
+  isCheckIn?: boolean;
 }
 
 export function useAICoachViewModel() {
@@ -115,10 +117,32 @@ export function useAICoachViewModel() {
           timestamp: new Date(),
           suggestions: data.suggestions,
           recommendedArticles: data.recommendedArticles,
+          recommendedCourses: data.recommendedCourses,
           followUpQuestions: data.followUpQuestions
         };
 
         setMessages(prev => [...prev, aiMsg]);
+
+        // Планируем напоминание через час, если был высокий стресс или тяга
+        if (data.checkInRequired) {
+          await AICoachService.scheduleAssistantReminder(
+            userProfile?.id || 'default',
+            'Как вы себя чувствуете сейчас? Помните о дыхательных техниках.',
+            3600 // 1 час
+          );
+
+          setTimeout(() => {
+            const checkInMsg: ChatMessage = {
+              id: (Date.now() + 2).toString(),
+              text: 'Я заметил повышенное напряжение. Как вы оцениваете свое состояние по шкале от 1 до 5?',
+              isUser: false,
+              timestamp: new Date(),
+              isCheckIn: true,
+              suggestions: ['1 - Критически', '2 - Тяжело', '3 - Терпимо', '4 - Хорошо', '5 - Отлично']
+            };
+            setMessages(prev => [...prev, checkInMsg]);
+          }, 1000);
+        }
       }
     } catch (e) {
       console.error(e);

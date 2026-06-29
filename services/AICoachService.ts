@@ -1,7 +1,9 @@
 import { findRelevantKnowledge, psychologyKnowledgeBase } from './psychologyKnowledgeBase';
 import { Result, success, failure } from './types';
 import { articlesDatabase } from './articlesDatabase';
+import { microCoursesDatabase } from './microCoursesDatabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import NotificationService from './notificationService';
 
 export interface AICoachMessage {
   id: string;
@@ -65,6 +67,11 @@ export interface RecommendedArticle {
   category: string;
 }
 
+export interface RecommendedCourse {
+  id: string;
+  title: string;
+}
+
 export interface EnhancedAIResponse {
   message: string;
   emotionalTone: 'empathetic' | 'motivational' | 'educational' | 'supportive';
@@ -73,6 +80,8 @@ export interface EnhancedAIResponse {
   memoryUpdates: string[];
   confidenceLevel: number;
   recommendedArticles?: RecommendedArticle[];
+  recommendedCourses?: RecommendedCourse[];
+  checkInRequired?: boolean;
 }
 
 export interface AICoachChallenge {
@@ -244,7 +253,14 @@ export class AICoachService {
         }
 
         const recommendedArticles = this.recommendArticles(topics);
+        const recommendedCourses = this.recommendCourses(topics, context.soberDays);
         await this.updateMemory(userId, userMessage, response, context.userMood, topics);
+
+        // Проверка необходимости эмоционального чек-ина
+        const checkInRequired = (context.stressLevel !== undefined && context.stressLevel >= 4) || context.cravingLevel >= 4;
+
+        // Обновляем адаптивные уведомления на основе прогресса
+        await NotificationService.scheduleAdaptiveNotifications(context.soberDays);
 
         return success({
           message: response,
@@ -253,7 +269,9 @@ export class AICoachService {
           followUpQuestions,
           memoryUpdates: [`Updated memory for ${userId}`, `Detected topics: ${topics.join(', ')}`],
           confidenceLevel: knowledgeMatch ? 0.95 : 0.6,
-          recommendedArticles
+          recommendedArticles,
+          recommendedCourses,
+          checkInRequired
         });
     } catch (e) {
         return failure(e as Error);
@@ -346,6 +364,14 @@ export class AICoachService {
     if (soberDays === 0) return "Начало пути - самый сложный и важный шаг. Вы уже здесь, и это победа!";
     if (soberDays % 7 === 0) return `Вы трезвы уже ${soberDays / 7} недель! Это потрясающий результат.`;
     return `Поздравляю с ${soberDays} днями трезвости! Каждый день делает вас сильнее.`;
+  }
+
+  static async scheduleAssistantReminder(userId: string, message: string, delaySeconds: number = 3600): Promise<void> {
+    await NotificationService.scheduleDelayedNotification(
+      '💡 Поддержка от Коуча',
+      message,
+      delaySeconds
+    );
   }
 
   static async generateDailyChallenges(userId: string, soberDays: number): Promise<AICoachChallenge[]> {
@@ -455,6 +481,27 @@ export class AICoachService {
       .map(a => ({ id: a.id, title: a.title, category: a.category }));
 
     return recommended;
+  }
+
+  private static recommendCourses(topics: string[], soberDays: number): RecommendedCourse[] {
+    const recommended: RecommendedCourse[] = [];
+
+    if (soberDays < 7) {
+      const course = microCoursesDatabase.find(c => c.id === 'foundation_week_1');
+      if (course) recommended.push({ id: course.id, title: course.title });
+    }
+
+    if (topics.some(t => t.toLowerCase().includes('триггер') || t.toLowerCase().includes('тяга'))) {
+      const course = microCoursesDatabase.find(c => c.id === 'triggers_mastery');
+      if (course) recommended.push({ id: course.id, title: course.title });
+    }
+
+    if (soberDays > 30 && recommended.length === 0) {
+      const course = microCoursesDatabase.find(c => c.id === 'life_rebuild');
+      if (course) recommended.push({ id: course.id, title: course.title });
+    }
+
+    return recommended.slice(0, 2);
   }
 
   private static async updateMemory(

@@ -6,7 +6,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { CommunityService, SuccessStory, SupportPost } from '../../services/communityService';
+import { CommunityService, SuccessStory, SupportPost, ExpertQA } from '../../services/communityService';
 import Animated, { FadeInUp, useSharedValue, useAnimatedStyle, withSpring, withSequence, withTiming } from 'react-native-reanimated';
 import { Skeleton } from '../../components/Skeleton';
 
@@ -22,6 +22,22 @@ const SuccessStoryCard = ({ story }: { story: SuccessStory }) => (
       </View>
     </View>
     <Text style={styles.storyText} numberOfLines={3}>{story.story}</Text>
+  </View>
+);
+
+const ExpertQACard = ({ qa }: { qa: ExpertQA }) => (
+  <View style={styles.expertCard}>
+    <View style={styles.expertHeader}>
+      <MaterialIcons name="help-center" size={24} color="#2E7D4A" />
+      <Text style={styles.expertQuestion} numberOfLines={2}>{qa.question}</Text>
+    </View>
+    <View style={styles.expertAnswerContainer}>
+      <Text style={styles.expertAnswerText} numberOfLines={3}>{qa.answer}</Text>
+    </View>
+    <View style={styles.expertFooter}>
+      <Text style={styles.expertName}>{qa.expertName}</Text>
+      <Text style={styles.expertTitle}>{qa.expertTitle}</Text>
+    </View>
   </View>
 );
 
@@ -108,6 +124,7 @@ export default function CommunityPage() {
   const insets = useSafeAreaInsets();
   const [stories, setStories] = useState<SuccessStory[]>([]);
   const [posts, setPosts] = useState<SupportPost[]>([]);
+  const [expertQA, setExpertQA] = useState<ExpertQA[]>([]);
   const [circles, setCircles] = useState<any[]>([]);
   const [selectedCircle, setSelectedCircle] = useState('all');
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -126,6 +143,7 @@ export default function CommunityPage() {
       // Simulate network delay
       await new Promise(resolve => setTimeout(resolve, 1500));
       setStories(CommunityService.getSuccessStories());
+      setExpertQA(CommunityService.getExpertQA());
       const loadedPosts = await CommunityService.getSupportPosts();
       setPosts(loadedPosts);
       setCircles(CommunityService.getCircles());
@@ -231,6 +249,24 @@ export default function CommunityPage() {
                 {circle.name}
               </Text>
             </TouchableOpacity>
+          ))
+        )}
+      </ScrollView>
+
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Ответы экспертов</Text>
+      </View>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.storiesContainer}
+      >
+        {isLoading ? (
+          [1, 2].map(i => <Skeleton key={i} width={screenWidth * 0.8} height={180} borderRadius={16} />)
+        ) : (
+          expertQA.map(qa => (
+            <ExpertQACard key={qa.id} qa={qa} />
           ))
         )}
       </ScrollView>
@@ -561,6 +597,55 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     lineHeight: 20
+  },
+  expertCard: {
+    backgroundColor: 'white',
+    width: screenWidth * 0.8,
+    borderRadius: 16,
+    padding: 16,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    borderLeftWidth: 4,
+    borderLeftColor: '#2E7D4A'
+  },
+  expertHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 10,
+    gap: 8
+  },
+  expertQuestion: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#333',
+    flex: 1
+  },
+  expertAnswerContainer: {
+    backgroundColor: '#F8F9FA',
+    padding: 10,
+    borderRadius: 12,
+    marginBottom: 10
+  },
+  expertAnswerText: {
+    fontSize: 13,
+    color: '#555',
+    lineHeight: 18,
+    fontStyle: 'italic'
+  },
+  expertFooter: {
+    marginTop: 'auto'
+  },
+  expertName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#2E7D4A'
+  },
+  expertTitle: {
+    fontSize: 11,
+    color: '#888'
   },
   postCard: {
     backgroundColor: 'white',
