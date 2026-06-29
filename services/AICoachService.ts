@@ -82,6 +82,7 @@ export interface EnhancedAIResponse {
   recommendedArticles?: RecommendedArticle[];
   recommendedCourses?: RecommendedCourse[];
   checkInRequired?: boolean;
+  isReflection?: boolean;
 }
 
 export interface AICoachChallenge {
@@ -372,6 +373,34 @@ export class AICoachService {
       message,
       delaySeconds
     );
+  }
+
+  static async getEveningReflection(userId: string): Promise<EnhancedAIResponse> {
+    const memory = this.getUserMemory(userId);
+    const todayConversations = memory.conversations.filter(c =>
+      new Date(c.timestamp).toDateString() === new Date().toDateString()
+    );
+
+    let message = "Добрый вечер! Давайте подведем итоги сегодняшнего дня. Как вы оцениваете свою трезвость сегодня?";
+
+    if (todayConversations.length > 0) {
+      const topics = todayConversations.flatMap(c => c.topics);
+      if (topics.includes('Стресс') || topics.includes('Тяга')) {
+        message = "Добрый вечер. Сегодня был непростой день, мы обсуждали трудности. Я горжусь тем, что вы справились. Как ваше состояние сейчас, перед сном?";
+      } else {
+        message = "Добрый вечер! Сегодня был продуктивный день. Что было самым приятным в вашей трезвости сегодня?";
+      }
+    }
+
+    return {
+      message,
+      emotionalTone: 'supportive',
+      suggestions: ['День прошел отлично', 'Было трудно, но я здесь', 'Нужна поддержка на завтра'],
+      followUpQuestions: ['О чем вы думаете сейчас?', 'Что планируете на завтра?'],
+      memoryUpdates: ['Initiated evening reflection'],
+      confidenceLevel: 1.0,
+      isReflection: true
+    };
   }
 
   static async generateDailyChallenges(userId: string, soberDays: number): Promise<AICoachChallenge[]> {

@@ -19,6 +19,24 @@ export default function JournalScreen() {
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [mood, setMood] = useState(3);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+
+  const moodTags = [
+    { id: 'stress', label: 'Стресс', icon: 'bolt' },
+    { id: 'tired', label: 'Усталость', icon: 'bedtime' },
+    { id: 'craving', label: 'Тяга', icon: 'warning' },
+    { id: 'lonely', label: 'Одиночество', icon: 'person-outline' },
+    { id: 'happy', label: 'Радость', icon: 'sentiment-very-satisfied' },
+    { id: 'calm', label: 'Спокойствие', icon: 'self-improvement' },
+    { id: 'productive', label: 'Продуктивность', icon: 'trending-up' },
+    { id: 'social', label: 'Общение', icon: 'groups' }
+  ];
+
+  const toggleTag = (tagId: string) => {
+    setSelectedTags(prev =>
+      prev.includes(tagId) ? prev.filter(id => id !== tagId) : [...prev, tagId]
+    );
+  };
 
   useEffect(() => {
     loadEntries();
@@ -37,9 +55,15 @@ export default function JournalScreen() {
     setIsSaving(true);
     const result = await JournalService.addEntry(inputText, mood);
     if (result.success) {
-      setEntries([result.data, ...entries]);
+      // Merge manually selected tags with AI detected ones
+      const entryWithTags = {
+        ...result.data,
+        tags: Array.from(new Set([...(result.data.tags || []), ...selectedTags]))
+      };
+      setEntries([entryWithTags, ...entries]);
       setInputText('');
       setMood(3);
+      setSelectedTags([]);
       Alert.alert('Запись сохранена', 'Ваш AI-коуч проанализировал запись.');
     }
     setIsSaving(false);
@@ -88,6 +112,33 @@ export default function JournalScreen() {
               </TouchableOpacity>
             ))}
           </View>
+
+          <Text style={styles.inputSubtitle}>Что вы чувствуете? (Теги)</Text>
+          <View style={styles.tagsGrid}>
+            {moodTags.map(tag => (
+              <TouchableOpacity
+                key={tag.id}
+                style={[
+                  styles.tagOption,
+                  selectedTags.includes(tag.id) && styles.tagOptionActive
+                ]}
+                onPress={() => toggleTag(tag.id)}
+              >
+                <MaterialIcons
+                  name={tag.icon as any}
+                  size={16}
+                  color={selectedTags.includes(tag.id) ? 'white' : '#666'}
+                />
+                <Text style={[
+                  styles.tagOptionText,
+                  selectedTags.includes(tag.id) && styles.tagOptionTextActive
+                ]}>
+                  {tag.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
           <TextInput
             style={styles.textInput}
             multiline
@@ -181,7 +232,23 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   inputTitle: { fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 12 },
+  inputSubtitle: { fontSize: 14, fontWeight: '600', color: '#666', marginBottom: 10 },
   moodSelector: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 15 },
+  tagsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 15 },
+  tagOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F0F0',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: '#E0E0E0'
+  },
+  tagOptionActive: { backgroundColor: '#2E7D4A', borderColor: '#2E7D4A' },
+  tagOptionText: { fontSize: 12, color: '#666' },
+  tagOptionTextActive: { color: 'white', fontWeight: 'bold' },
   moodBtn: { padding: 10, borderRadius: 12, backgroundColor: '#F0F0F0' },
   moodBtnSelected: { backgroundColor: '#E8F5E8', borderWidth: 1, borderColor: '#2E7D4A' },
   moodEmoji: { fontSize: 24 },
