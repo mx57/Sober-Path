@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
@@ -11,6 +10,7 @@ import {
   Modal,
   ActivityIndicator
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -19,9 +19,10 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
   withTiming,
-  withRepeat,
   runOnJS
 } from 'react-native-reanimated';
+import * as Speech from 'expo-speech';
+import { sosPractices, SOSPractice } from '../../services/sosService';
 
 // Ленивый импорт компонентов
 const AdvancedAudioPlayer = React.lazy(() => import('../../components/AdvancedAudioPlayer'));
@@ -30,7 +31,7 @@ interface Sound {
   id: string;
   name: string;
   description: string;
-  category: 'meditation' | 'nature' | 'binaural' | 'healing' | 'sleep';
+  category: 'meditation' | 'nature' | 'binaural' | 'healing' | 'sleep' | 'sos';
   icon: string;
   color: string;
   frequency?: string;
@@ -95,6 +96,9 @@ function SoundsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [currentSound, setCurrentSound] = useState<Sound | null>(null);
   const [showPlayer, setShowPlayer] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [activePracticeId, setActivePracticeId] = useState<string | null>(null);
+
   const [alertConfig, setAlertConfig] = useState<{
     visible: boolean;
     title: string;
@@ -202,6 +206,7 @@ function SoundsPage() {
 
   const categories = useMemo(() => [
     { id: 'all', name: 'Все', icon: 'apps', color: '#2E7D4A' },
+    { id: 'sos', name: 'SOS', icon: 'priority-high', color: '#D32F2F' },
     { id: 'meditation', name: 'Медитация', icon: 'self-improvement', color: '#6A1B9A' },
     { id: 'nature', name: 'Природа', icon: 'nature', color: '#4CAF50' },
     { id: 'binaural', name: 'Бинауральные', icon: 'graphic-eq', color: '#7B1FA2' },
@@ -211,6 +216,7 @@ function SoundsPage() {
 
   const filteredSounds = useMemo(() => {
     if (selectedCategory === 'all') return sounds;
+    if (selectedCategory === 'sos') return [];
     return sounds.filter(sound => sound.category === selectedCategory);
   }, [sounds, selectedCategory]);
 
@@ -223,19 +229,58 @@ function SoundsPage() {
   }, []);
 
   const playSound = useCallback((sound: Sound) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setCurrentSound(sound);
     setShowPlayer(true);
   }, []);
+
+  const startSOSPractice = async (practice: SOSPractice) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (isSpeaking) {
+      await Speech.stop();
+      setIsSpeaking(false);
+      if (activePracticeId === practice.id) {
+        setActivePracticeId(null);
+        return;
+      }
+    }
+
+    setActivePracticeId(practice.id);
+    setIsSpeaking(true);
+
+    const fullText = `${practice.title}. ${practice.description}. Шаги практики: ${practice.steps.join('. ')}. Помните, это состояние временно.`;
+
+    Speech.speak(fullText, {
+      language: 'ru-RU',
+      rate: 0.85,
+      pitch: 1.0,
+      onDone: () => {
+        setIsSpeaking(false);
+        setActivePracticeId(null);
+      },
+      onError: (err) => {
+        console.error('TTS Error:', err);
+        setIsSpeaking(false);
+        setActivePracticeId(null);
+      }
+    });
+  };
+
+  const stopSpeaking = async () => {
+    await Speech.stop();
+    setIsSpeaking(false);
+    setActivePracticeId(null);
+  };
 
   return (
     <ScrollView style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <Animated.View style={[styles.header, headerAnimatedStyle]}>
-        <LinearGradient colors={['#6A1B9A', '#8E24AA']} style={styles.headerGradient}>
+        <LinearGradient colors={['#2E7D4A', '#43A047']} style={styles.headerGradient}>
           <MaterialIcons name="headphones" size={40} color="white" />
           <Text style={styles.title}>Терапевтические звуки</Text>
           <Text style={styles.subtitle}>
-            Научно обоснованная аудиотерапия для восстановления
+            Научно обоснованная аудиотерапия и SOS-практики
           </Text>
         </LinearGradient>
       </Animated.View>
@@ -273,23 +318,73 @@ function SoundsPage() {
         </ScrollView>
       </Animated.View>
 
+      {/* SOS Section */}
+      {(selectedCategory === 'all' || selectedCategory === 'sos') && (
+        <Animated.View style={[styles.soundsSection, contentAnimatedStyle]}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>🆘 SOS-практики</Text>
+            {isSpeaking && (
+              <TouchableOpacity style={styles.stopSpeechButton} onPress={stopSpeaking}>
+                <MaterialIcons name="stop" size={20} color="white" />
+                <Text style={styles.stopSpeechText}>Остановить</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+          <View style={styles.sosGrid}>
+            {sosPractices.map((practice) => (
+              <TouchableOpacity
+                key={practice.id}
+                style={[
+                  styles.sosCard,
+                  activePracticeId === practice.id && styles.activeSosCard
+                ]}
+                onPress={() => startSOSPractice(practice)}
+              >
+                <View style={styles.sosIconContainer}>
+                  <MaterialIcons
+                    name={activePracticeId === practice.id ? "volume-up" : "record-voice-over"}
+                    size={28}
+                    color="#D32F2F"
+                  />
+                </View>
+                <View style={styles.sosContent}>
+                  <Text style={styles.sosTitle}>{practice.title}</Text>
+                  <Text style={styles.sosDescription}>{practice.description}</Text>
+                  <View style={styles.sosFooter}>
+                    <MaterialIcons name="timer" size={14} color="#666" />
+                    <Text style={styles.sosDuration}>{practice.duration}</Text>
+                  </View>
+                </View>
+                <MaterialIcons
+                  name={activePracticeId === practice.id ? "pause-circle-filled" : "play-circle-filled"}
+                  size={32}
+                  color="#D32F2F"
+                />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </Animated.View>
+      )}
+
       {/* Sounds List */}
-      <Animated.View style={[styles.soundsSection, contentAnimatedStyle]}>
-        <Text style={styles.sectionTitle}>
-          🎧 {selectedCategory === 'all' ? 'Все звуки' : 
-              categories.find(c => c.id === selectedCategory)?.name || 'Звуки'}
-        </Text>
-        
-        <View style={styles.soundsGrid}>
-          {filteredSounds.map((sound) => (
-            <MemoizedSoundCard 
-              key={sound.id} 
-              sound={sound} 
-              onPlay={playSound}
-            />
-          ))}
-        </View>
-      </Animated.View>
+      {selectedCategory !== 'sos' && (
+        <Animated.View style={[styles.soundsSection, contentAnimatedStyle]}>
+          <Text style={styles.sectionTitle}>
+            🎧 {selectedCategory === 'all' ? 'Все звуки' :
+                categories.find(c => c.id === selectedCategory)?.name || 'Звуки'}
+          </Text>
+
+          <View style={styles.soundsGrid}>
+            {filteredSounds.map((sound) => (
+              <MemoizedSoundCard
+                key={sound.id}
+                sound={sound}
+                onPlay={playSound}
+              />
+            ))}
+          </View>
+        </Animated.View>
+      )}
 
       {/* Benefits Info */}
       <Animated.View style={[styles.infoSection, contentAnimatedStyle]}>
@@ -420,6 +515,26 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginBottom: 15
   },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingRight: 20
+  },
+  stopSpeechButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#D32F2F',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    gap: 5
+  },
+  stopSpeechText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold'
+  },
   categoriesContainer: {
     flexDirection: 'row',
     paddingHorizontal: 20,
@@ -455,6 +570,60 @@ const styles = StyleSheet.create({
   },
   soundsGrid: {
     gap: 15
+  },
+  sosGrid: {
+    gap: 12
+  },
+  sosCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    padding: 16,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    borderLeftWidth: 4,
+    borderLeftColor: '#D32F2F'
+  },
+  activeSosCard: {
+    backgroundColor: '#FFEBEE',
+    borderColor: '#D32F2F'
+  },
+  sosIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FFEBEE',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15
+  },
+  sosContent: {
+    flex: 1
+  },
+  sosTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 4
+  },
+  sosDescription: {
+    fontSize: 13,
+    color: '#666',
+    lineHeight: 18,
+    marginBottom: 6
+  },
+  sosFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4
+  },
+  sosDuration: {
+    fontSize: 12,
+    color: '#666'
   },
   soundCard: {
     borderRadius: 16,

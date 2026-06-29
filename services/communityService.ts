@@ -305,6 +305,24 @@ export class CommunityService {
         comments: 9,
         timeAgo: '11ч назад',
         category: 'motivation'
+      },
+      {
+        id: 'p23',
+        author: 'Костя',
+        content: 'Только вступил в группу "Первые шаги". Сегодня мой второй день. Поддержите, пожалуйста!',
+        likes: 15,
+        comments: 4,
+        timeAgo: '10мин назад',
+        category: 'group_early'
+      },
+      {
+        id: 'p24',
+        author: 'Наталья',
+        content: 'В комнате "Работа и стресс" обсуждали как справляться с дедлайнами без бокала вина. Для меня открытие — короткая медитация прямо на рабочем месте.',
+        likes: 28,
+        comments: 6,
+        timeAgo: '1ч назад',
+        category: 'group_work'
       }
     ];
     return [...localPosts, ...staticPosts];
@@ -365,7 +383,17 @@ export class CommunityService {
       { id: 'motivation', name: 'Мотивация', icon: 'auto-awesome', color: '#FFC107' },
       { id: 'question', name: 'Вопросы', icon: 'help-outline', color: '#2196F3' },
       { id: 'support', name: 'Поддержка', icon: 'favorite-border', color: '#4CAF50' },
-      { id: 'milestone', name: 'Достижения', icon: 'emoji-events', color: '#E91E63' }
+      { id: 'milestone', name: 'Достижения', icon: 'emoji-events', color: '#E91E63' },
+      { id: 'group_early', name: 'Первые шаги', icon: 'child-care', color: '#FF5722' },
+      { id: 'group_work', name: 'Работа и стресс', icon: 'business-center', color: '#607D8B' }
+    ];
+  }
+
+  static getMentorshipAdvice(): { author: string; text: string; role: string }[] {
+    return [
+      { author: 'Виктор', role: 'Наставник (3 года)', text: 'В моменты тяги просто скажите себе: "Не сейчас". Не "никогда", а просто не в эту минуту. Это снимает панику.' },
+      { author: 'Марина', role: 'Наставник (5 лет)', text: 'Скука — это ваш мозг восстанавливается. Дайте ему время научиться радоваться простым вещам без допинга.' },
+      { author: 'Алексей', role: 'Наставник (1.5 года)', text: 'Окружение решает всё. Если друзья не уважают ваш выбор — они не друзья.' }
     ];
   }
 

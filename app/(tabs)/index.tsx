@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, 
   Alert, Platform, Modal, Dimensions, ActivityIndicator 
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { useTranslation } from 'react-i18next';
 import i18n from '../i18n';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -218,12 +219,14 @@ function HomePage() {
       }
 
       if (status === 'relapse') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         showWebAlert(
           '💪 Не сдавайтесь!',
           'Срыв - это не конец пути, а новый урок. Каждый новый день - новая возможность стать сильнее.',
           () => setShowCrisisIntervention(true)
         );
       } else {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         showWebAlert(
           '🎉 Отлично!', 
           `Ещё один трезвый день! Ваша серия: ${streakDays + 1} дней. Продолжайте в том же духе!`
@@ -397,6 +400,7 @@ function HomePage() {
               { backgroundColor: todayStatus === 'no-entry' ? '#2E7D4A' : '#666' }
             ]}
             onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
               if (todayStatus === 'no-entry') {
                 setShowMoodSelector(true);
               } else {

@@ -72,6 +72,13 @@ export interface RecommendedCourse {
   title: string;
 }
 
+export interface WeeklyRoadmap {
+  weekNumber: number;
+  focus: string;
+  tasks: string[];
+  recommendedLessons: string[];
+}
+
 export interface EnhancedAIResponse {
   message: string;
   emotionalTone: 'empathetic' | 'motivational' | 'educational' | 'supportive';
@@ -373,6 +380,32 @@ export class AICoachService {
       message,
       delaySeconds
     );
+  }
+
+  static async getWeeklyRoadmap(userId: string, soberDays: number): Promise<WeeklyRoadmap> {
+    const memory = this.getUserMemory(userId);
+    const triggers = this.detectTriggerPatterns(userId);
+
+    let focus = "Укрепление фундамента";
+    let tasks = ["Отмечать прогресс ежедневно", "Прочитать 2 статьи о тяге", "Сделать HALT-чек утром"];
+    let recommendedLessons = ["f1_l1", "f1_l2"];
+
+    if (soberDays > 30) {
+      focus = "Эмоциональная зрелость";
+      tasks = ["Начать новое хобби", "Помочь новичку в сообществе", "Практика осознанности 15 мин"];
+      recommendedLessons = ["lr_l1", "lr_l2"];
+    } else if (triggers.some(t => t.severity >= 4)) {
+      focus = "Работа с острыми триггерами";
+      tasks = ["Составить карту триггеров", "Сделать упражнение 'Серфинг по тяге'", "Избегать шумных компаний"];
+      recommendedLessons = ["tr_l1", "tr_l2"];
+    }
+
+    return {
+      weekNumber: Math.floor(soberDays / 7) + 1,
+      focus,
+      tasks,
+      recommendedLessons
+    };
   }
 
   static async getEveningReflection(userId: string): Promise<EnhancedAIResponse> {
