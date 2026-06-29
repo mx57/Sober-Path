@@ -6,16 +6,19 @@ const TabLayout = () => {
   const tabOptions = {
     headerShown: false,
     tabBarActiveTintColor: '#2E7D4A',
-    tabBarInactiveTintColor: '#666'
+    tabBarInactiveTintColor: '#666',
+    tabBarStyle: {
+      height: 60,
+      paddingBottom: 10,
+      paddingTop: 5
+    }
   };
 
-  const homeIcon = ({ color, size }) => React.createElement(MaterialIcons, { name: 'home', size, color });
-  const coachIcon = ({ color, size }) => React.createElement(MaterialIcons, { name: 'psychology', size, color });
-  const techIcon = ({ color, size }) => React.createElement(MaterialIcons, { name: 'science', size, color });
-  const audioIcon = ({ color, size }) => React.createElement(MaterialIcons, { name: 'menu-book', size, color });
-  const chatIcon = ({ color, size }) => React.createElement(MaterialIcons, { name: 'chat', size, color });
-  const gamesIcon = ({ color, size }) => React.createElement(MaterialIcons, { name: 'games', size, color });
-  const settingsIcon = ({ color, size }) => React.createElement(MaterialIcons, { name: 'settings', size, color });
+  const homeIcon = ({ color, size }) => <MaterialIcons name="home" size={size} color={color} />;
+  const coachIcon = ({ color, size }) => <MaterialIcons name="psychology" size={size} color={color} />;
+  const courseIcon = ({ color, size }) => <MaterialIcons name="school" size={size} color={color} />;
+  const articlesIcon = ({ color, size }) => <MaterialIcons name="menu-book" size={size} color={color} />;
+  const settingsIcon = ({ color, size }) => <MaterialIcons name="settings" size={size} color={color} />;
 
   return React.createElement(Tabs, { screenOptions: tabOptions },
     React.createElement(Tabs.Screen, { name: 'index', options: { title: 'Главная', tabBarIcon: homeIcon } }),

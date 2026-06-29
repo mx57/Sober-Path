@@ -18,7 +18,13 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
+
+      - name: Setup Expo
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
 
       - name: Cache node modules
         uses: actions/cache@v4
@@ -30,99 +36,27 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Install dependencies (allow legacy peer deps to avoid conflicts)
+      - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
-      - name: Install JDK 17 (must run before Android SDK setup)
+      - name: Export assets
+        run: npx expo export --platform android
+
+      - name: Install JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Export JAVA_HOME
-        run: |
-          echo "JAVA_HOME=$(dirname $(dirname $(readlink -f $(which java))))" >> $GITHUB_ENV
-          echo "JAVA_HOME set to $(dirname $(dirname $(readlink -f $(which java))))"
-          java -version
-
-      - name: Ensure sdkmanager available and install SDK packages
-        run: |
-          set -e
-          # Path to sdkmanager; try known locations
-          if [ -x "/usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager" ]; then
-            SDKMANAGER="/usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager"
-          elif [ -x "/usr/local/lib/android/sdk/cmdline-tools/12.0/bin/sdkmanager" ]; then
-            SDKMANAGER="/usr/local/lib/android/sdk/cmdline-tools/12.0/bin/sdkmanager"
-          else
-            echo "Downloading commandline tools..."
-            TMPDIR=$(mktemp -d)
-            curl -sSLo "$TMPDIR/cmdline-tools.zip" https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
-            unzip -q "$TMPDIR/cmdline-tools.zip" -d "$TMPDIR"
-            mkdir -p /usr/local/lib/android/sdk/cmdline-tools/12.0
-            mv "$TMPDIR/cmdline-tools"/* /usr/local/lib/android/sdk/cmdline-tools/12.0/
-            SDKMANAGER="/usr/local/lib/android/sdk/cmdline-tools/12.0/bin/sdkmanager"
-          fi
-
-          echo "Using sdkmanager: $SDKMANAGER"
-          "$SDKMANAGER" --version || true
-
-          PACKAGES=("platform-tools" "platforms;android-33" "build-tools;33.0.2")
-          for p in "${PACKAGES[@]}"; do
-            echo "Installing package: $p"
-            $SDKMANAGER --install "$p"
-          done
-
-          if $SDKMANAGER --licenses --sdk_root=/usr/local/lib/android/sdk; then
-            echo "SDK licenses accepted"
-          else
-            echo "Retry accepting SDK licenses with SKIP_JDK_VERSION_CHECK"
-            SKIP_JDK_VERSION_CHECK=true $SDKMANAGER --licenses --sdk_root=/usr/local/lib/android/sdk || true
-          fi
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
       - name: Prebuild Android (Expo)
-        # Try multiple variants to support different expo versions; auto-accept prompts
-        run: |
-          set -euo pipefail
-          echo "Expo version:"
-          npx expo --version || true
-          cmds=(
-            "npx expo prebuild -p android --no-install --non-interactive"
-            "npx expo prebuild -p android --no-install --no-interactive"
-            "npx expo prebuild -p android --no-install --yes"
-            "yes | npx expo prebuild -p android --no-install"
-          )
-          success=0
-          for c in "${cmds[@]}"; do
-            echo "Trying: $c"
-            if bash -lc "$c"; then
-              echo "prebuild succeeded with: $c"
-              success=1
-              break
-            else
-              echo "Failed: $c" >&2
-            fi
-          done
-          if [ $success -ne 1 ]; then
-            echo "All prebuild attempts failed" >&2
-            exit 1
-          fi
+        run: npx expo prebuild -p android --no-install
 
       - name: Ensure android/gradlew is executable
         run: |
           if [ -f android/gradlew ]; then chmod +x android/gradlew; fi
-
-      - name: Add ABI splits (armeabi-v7a, arm64-v8a) if file exists
-        run: |
-          file="android/app/build.gradle"
-          if [ -f "$file" ]; then
-            if grep -q "splits {" "$file"; then
-              echo "splits already present"
-            else
-              awk 'BEGIN{p=1} /buildTypes\s*\{/ && p==1{print "    splits {\n        abi {\n            enable true\n            reset()\n            include '"'"'armeabi-v7a'"'"', '"'"'arm64-v8a'"'"'\n            universalApk false\n        }\n    }\n"; p=0} {print}' "$file" > "$file.tmp" && mv "$file.tmp" "$file"
-            fi
-          else
-            echo "$file not found, skipping splits injection"
-          fi
 
       - name: Generate test keystore
         run: |
@@ -131,37 +65,13 @@ jobs:
 
       - name: Build release APK(s)
         working-directory: android
-        run: ./gradlew clean assembleRelease --no-daemon --no-parallel
+        run: ./gradlew assembleRelease --no-daemon
 
-      - name: Find APKs
+      - name: Find and Sign APKs
         run: |
           mkdir -p $GITHUB_WORKSPACE/artifacts
-          find android/app/build/outputs -type f -name "*.apk" -print -exec cp {} $GITHUB_WORKSPACE/artifacts/ \;
+          find android/app/build/outputs/apk/release -type f -name "*.apk" -print -exec cp {} $GITHUB_WORKSPACE/artifacts/ \;
           ls -la $GITHUB_WORKSPACE/artifacts || true
-
-      - name: Sign APKs with generated keystore
-        env:
-          KEYSTORE_PATH: ${{ github.workspace }}/android/app/release.keystore
-          KEYSTORE_PASS: android
-          KEY_ALIAS: release
-          KEY_PASS: android
-          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
-        run: |
-          set -e
-          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
-          build_tools_dir=$(ls -d "$ANDROID_SDK_ROOT/build-tools"/*/ | sort -V | tail -n1)
-          echo "Using build-tools dir: $build_tools_dir"
-          apksigner="$build_tools_dir/apksigner"
-          if [ ! -x "$apksigner" ]; then echo "apksigner not found at $apksigner"; ls -la "$ANDROID_SDK_ROOT/build-tools" || true; exit 1; fi
-          for apk in $GITHUB_WORKSPACE/artifacts/*.apk; do
-            [ -f "$apk" ] || continue
-            base=$(basename "$apk")
-            unsigned="$apk"
-            signed="$GITHUB_WORKSPACE/artifacts/signed-$base"
-            echo "Signing $unsigned -> $signed"
-            "$apksigner" sign --ks "$KEYSTORE_PATH" --ks-pass pass:$KEYSTORE_PASS --key-pass pass:$KEY_PASS --ks-key-alias $KEY_ALIAS --out "$signed" "$unsigned" || { echo "Signing failed for $apk"; exit 1; }
-          done
-          ls -la $GITHUB_WORKSPACE/artifacts
 
       - name: Upload APK artifacts
         uses: actions/upload-artifact@v4
@@ -169,36 +79,11 @@ jobs:
           name: release-apks
           path: artifacts/
 
-      - name: Create GitHub Release
-        id: create_release
+      - name: Release
+        uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
-        uses: actions/create-release@v1
         with:
-          tag_name: ${{ github.ref_name }}
-          release_name: ${{ github.ref_name }}
-          draft: false
-          prerelease: false
+          files: artifacts/*.apk
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload APKs to Release
-        if: steps.create_release.outputs.upload_url != ''
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          UPLOAD_URL: ${{ steps.create_release.outputs.upload_url }}
-        run: |
-          set -e
-          for f in artifacts/*.apk; do
-            [ -f "$f" ] || continue
-            name=$(basename "$f")
-            echo "Uploading $name to release"
-            curl -sS -X POST -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/vnd.android.package-archive" --data-binary @"$f" "${UPLOAD_URL}?name=$name" || { echo "Upload failed for $name"; exit 1; }
-          done
-
-      - name: Upload APK artifacts (fallback)
-        if: steps.create_release.outputs.upload_url == ''
-        run: echo "Release not created (not a tag push) — artifacts are available in Actions run"
-
-      - name: Upload APK artifacts (debug list)
-        run: ls -la artifacts || true
-
