@@ -54,6 +54,13 @@ jobs:
       - name: Prebuild Android (Expo)
         run: npx expo prebuild -p android --no-install
 
+      - name: Optimize Gradle Properties
+        run: |
+          mkdir -p android
+          echo "org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=512m" >> android/gradle.properties
+          echo "android.useNewApkCreator=false" >> android/gradle.properties
+          cat android/gradle.properties
+
       - name: Ensure android/gradlew is executable
         run: |
           if [ -f android/gradlew ]; then chmod +x android/gradlew; fi
