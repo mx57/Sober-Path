@@ -3,7 +3,7 @@ import React, { useCallback, useRef } from 'react';
 import { 
   View, Text, StyleSheet, ScrollView, TouchableOpacity, 
   TextInput, KeyboardAvoidingView, Platform, Modal,
-  Dimensions, ActivityIndicator
+  Dimensions, ActivityIndicator, ViewStyle
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -61,28 +61,52 @@ const MessageBubble = React.memo(({ message, onArticlePress, onCoursePress, onSp
   isSpeaking: boolean
 }) => {
   const isUser = message.isUser;
+  const isHighUrgency = message.urgency === 'high' || message.urgency === 'critical';
+
+  const getBubbleStyle = (): ViewStyle[] => {
+    const base: ViewStyle[] = [styles.messageBubble];
+    if (isUser) {
+      base.push(styles.userBubble);
+    } else {
+      base.push(styles.aiBubble);
+      if (message.urgency === 'critical') base.push(styles.criticalBubble);
+      else if (message.urgency === 'high') base.push(styles.highUrgencyBubble);
+    }
+    return base;
+  };
+
   return (
     <Animated.View
       entering={FadeInUp.duration(400)}
       style={[styles.messageContainer, isUser && styles.userMessageContainer]}
     >
-      <View style={[styles.messageBubble, isUser ? styles.userBubble : styles.aiBubble]}>
+      <View style={getBubbleStyle()}>
         {!isUser && (
           <View style={styles.aiHeader}>
             <View style={styles.aiLabelRow}>
-              <MaterialIcons name="psychology" size={16} color="#2E7D4A" />
-              <Text style={styles.aiLabel}>AI-Коуч</Text>
+              <MaterialIcons
+                name={isHighUrgency ? "report-problem" : "psychology"}
+                size={16}
+                color={isHighUrgency ? "#FF5252" : "#2E7D4A"}
+              />
+              <Text style={[styles.aiLabel, isHighUrgency && { color: '#FF5252' }]}>
+                {isHighUrgency ? 'Экстренный Коуч' : 'AI-Коуч'}
+              </Text>
             </View>
             <TouchableOpacity onPress={() => onSpeak(message.text)} style={styles.speakButton}>
               <MaterialIcons
                 name={isSpeaking ? "volume-up" : "volume-mute"}
                 size={18}
-                color="#2E7D4A"
+                color={isHighUrgency ? "#FF5252" : "#2E7D4A"}
               />
             </TouchableOpacity>
           </View>
         )}
-        <Text style={[styles.messageText, isUser ? styles.userMessageText : styles.aiMessageText]}>
+        <Text style={[
+          styles.messageText,
+          isUser ? styles.userMessageText : styles.aiMessageText,
+          isHighUrgency && { color: message.urgency === 'critical' ? 'white' : '#D32F2F' }
+        ]}>
           {message.text}
         </Text>
         <Text style={styles.timestamp}>
@@ -214,7 +238,12 @@ export default function EnhancedAICoach() {
                   isSpeaking={vm.isSpeaking}
                 />
               ))}
-              {vm.isTyping && <ActivityIndicator color="#2E7D4A" style={{ margin: 10 }} />}
+              {vm.isTyping && (
+                <View style={styles.typingContainer}>
+                  <ActivityIndicator size="small" color="#2E7D4A" />
+                  <Text style={styles.typingText}>Коуч печатает...</Text>
+                </View>
+              )}
             </ScrollView>
 
             {vm.messages.length > 0 && !vm.messages[vm.messages.length - 1].isUser && vm.messages[vm.messages.length - 1].suggestions && (
@@ -348,6 +377,14 @@ const styles = StyleSheet.create({
   messageBubble: { maxWidth: '80%', padding: 12, borderRadius: 15 },
   userBubble: { backgroundColor: '#2E7D4A' },
   aiBubble: { backgroundColor: 'white', elevation: 2 },
+  highUrgencyBubble: {
+    backgroundColor: '#FFEBEE',
+    borderColor: '#FFCDD2',
+    borderWidth: 1,
+  },
+  criticalBubble: {
+    backgroundColor: '#D32F2F',
+  },
   messageText: { fontSize: 16 },
   userMessageText: { color: 'white' },
   aiMessageText: { color: '#333' },
@@ -530,5 +567,16 @@ const styles = StyleSheet.create({
   starterText: {
     fontSize: 13,
     color: '#444',
+  },
+  typingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    gap: 8,
+  },
+  typingText: {
+    fontSize: 12,
+    color: '#666',
+    fontStyle: 'italic',
   }
 });

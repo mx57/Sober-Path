@@ -149,7 +149,8 @@ export function useAICoachViewModel() {
           suggestions: data.suggestions,
           recommendedArticles: data.recommendedArticles,
           recommendedCourses: data.recommendedCourses,
-          followUpQuestions: data.followUpQuestions
+          followUpQuestions: data.followUpQuestions,
+          urgency: data.urgency
         };
 
         setMessages(prev => [...prev, aiMsg]);

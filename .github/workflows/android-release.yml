@@ -68,11 +68,11 @@ jobs:
       - name: Generate test keystore
         run: |
           mkdir -p android/app
-          keytool -genkeypair -v -storetype JKS -keystore android/app/release.keystore -alias release -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=example, OU=example, O=example, L=example, S=example, C=US"
+          keytool -genkeypair -v -storetype JKS -keystore android/app/release.keystore -alias release -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=example"
 
       - name: Build release APK(s)
         working-directory: android
-        run: ./gradlew assembleRelease --no-daemon
+        run: ./gradlew clean assembleRelease --no-daemon --stacktrace --info --warning-mode all
 
       - name: Find and Sign APKs
         run: |
