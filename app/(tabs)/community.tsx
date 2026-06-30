@@ -285,7 +285,10 @@ export default function CommunityPage() {
     selectedCircle === 'all' || post.category === selectedCircle
   );
 
-  const renderHeader = () => (
+  const renderHeader = () => {
+    const mentorshipAdvice = CommunityService.getMentorshipAdvice();
+
+    return (
     <View>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Круги поддержки</Text>
@@ -366,10 +369,29 @@ export default function CommunityPage() {
       </ScrollView>
 
       <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Советы наставников</Text>
+      </View>
+
+      <View style={styles.mentorshipContainer}>
+        {isLoading ? (
+          <Skeleton width="100%" height={80} borderRadius={16} />
+        ) : (
+          mentorshipAdvice.slice(0, 1).map((advice, idx) => (
+            <View key={idx} style={styles.mentorshipCard}>
+              <Text style={styles.mentorshipAuthor}>{advice.author}</Text>
+              <Text style={styles.mentorshipRole}>{advice.role}</Text>
+              <Text style={styles.mentorshipText}>«{advice.text}»</Text>
+            </View>
+          ))
+        )}
+      </View>
+
+      <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Лента поддержки</Text>
       </View>
     </View>
   );
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -718,6 +740,34 @@ const styles = StyleSheet.create({
   expertTitle: {
     fontSize: 11,
     color: '#888'
+  },
+  mentorshipContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  mentorshipCard: {
+    backgroundColor: '#FFFDE7',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#FFF59D',
+    marginBottom: 12,
+  },
+  mentorshipAuthor: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#F57F17',
+  },
+  mentorshipRole: {
+    fontSize: 11,
+    color: '#BCAA00',
+    marginBottom: 8,
+  },
+  mentorshipText: {
+    fontSize: 13,
+    color: '#5D4037',
+    fontStyle: 'italic',
+    lineHeight: 18,
   },
   dailyThreadCard: {
     backgroundColor: '#F3E5F5',

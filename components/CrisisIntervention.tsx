@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, Alert, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 interface CrisisInterventionProps {
   visible: boolean;
@@ -78,6 +79,7 @@ const breathingExercises = [
 ];
 
 export default function CrisisIntervention({ visible, onClose }: CrisisInterventionProps) {
+  const router = useRouter();
   const [selectedLevel, setSelectedLevel] = useState<number | null>(null);
   const [activeExercise, setActiveExercise] = useState<number | null>(null);
   const [exerciseTimer, setExerciseTimer] = useState(0);
@@ -177,9 +179,12 @@ export default function CrisisIntervention({ visible, onClose }: CrisisIntervent
                 <Text style={styles.quickActionText}>Выпейте воды</Text>
               </TouchableOpacity>
               
-              <TouchableOpacity style={styles.quickAction}>
-                <MaterialIcons name="nature" size={32} color="#4CAF50" />
-                <Text style={styles.quickActionText}>Выйдите на воздух</Text>
+              <TouchableOpacity style={styles.quickAction} onPress={() => {
+                onClose();
+                router.push('/sounds');
+              }}>
+                <MaterialIcons name="headphones" size={32} color="#6A1B9A" />
+                <Text style={styles.quickActionText}>SOS-Аудио</Text>
               </TouchableOpacity>
             </View>
           </View>

@@ -15,7 +15,7 @@ export interface ChatMessage {
   followUpQuestions?: string[];
   isCheckIn?: boolean;
   isReflection?: boolean;
-  urgency?: 'low' | 'medium' | 'high' | 'critical';
+  roadmap?: any;
 }
 
 export function useAICoachViewModel() {
@@ -30,6 +30,7 @@ export function useAICoachViewModel() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [chatStarters, setChatStarters] = useState<string[]>([]);
+  const [roadmap, setRoadmap] = useState<any>(null);
 
   useEffect(() => {
     initialize();
@@ -54,7 +55,10 @@ export function useAICoachViewModel() {
     setNotifications(NotificationService.getNotifications());
     const initialChallenges = await AICoachService.getChallenges(userProfile?.id || 'default');
     setChallenges(initialChallenges);
-    setChatStarters(AICoachService.getChatStarters({ mood: 3, soberDays }));
+    setChatStarters([...AICoachService.getChatStarters({ mood: 3, soberDays }), 'План на неделю']);
+
+    const weeklyPlan = await AICoachService.getWeeklyRoadmap(userProfile?.id || 'default', soberDays);
+    setRoadmap(weeklyPlan);
 
     // Check for evening reflection (after 20:00)
     const hours = new Date().getHours();
@@ -125,7 +129,17 @@ export function useAICoachViewModel() {
         }
       );
 
-      if (response.success) {
+      if (textToSend.toLowerCase().includes('план на неделю')) {
+        const plan = await AICoachService.getWeeklyRoadmap(userProfile?.id || 'default', soberDays);
+        const aiMsg: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          text: `Вот ваш персональный план на ${plan.weekNumber}-ю неделю:\n\n🎯 Фокус: ${plan.focus}\n\n✅ Задачи:\n${plan.tasks.map(t => `• ${t}`).join('\n')}`,
+          isUser: false,
+          timestamp: new Date(),
+          roadmap: plan
+        };
+        setMessages(prev => [...prev, aiMsg]);
+      } else if (response.success) {
         const data = response.data;
         const aiMsg: ChatMessage = {
           id: (Date.now() + 1).toString(),

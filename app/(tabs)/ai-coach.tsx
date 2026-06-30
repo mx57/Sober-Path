@@ -5,6 +5,7 @@ import {
   TextInput, KeyboardAvoidingView, Platform, Modal,
   Dimensions, ActivityIndicator, ViewStyle
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -40,7 +41,10 @@ const ChallengeCard = React.memo(({ challenge, onComplete }: {
     {!challenge.completed && (
       <TouchableOpacity
         style={styles.completeButton}
-        onPress={() => onComplete(challenge.id)}
+        onPress={() => {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          onComplete(challenge.id);
+        }}
       >
         <MaterialIcons name="check" size={20} color="white" />
       </TouchableOpacity>
@@ -268,7 +272,15 @@ export default function EnhancedAICoach() {
                 onChangeText={vm.setInputText}
                 placeholder="Напишите сообщение..."
               />
-              <TouchableOpacity onPress={vm.sendMessage} disabled={!vm.inputText.trim()}>
+              <TouchableOpacity
+                onPress={() => {
+                  if (vm.inputText.trim()) {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    vm.sendMessage();
+                  }
+                }}
+                disabled={!vm.inputText.trim()}
+              >
                 <MaterialIcons name="send" size={24} color={vm.inputText.trim() ? "#2E7D4A" : "#CCC"} />
               </TouchableOpacity>
             </View>
