@@ -1,126 +1,100 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export interface JournalAIAnalysis {
-  dominantEmotions: string[];
-  potentialTriggers: string[];
-  advice: string;
-}
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Result, success, failure } from './types';
+import { AICoachService } from './AICoachService';
 
 export interface JournalEntry {
   id: string;
   date: string;
   content: string;
   mood: number;
-  tags?: string[];
-  aiAnalysis?: JournalAIAnalysis;
-}
-
-const JOURNAL_STORAGE_KEY = 'sober_path_journal_entries';
-
-const emotionKeywords: Record<string, string[]> = {
-  'Тревога': ['тревог', 'беспокой', 'волну', 'страх', 'боюсь', 'паника'],
-  'Радость': ['радост', 'счастл', 'отлично', 'хорошо', 'здорово', 'рад'],
-  'Грусть': ['грустн', 'печаль', 'плохо', 'уныние', 'тоскл', 'одинок'],
-  'Гнев': ['злость', 'зл', 'раздражен', 'бешен', 'ненависть', 'злюсь'],
-  'Усталость': ['устал', 'измотан', 'нет сил', 'вымотан', 'сонн'],
-  'Гордость': ['горжусь', 'гордость', 'справился', 'смог', 'получилось'],
-  'Спокойствие': ['спокой', 'умиротвор', 'расслаб', 'тихо', 'мирно'],
-};
-
-const triggerKeywords: Record<string, string[]> = {
-  'Стресс на работе': ['работа', 'начальник', 'коллег', 'дедлайн', 'офис'],
-  'Социальное давление': ['друзья', 'компания', 'вечеринка', 'праздник', 'предложили'],
-  'Одиночество': ['один', 'одинок', 'никого', 'пусто', 'изолир'],
-  'Конфликт в семье': ['семья', 'жена', 'муж', 'дети', 'родители', 'поругался'],
-  'Финансовый стресс': ['деньги', 'долги', 'финанс', 'зарплата', 'расходы'],
-  'Скука': ['скучно', 'нечего делать', 'пусто', 'неинтересно'],
-};
-
-function analyzeEntry(content: string, mood: number): JournalAIAnalysis {
-  const lower = content.toLowerCase();
-  const dominantEmotions: string[] = [];
-  const potentialTriggers: string[] = [];
-
-  Object.entries(emotionKeywords).forEach(([emotion, keywords]) => {
-    if (keywords.some(kw => lower.includes(kw))) {
-      dominantEmotions.push(emotion);
-    }
-  });
-
-  Object.entries(triggerKeywords).forEach(([trigger, keywords]) => {
-    if (keywords.some(kw => lower.includes(kw))) {
-      potentialTriggers.push(trigger);
-    }
-  });
-
-  if (dominantEmotions.length === 0) {
-    dominantEmotions.push(mood >= 4 ? 'Позитив' : mood <= 2 ? 'Дискомфорт' : 'Нейтральное');
-  }
-
-  const adviceMap: Record<string, string> = {
-    'Тревога': 'Попробуйте технику квадратного дыхания: 4 секунды вдох, 4 задержка, 4 выдох. Это поможет успокоить нервную систему.',
-    'Гнев': 'Интенсивная физическая нагрузка помогает переработать адреналин. Попробуйте быструю прогулку или отжимания.',
-    'Грусть': 'Поделитесь своими чувствами с кем-то близким или в сообществе приложения. Вы не одни.',
-    'Усталость': 'Проверьте себя по методу HALT: не голодны ли вы, не злитесь, не одиноки, не устали слишком сильно?',
-    'Радость': 'Отличный момент! Запишите, что именно принесло вам радость — это поможет повторить этот опыт.',
-    'Гордость': 'Вы заслуживаете этого момента! Поделитесь своим успехом в сообществе.',
+  tags: string[];
+  aiAnalysis?: {
+    sentiment: 'positive' | 'negative' | 'neutral';
+    dominantEmotions: string[];
+    potentialTriggers: string[];
+    advice: string;
   };
-
-  let advice = 'Продолжайте вести дневник — это помогает отслеживать паттерны и укреплять осознанность.';
-  const firstEmotion = dominantEmotions[0];
-  if (firstEmotion && adviceMap[firstEmotion]) {
-    advice = adviceMap[firstEmotion];
-  }
-  if (mood <= 2 && potentialTriggers.length > 0) {
-    advice = `Обнаружен возможный триггер: ${potentialTriggers[0]}. ${advice}`;
-  }
-
-  return { dominantEmotions, potentialTriggers, advice };
 }
 
-export const JournalService = {
-  async getEntries(): Promise<{ success: boolean; data: JournalEntry[] }> {
+const STORAGE_KEY = '@journal_entries';
+
+export class JournalService {
+  static async getEntries(): Promise<Result<JournalEntry[]>> {
     try {
-      const stored = await AsyncStorage.getItem(JOURNAL_STORAGE_KEY);
-      const entries: JournalEntry[] = stored ? JSON.parse(stored) : [];
-      return { success: true, data: entries };
+      const data = await AsyncStorage.getItem(STORAGE_KEY);
+      return success(data ? JSON.parse(data) : []);
     } catch (e) {
-      return { success: false, data: [] };
+      return failure(e as Error);
     }
-  },
+  }
 
-  async addEntry(content: string, mood: number): Promise<{ success: boolean; data: JournalEntry }> {
+  static async addEntry(content: string, mood: number): Promise<Result<JournalEntry>> {
     try {
-      const stored = await AsyncStorage.getItem(JOURNAL_STORAGE_KEY);
-      const entries: JournalEntry[] = stored ? JSON.parse(stored) : [];
+      const entriesResult = await this.getEntries();
+      if (!entriesResult.success) return entriesResult as any;
+      const entries = entriesResult.data;
 
-      const aiAnalysis = analyzeEntry(content, mood);
+      const analysis = await this.analyzeEntry(content);
+
       const newEntry: JournalEntry = {
-        id: `j_${Date.now()}`,
+        id: Date.now().toString(),
         date: new Date().toISOString(),
         content,
         mood,
-        tags: aiAnalysis.dominantEmotions,
-        aiAnalysis,
+        tags: analysis.dominantEmotions,
+        aiAnalysis: analysis
       };
 
-      const updated = [newEntry, ...entries];
-      await AsyncStorage.setItem(JOURNAL_STORAGE_KEY, JSON.stringify(updated));
-      return { success: true, data: newEntry };
-    } catch (e) {
-      return { success: false, data: { id: '', date: '', content, mood } };
-    }
-  },
+      const updatedEntries = [newEntry, ...entries];
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedEntries));
 
-  async deleteEntry(id: string): Promise<{ success: boolean }> {
-    try {
-      const stored = await AsyncStorage.getItem(JOURNAL_STORAGE_KEY);
-      const entries: JournalEntry[] = stored ? JSON.parse(stored) : [];
-      const updated = entries.filter(e => e.id !== id);
-      await AsyncStorage.setItem(JOURNAL_STORAGE_KEY, JSON.stringify(updated));
-      return { success: true };
+      return success(newEntry);
     } catch (e) {
-      return { success: false };
+      return failure(e as Error);
     }
-  },
-};
+  }
+
+  private static async analyzeEntry(content: string) {
+    // В реальном приложении здесь был бы вызов LLM
+    // Имитируем анализ на основе ключевых слов
+    const lowerContent = content.toLowerCase();
+    const emotions = [];
+    const triggers = [];
+
+    if (lowerContent.includes('груст') || lowerContent.includes('плохо')) emotions.push('грусть');
+    if (lowerContent.includes('зл') || lowerContent.includes('бесит')) emotions.push('гнев');
+    if (lowerContent.includes('рад') || lowerContent.includes('хорошо')) emotions.push('радость');
+    if (lowerContent.includes('трево') || lowerContent.includes('страх')) emotions.push('тревога');
+
+    if (lowerContent.includes('раб')) triggers.push('работа');
+    if (lowerContent.includes('вечер')) triggers.push('вечернее время');
+    if (lowerContent.includes('друз')) triggers.push('социальное давление');
+
+    return {
+      sentiment: emotions.includes('радость') ? 'positive' : emotions.length > 0 ? 'negative' : 'neutral' as any,
+      dominantEmotions: emotions.length > 0 ? emotions : ['спокойствие'],
+      potentialTriggers: triggers,
+      advice: this.getAdviceForEmotions(emotions)
+    };
+  }
+
+  private static getAdviceForEmotions(emotions: string[]): string {
+    if (emotions.includes('гнев')) return 'Попробуйте технику глубокого дыхания 4-7-8, чтобы успокоиться.';
+    if (emotions.includes('тревога')) return 'Используйте технику заземления 5-4-3-2-1 для возврата в настоящий момент.';
+    if (emotions.includes('грусть')) return 'Не забывайте о самосострадании. Вы делаете большую работу.';
+    return 'Продолжайте осознанно проживать каждый день. Вы на верном пути!';
+  }
+
+  static async deleteEntry(id: string): Promise<Result<void>> {
+    try {
+      const entriesResult = await this.getEntries();
+      if (!entriesResult.success) return entriesResult as any;
+      const updatedEntries = entriesResult.data.filter(e => e.id !== id);
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedEntries));
+      return success(undefined);
+    } catch (e) {
+      return failure(e as Error);
+    }
+  }
+}

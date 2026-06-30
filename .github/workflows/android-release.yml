@@ -57,8 +57,11 @@ jobs:
       - name: Optimize Gradle Properties
         run: |
           mkdir -p android
-          echo "org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=512m" >> android/gradle.properties
+          # Increase memory even further and disable resource intensive features
+          sed -i 's/org.gradle.jvmargs=-Xmx2048m/org.gradle.jvmargs=-Xmx5120m/g' android/gradle.properties
           echo "android.useNewApkCreator=false" >> android/gradle.properties
+          echo "org.gradle.parallel=false" >> android/gradle.properties
+          echo "org.gradle.workers.max=1" >> android/gradle.properties
           cat android/gradle.properties
 
       - name: Ensure android/gradlew is executable
@@ -68,11 +71,12 @@ jobs:
       - name: Generate test keystore
         run: |
           mkdir -p android/app
-          keytool -genkeypair -v -storetype JKS -keystore android/app/release.keystore -alias release -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=example"
+          # Ensure keystore matches debug signing config used in build.gradle for simplicity in release build
+          keytool -genkeypair -v -storetype JKS -keystore android/app/debug.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=example, OU=example, O=example, L=example, S=example, C=US"
 
       - name: Build release APK(s)
         working-directory: android
-        run: ./gradlew clean assembleRelease --no-daemon --stacktrace --info --warning-mode all
+        run: ./gradlew assembleRelease --no-daemon --max-workers=1
 
       - name: Find and Sign APKs
         run: |

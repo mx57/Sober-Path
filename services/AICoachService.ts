@@ -90,7 +90,6 @@ export interface EnhancedAIResponse {
   recommendedCourses?: RecommendedCourse[];
   checkInRequired?: boolean;
   isReflection?: boolean;
-  urgency?: 'low' | 'medium' | 'high' | 'critical';
 }
 
 export interface AICoachChallenge {
@@ -267,7 +266,6 @@ export class AICoachService {
 
         // Проверка необходимости эмоционального чек-ина
         const checkInRequired = (context.stressLevel !== undefined && context.stressLevel >= 4) || context.cravingLevel >= 4;
-        const urgency = context.cravingLevel >= 5 ? 'critical' : context.cravingLevel >= 4 ? 'high' : context.stressLevel && context.stressLevel >= 4 ? 'medium' : 'low';
 
         // Обновляем адаптивные уведомления на основе прогресса
         await NotificationService.scheduleAdaptiveNotifications(context.soberDays);
@@ -281,8 +279,7 @@ export class AICoachService {
           confidenceLevel: knowledgeMatch ? 0.95 : 0.6,
           recommendedArticles,
           recommendedCourses,
-          checkInRequired,
-          urgency
+          checkInRequired
         });
     } catch (e) {
         return failure(e as Error);
@@ -294,40 +291,21 @@ export class AICoachService {
     soberDays: number;
     lastAchievement?: string
   }): string[] {
-    let starters: string[] = [];
+    const starters = ['Как дела?'];
 
     if (context.mood <= 2) {
-      starters = [
-        "Мне тяжело сегодня",
-        "Нужна поддержка",
-        "Чувствую тягу",
-        "Как справиться со стрессом?"
-      ];
+      starters.push('Мне грустно', 'Как справиться со стрессом?');
     } else if (context.mood >= 4) {
-      starters = [
-        "У меня отличный день!",
-        "Хочу поделиться прогрессом",
-        "Как закрепить успех?",
-        "Благодарен за поддержку"
-      ];
-    } else {
-      starters = [
-        "Как дела?",
-        "Нужен совет",
-        "Техника на сегодня",
-        "Расскажи что-нибудь мотивирующее"
-      ];
+      starters.push('У меня отличный день!', 'Как закрепить успех?');
     }
 
     if (context.soberDays % 7 === 0 && context.soberDays > 0) {
-      starters.unshift('Сегодня юбилей трезвости!');
+      starters.push('Сегодня юбилей трезвости!');
     }
 
-    if (context.lastAchievement) {
-      starters.push(`О моем успехе: ${context.lastAchievement}`);
-    }
+    starters.push('Нужна мотивация', 'Техника на сегодня');
 
-    return Array.from(new Set(starters)).slice(0, 5);
+    return Array.from(new Set(starters)).slice(0, 4);
   }
 
   private static determineTone(category: string): 'empathetic' | 'motivational' | 'educational' | 'supportive' {
