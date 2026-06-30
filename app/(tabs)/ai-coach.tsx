@@ -317,6 +317,36 @@ export default function EnhancedAICoach() {
                   </View>
                 </View>
 
+                {vm.roadmap && (
+                  <View style={styles.roadmapCard}>
+                    <View style={styles.roadmapHeader}>
+                      <MaterialIcons name="event-note" size={24} color="#2E7D4A" />
+                      <View>
+                        <Text style={styles.roadmapTitle}>План на {vm.roadmap.weekNumber}-ю неделю</Text>
+                        <Text style={styles.roadmapFocus}>Фокус: {vm.roadmap.focus}</Text>
+                      </View>
+                    </View>
+                    <View style={styles.roadmapTasks}>
+                      {vm.roadmap.tasks.map((task: any) => (
+                        <TouchableOpacity
+                          key={task.id}
+                          style={styles.roadmapTaskItem}
+                          onPress={() => vm.toggleTask(task.id)}
+                        >
+                          <MaterialIcons
+                            name={task.completed ? "check-box" : "check-box-outline-blank"}
+                            size={24}
+                            color={task.completed ? "#2E7D4A" : "#CCC"}
+                          />
+                          <Text style={[styles.roadmapTaskText, task.completed && styles.roadmapTaskCompleted]}>
+                            {task.text}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                )}
+
                 <Text style={styles.sectionTitle}>Выявленные триггеры</Text>
                 {vm.triggers && vm.triggers.length > 0 ? (
                   vm.triggers.map((trigger: any) => (
@@ -526,6 +556,53 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#F57F17',
     marginBottom: 8,
+  },
+  roadmapCard: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    borderLeftWidth: 4,
+    borderLeftColor: '#2E7D4A',
+  },
+  roadmapHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 15,
+  },
+  roadmapTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  roadmapFocus: {
+    fontSize: 12,
+    color: '#2E7D4A',
+    fontWeight: '600',
+  },
+  roadmapTasks: {
+    gap: 10,
+  },
+  roadmapTaskItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 4,
+  },
+  roadmapTaskText: {
+    fontSize: 14,
+    color: '#444',
+    flex: 1,
+  },
+  roadmapTaskCompleted: {
+    color: '#AAA',
+    textDecorationLine: 'line-through',
   },
   achievementMemoryItem: {
     flexDirection: 'row',

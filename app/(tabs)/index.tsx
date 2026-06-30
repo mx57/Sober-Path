@@ -24,6 +24,7 @@ import { MemoizedHealthMetric } from '../../components/home/HealthMetric';
 import { StatCard } from '../../components/home/StatCard';
 import { DailyMotivationService, MotivationQuote, RecoveryTip } from '../../services/dailyMotivationService';
 import { LineChart } from 'react-native-chart-kit';
+import { AICoachService, WeeklyRoadmap } from '../../services/AICoachService';
 
 const AchievementSystem = React.lazy(() => import('../../components/AchievementSystem'));
 const CrisisIntervention = React.lazy(() => import('../../components/CrisisIntervention'));
@@ -130,6 +131,7 @@ function HomePage() {
   const [selectedHealthMetric, setSelectedHealthMetric] = useState<string | null>(null);
   const [dailyQuote, setDailyQuote] = useState<MotivationQuote | null>(null);
   const [dailyTip, setDailyTip] = useState<RecoveryTip | null>(null);
+  const [weeklyRoadmap, setWeeklyRoadmap] = useState<WeeklyRoadmap | null>(null);
   const [alertConfig, setAlertConfig] = useState<{
     visible: boolean;
     title: string;
@@ -151,7 +153,15 @@ function HomePage() {
     );
     setDailyQuote(DailyMotivationService.getDailyQuote());
     setDailyTip(DailyMotivationService.getDailyTip());
-  }, [pulseValue]);
+
+    const loadRoadmap = async () => {
+      if (userProfile?.id) {
+        const roadmap = await AICoachService.getWeeklyRoadmap(userProfile.id, soberDays);
+        setWeeklyRoadmap(roadmap);
+      }
+    };
+    loadRoadmap();
+  }, [pulseValue, userProfile?.id, soberDays]);
 
   const showWebAlert = useCallback((title: string, message: string, onOk?: () => void) => {
     if (Platform.OS === 'web') {
@@ -328,6 +338,35 @@ function HomePage() {
           <StatCard icon="local-fire-department" number={streakDays} label={t('home.streak')} />
           <StatCard icon="check-circle" number={totalSoberDays} label={t('home.totalSober')} />
         </View>
+
+        {weeklyRoadmap && (
+          <Link href="/ai-coach" asChild>
+            <TouchableOpacity style={styles.roadmapWidget}>
+              <LinearGradient colors={['#F0F7F0', '#FFFFFF']} style={styles.roadmapWidgetGradient}>
+                <View style={styles.roadmapWidgetHeader}>
+                  <MaterialIcons name="event-note" size={20} color="#2E7D4A" />
+                  <Text style={styles.roadmapWidgetTitle}>План на неделю {weeklyRoadmap.weekNumber}</Text>
+                  <MaterialIcons name="chevron-right" size={20} color="#2E7D4A" />
+                </View>
+                <View style={styles.roadmapWidgetProgress}>
+                  <View style={styles.roadmapProgressBar}>
+                    <View
+                      style={[
+                        styles.roadmapProgressFill,
+                        {
+                          width: `${(weeklyRoadmap.tasks.filter(t => t.completed).length / weeklyRoadmap.tasks.length) * 100}%`
+                        }
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.roadmapProgressText}>
+                    {weeklyRoadmap.tasks.filter(t => t.completed).length} из {weeklyRoadmap.tasks.length} выполнено
+                  </Text>
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+          </Link>
+        )}
 
         {moodChartData && (
           <View style={styles.chartCard}>
@@ -931,6 +970,48 @@ const styles = StyleSheet.create({
     marginVertical: 8,
     borderRadius: 16,
     marginLeft: -20
+  },
+  roadmapWidget: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  roadmapWidgetGradient: {
+    padding: 15,
+  },
+  roadmapWidgetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  roadmapWidgetTitle: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#2E7D4A',
+  },
+  roadmapWidgetProgress: {
+    gap: 8,
+  },
+  roadmapProgressBar: {
+    height: 6,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  roadmapProgressFill: {
+    height: '100%',
+    backgroundColor: '#2E7D4A',
+  },
+  roadmapProgressText: {
+    fontSize: 11,
+    color: '#666',
+    fontWeight: '500',
   },
   modalContainer: {
     flex: 1,

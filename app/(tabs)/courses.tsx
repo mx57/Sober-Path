@@ -14,6 +14,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInUp, FadeInRight } from 'react-native-reanimated';
+import LottieView from 'lottie-react-native';
 import { MicroCoursesService, MicroCourse, Lesson } from '../../services/microCoursesService';
 import { allExpandedTechniques } from '../../services/expandedNLPTechniques';
 import { modernTherapeuticTechniques, microTechniques } from '../../services/therapeuticTechniques';
@@ -52,6 +53,7 @@ export default function CoursesPage() {
   const [selectedCourse, setSelectedCourse] = useState<MicroCourse | null>(null);
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [selectedTechnique, setSelectedTechnique] = useState<any | null>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   const courses = useMemo(() => MicroCoursesService.getCourses(), []);
   const techniques = useMemo(() => [
@@ -175,10 +177,30 @@ export default function CoursesPage() {
           </ScrollView>
 
           <View style={styles.lessonFooter}>
-            <TouchableOpacity style={styles.completeLessonButton} onPress={() => setSelectedLesson(null)}>
+            <TouchableOpacity
+              style={styles.completeLessonButton}
+              onPress={() => {
+                setShowConfetti(true);
+                setTimeout(() => {
+                  setShowConfetti(false);
+                  setSelectedLesson(null);
+                }, 2500);
+              }}
+            >
               <Text style={styles.completeLessonText}>Я выполнил задание</Text>
             </TouchableOpacity>
           </View>
+
+          {showConfetti && (
+            <View style={styles.confettiContainer} pointerEvents="none">
+              <LottieView
+                source={require('../../assets/lottie/celebration.json')}
+                autoPlay
+                loop={false}
+                style={styles.confetti}
+              />
+            </View>
+          )}
         </View>
       </Modal>
 
@@ -262,5 +284,15 @@ const styles = StyleSheet.create({
   completeLessonButton: { backgroundColor: '#2E7D4A', padding: 18, borderRadius: 15, alignItems: 'center' },
   completeLessonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
   stepItem: { marginBottom: 10 },
-  stepText: { fontSize: 15, color: '#555', lineHeight: 20 }
+  stepText: { fontSize: 15, color: '#555', lineHeight: 20 },
+  confettiContainer: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 9999,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  confetti: {
+    width: screenWidth,
+    height: screenWidth,
+  }
 });
