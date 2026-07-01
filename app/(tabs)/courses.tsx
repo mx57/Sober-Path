@@ -13,8 +13,9 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeInUp, FadeInRight, useSharedValue, useAnimatedStyle, withSpring, withTiming, withSequence } from 'react-native-reanimated';
-
+import Animated, { FadeInUp, FadeInRight } from 'react-native-reanimated';
+import LottieView from 'lottie-react-native';
+import { useAppTheme } from '../../contexts/ThemeContext';
 import { MicroCoursesService, MicroCourse, Lesson } from '../../services/microCoursesService';
 import { allExpandedTechniques } from '../../services/expandedNLPTechniques';
 import { modernTherapeuticTechniques, microTechniques } from '../../services/therapeuticTechniques';
@@ -37,30 +38,24 @@ const CourseCard = ({ course, onPress }: { course: MicroCourse, onPress: () => v
 const TechniqueItem = ({ technique, onPress }: { technique: any, onPress: () => void }) => (
   <TouchableOpacity style={styles.techniqueItem} onPress={onPress}>
     <View style={[styles.techIconContainer, { backgroundColor: '#E8F5E9' }]}>
-      <MaterialIcons name="psychology" size={24} color="#2E7D4A" />
+      <MaterialIcons name="psychology" size={24} color={colors.primary} />
     </View>
     <View style={styles.techInfo}>
       <Text style={styles.techName}>{technique.name}</Text>
       <Text style={styles.techDesc} numberOfLines={1}>{technique.description}</Text>
     </View>
-    <MaterialIcons name="play-circle-outline" size={24} color="#2E7D4A" />
+    <MaterialIcons name="play-circle-outline" size={24} color={colors.primary} />
   </TouchableOpacity>
 );
 
 export default function CoursesPage() {
   const insets = useSafeAreaInsets();
+  const { colors } = useAppTheme();
   const [activeTab, setActiveTab] = useState<'courses' | 'techniques'>('courses');
   const [selectedCourse, setSelectedCourse] = useState<MicroCourse | null>(null);
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [selectedTechnique, setSelectedTechnique] = useState<any | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
-  const confettiOpacity = useSharedValue(0);
-  const confettiScale = useSharedValue(0);
-
-  const confettiStyle = useAnimatedStyle(() => ({
-    opacity: confettiOpacity.value,
-    transform: [{ scale: confettiScale.value }]
-  }));
 
   const courses = useMemo(() => MicroCoursesService.getCourses(), []);
   const techniques = useMemo(() => [
@@ -92,24 +87,24 @@ export default function CoursesPage() {
   );
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <LinearGradient colors={['#2E7D4A', '#4CAF50']} style={styles.header}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+      <LinearGradient colors={colors.headerGradient} style={styles.header}>
         <Text style={styles.headerTitle}>Курсы и Техники</Text>
         <Text style={styles.headerSubtitle}>Ваш путь к самопознанию и свободе</Text>
       </LinearGradient>
 
       <View style={styles.tabBar}>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'courses' && styles.activeTab]}
+          style={[styles.tab, activeTab === 'courses' && { backgroundColor: activeTab === 'courses' ? colors.primary : 'transparent' }]}
           onPress={() => setActiveTab('courses')}
         >
-          <Text style={[styles.tabLabel, activeTab === 'courses' && styles.activeTabLabel]}>Курсы</Text>
+          <Text style={[styles.tabLabel, { color: activeTab === 'courses' ? 'white' : colors.primary }]}>Курсы</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'techniques' && styles.activeTab]}
+          style={[styles.tab, activeTab === 'techniques' && { backgroundColor: activeTab === 'techniques' ? colors.primary : 'transparent' }]}
           onPress={() => setActiveTab('techniques')}
         >
-          <Text style={[styles.tabLabel, activeTab === 'techniques' && styles.activeTabLabel]}>Техники</Text>
+          <Text style={[styles.tabLabel, { color: activeTab === 'techniques' ? 'white' : colors.primary }]}>Техники</Text>
         </TouchableOpacity>
       </View>
 
@@ -149,7 +144,7 @@ export default function CoursesPage() {
                   <Text style={styles.lessonTitle}>{lesson.title}</Text>
                   <Text style={styles.lessonDuration}>{lesson.duration} минут</Text>
                 </View>
-                <MaterialIcons name="play-circle-fill" size={32} color="#2E7D4A" />
+                <MaterialIcons name="play-circle-fill" size={32} color={colors.primary} />
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -174,7 +169,7 @@ export default function CoursesPage() {
               {selectedLesson?.task && (
                 <View style={styles.taskContainer}>
                   <View style={styles.taskHeader}>
-                    <MaterialIcons name="assignment" size={20} color="#2E7D4A" />
+                    <MaterialIcons name="assignment" size={20} color={colors.primary} />
                     <Text style={styles.taskTitle}>Практическое задание:</Text>
                   </View>
                   <Text style={styles.taskText}>{selectedLesson.task}</Text>
@@ -188,19 +183,10 @@ export default function CoursesPage() {
               style={styles.completeLessonButton}
               onPress={() => {
                 setShowConfetti(true);
-                confettiOpacity.value = withTiming(1, { duration: 200 });
-                confettiScale.value = withSequence(
-                  withSpring(1.2),
-                  withTiming(1, { duration: 300 })
-                );
                 setTimeout(() => {
-                  confettiOpacity.value = withTiming(0, { duration: 500 });
-                  confettiScale.value = withTiming(0, { duration: 500 });
-                  setTimeout(() => {
-                    setShowConfetti(false);
-                    setSelectedLesson(null);
-                  }, 600);
-                }, 2000);
+                  setShowConfetti(false);
+                  setSelectedLesson(null);
+                }, 2500);
               }}
             >
               <Text style={styles.completeLessonText}>Я выполнил задание</Text>
@@ -208,19 +194,24 @@ export default function CoursesPage() {
           </View>
 
           {showConfetti && (
-            <Animated.View style={[styles.confettiContainer, confettiStyle]} pointerEvents="none">
-              <View style={styles.celebrationCard}>
-                <Text style={styles.celebrationEmoji}>🎉</Text>
-                <Text style={styles.celebrationText}>Задание выполнено!</Text>
-                <Text style={styles.celebrationSub}>Отличная работа!</Text>
-              </View>
-            </Animated.View>
+            <View style={styles.confettiContainer} pointerEvents="none">
+              <LottieView
+                source={require('../../assets/lottie/celebration.json')}
+                autoPlay
+                loop={false}
+                style={styles.confetti}
+              />
+            </View>
           )}
         </View>
       </Modal>
 
-      {/* Technique Modal Placeholder */}
-      <Modal visible={!!selectedTechnique} animationType="slide">
+      {/* Technique Modal */}
+      <Modal
+        visible={!!selectedTechnique}
+        animationType="slide"
+        onRequestClose={() => setSelectedTechnique(null)}
+      >
         <View style={[styles.modalContainer, { paddingTop: insets.top }]}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setSelectedTechnique(null)}>
@@ -243,6 +234,30 @@ export default function CoursesPage() {
                </View>
             )}
           </ScrollView>
+          <View style={styles.lessonFooter}>
+            <TouchableOpacity
+              style={styles.completeLessonButton}
+              onPress={() => {
+                setShowConfetti(true);
+                setTimeout(() => {
+                  setShowConfetti(false);
+                  setSelectedTechnique(null);
+                }, 2500);
+              }}
+            >
+              <Text style={styles.completeLessonText}>Завершить практику</Text>
+            </TouchableOpacity>
+          </View>
+          {showConfetti && (
+            <View style={styles.confettiContainer} pointerEvents="none">
+              <LottieView
+                source={require('../../assets/lottie/celebration.json')}
+                autoPlay
+                loop={false}
+                style={styles.confetti}
+              />
+            </View>
+          )}
         </View>
       </Modal>
     </View>
@@ -256,8 +271,8 @@ const styles = StyleSheet.create({
   headerSubtitle: { fontSize: 16, color: 'rgba(255,255,255,0.8)', marginTop: 4 },
   tabBar: { flexDirection: 'row', backgroundColor: 'white', margin: 15, borderRadius: 12, padding: 4, elevation: 2 },
   tab: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 10 },
-  activeTab: { backgroundColor: '#2E7D4A' },
-  tabLabel: { fontSize: 14, fontWeight: 'bold', color: '#2E7D4A' },
+  activeTab: { backgroundColor: colors.primary },
+  tabLabel: { fontSize: 14, fontWeight: 'bold', color: colors.primary },
   activeTabLabel: { color: 'white' },
   scrollContent: { paddingHorizontal: 15, paddingBottom: 40 },
   tabContent: { gap: 15 },
@@ -285,18 +300,18 @@ const styles = StyleSheet.create({
   lessonsTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 15 },
   lessonItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8F9FA', padding: 15, borderRadius: 12, gap: 12, marginBottom: 10 },
   lessonNumber: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#E8F5E8', alignItems: 'center', justifyContent: 'center' },
-  lessonNumberText: { fontSize: 14, fontWeight: 'bold', color: '#2E7D4A' },
+  lessonNumberText: { fontSize: 14, fontWeight: 'bold', color: colors.primary },
   lessonInfo: { flex: 1 },
   lessonTitle: { fontSize: 15, fontWeight: '600', color: '#333' },
   lessonDuration: { fontSize: 12, color: '#999', marginTop: 2 },
   lessonBody: { gap: 20 },
   lessonText: { fontSize: 17, lineHeight: 26, color: '#444' },
-  taskContainer: { backgroundColor: '#E8F5E8', padding: 20, borderRadius: 16, borderLeftWidth: 4, borderLeftColor: '#2E7D4A' },
+  taskContainer: { backgroundColor: '#E8F5E8', padding: 20, borderRadius: 16, borderLeftWidth: 4, borderLeftColor: colors.primary },
   taskHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
-  taskTitle: { fontSize: 16, fontWeight: 'bold', color: '#2E7D4A' },
+  taskTitle: { fontSize: 16, fontWeight: 'bold', color: colors.primary },
   taskText: { fontSize: 15, color: '#333', lineHeight: 22 },
   lessonFooter: { padding: 20, borderTopWidth: 1, borderTopColor: '#F0F0F0' },
-  completeLessonButton: { backgroundColor: '#2E7D4A', padding: 18, borderRadius: 15, alignItems: 'center' },
+  completeLessonButton: { backgroundColor: colors.primary, padding: 18, borderRadius: 15, alignItems: 'center' },
   completeLessonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
   stepItem: { marginBottom: 10 },
   stepText: { fontSize: 15, color: '#555', lineHeight: 20 },
@@ -305,31 +320,9 @@ const styles = StyleSheet.create({
     zIndex: 9999,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.4)',
   },
-  celebrationCard: {
-    backgroundColor: 'white',
-    borderRadius: 24,
-    padding: 40,
-    alignItems: 'center',
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-  },
-  celebrationEmoji: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  celebrationText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#2E7D4A',
-    marginBottom: 8,
-  },
-  celebrationSub: {
-    fontSize: 16,
-    color: '#666',
+  confetti: {
+    width: screenWidth,
+    height: screenWidth,
   }
 });

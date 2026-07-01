@@ -1,11 +1,14 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useAppTheme } from '../../contexts/ThemeContext';
 
 const TabLayout = () => {
+  const { colors } = useAppTheme();
+
   const tabOptions = {
     headerShown: false,
-    tabBarActiveTintColor: '#2E7D4A',
+    tabBarActiveTintColor: colors.primary,
     tabBarInactiveTintColor: '#666',
     tabBarStyle: {
       height: 60,
@@ -38,7 +41,10 @@ const TabLayout = () => {
     React.createElement(Tabs.Screen, { name: 'exercises', options: { href: null } }),
     React.createElement(Tabs.Screen, { name: 'profile', options: { href: null } }),
     React.createElement(Tabs.Screen, { name: 'analytics', options: { href: null } }),
-    React.createElement(Tabs.Screen, { name: 'sounds', options: { href: null } })
+    React.createElement(Tabs.Screen, { name: 'sounds', options: { href: null } }),
+    React.createElement(Tabs.Screen, { name: 'journal', options: { href: null } }),
+    React.createElement(Tabs.Screen, { name: 'micro-courses', options: { href: null } }),
+    React.createElement(Tabs.Screen, { name: 'advanced-therapy', options: { href: null } })
   );
 };
 

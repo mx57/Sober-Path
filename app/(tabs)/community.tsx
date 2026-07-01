@@ -6,6 +6,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useAppTheme } from '../../contexts/ThemeContext';
 import { CommunityService, SuccessStory, SupportPost, ExpertQA, ReactionType } from '../../services/communityService';
 import Animated, { FadeInUp, useSharedValue, useAnimatedStyle, withSpring, withSequence, withTiming } from 'react-native-reanimated';
 import { Skeleton } from '../../components/Skeleton';
@@ -28,7 +29,7 @@ const SuccessStoryCard = ({ story }: { story: SuccessStory }) => (
 const ExpertQACard = ({ qa }: { qa: ExpertQA }) => (
   <View style={styles.expertCard}>
     <View style={styles.expertHeader}>
-      <MaterialIcons name="help-center" size={24} color="#2E7D4A" />
+      <MaterialIcons name="help-center" size={24} color={colors.primary} />
       <Text style={styles.expertQuestion} numberOfLines={2}>{qa.question}</Text>
     </View>
     <View style={styles.expertAnswerContainer}>
@@ -70,7 +71,7 @@ const SupportPostItem = ({
       case 'question': return '#2196F3';
       case 'milestone': return '#E91E63';
       case 'daily_thread': return '#673AB7';
-      default: return '#2E7D4A';
+      default: return colors.primary;
     }
   };
 
@@ -170,6 +171,7 @@ const SupportPostItem = ({
 
 export default function CommunityPage() {
   const insets = useSafeAreaInsets();
+  const { colors } = useAppTheme();
   const [stories, setStories] = useState<SuccessStory[]>([]);
   const [posts, setPosts] = useState<SupportPost[]>([]);
   const [expertQA, setExpertQA] = useState<ExpertQA[]>([]);
@@ -410,8 +412,8 @@ export default function CommunityPage() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <LinearGradient colors={['#2E7D4A', '#4CAF50']} style={styles.header}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+      <LinearGradient colors={colors.headerGradient} style={styles.header}>
         <Text style={styles.title}>Сообщество</Text>
         <Text style={styles.subtitle}>Вместе мы сильнее</Text>
       </LinearGradient>
@@ -457,7 +459,7 @@ export default function CommunityPage() {
       )}
 
       <TouchableOpacity
-        style={styles.fab}
+        style={[styles.fab, { backgroundColor: colors.primary }]}
         onPress={() => setIsModalVisible(true)}
       >
         <MaterialIcons name="edit" size={24} color="white" />
@@ -637,7 +639,7 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 16,
     borderLeftWidth: 4,
-    borderLeftColor: '#2E7D4A',
+    borderLeftColor: colors.primary,
     elevation: 2,
   },
   circleInfoTitle: {
@@ -684,7 +686,7 @@ const styles = StyleSheet.create({
     color: '#333'
   },
   seeAllText: {
-    color: '#2E7D4A',
+    color: colors.primary,
     fontWeight: '600'
   },
   storiesContainer: {
@@ -721,7 +723,7 @@ const styles = StyleSheet.create({
   },
   daysBadge: {
     fontSize: 12,
-    color: '#2E7D4A',
+    color: colors.primary,
     fontWeight: '600'
   },
   storyText: {
@@ -740,7 +742,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     borderLeftWidth: 4,
-    borderLeftColor: '#2E7D4A'
+    borderLeftColor: colors.primary
   },
   expertHeader: {
     flexDirection: 'row',
@@ -772,7 +774,7 @@ const styles = StyleSheet.create({
   expertName: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#2E7D4A'
+    color: colors.primary
   },
   expertTitle: {
     fontSize: 11,
@@ -950,7 +952,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#2E7D4A',
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 5,
@@ -1012,7 +1014,7 @@ const styles = StyleSheet.create({
     borderColor: '#E0E0E0'
   },
   submitButton: {
-    backgroundColor: '#2E7D4A',
+    backgroundColor: colors.primary,
     borderRadius: 16,
     paddingVertical: 15,
     alignItems: 'center'
@@ -1028,12 +1030,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 15,
     borderLeftWidth: 3,
-    borderLeftColor: '#2E7D4A'
+    borderLeftColor: colors.primary
   },
   targetPostAuthor: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#2E7D4A',
+    color: colors.primary,
     marginBottom: 4
   },
   targetPostText: {

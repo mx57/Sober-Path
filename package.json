@@ -18,6 +18,7 @@
     "@expo/vector-icons": "^14.0.0",
     "@gorhom/bottom-sheet": "4.4.6",
     "@graphql-codegen/introspection": "^2.1.1",
+    "@lottiefiles/dotlottie-react": "^0.19.6",
     "@lucide/lab": "^0.1.2",
     "@privacyresearch/libsignal-protocol-typescript": "0.0.16",
     "@react-native-async-storage/async-storage": "2.1.2",

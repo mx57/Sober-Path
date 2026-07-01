@@ -27,6 +27,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useRecovery } from '../../hooks/useRecovery';
 import { smartNotificationService } from '../../services/smartNotificationService';
+import { useAppTheme } from '../../contexts/ThemeContext';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -172,9 +173,10 @@ const MemoizedSettingRow = React.memo(({ setting, onValueChange }: {
 
 export default function EnhancedSettingsPage() {
   const insets = useSafeAreaInsets();
+  const { colors, theme: currentTheme, setTheme } = useAppTheme();
   const { userProfile, updateUserProfile } = useRecovery();
   
-  const [selectedTheme, setSelectedTheme] = useState('nature');
+  const [selectedTheme, setSelectedTheme] = useState(currentTheme);
   const [notificationSettings, setNotificationSettings] = useState<any>({
     motivationalQuotes: true,
     riskInterventions: true,
@@ -209,7 +211,7 @@ export default function EnhancedSettingsPage() {
   }));
 
   const themes = [
-    { id: 'nature', name: 'Природа', icon: 'eco', gradient: ['#4CAF50', '#2E7D4A'] },
+    { id: 'nature', name: 'Природа', icon: 'eco', gradient: ['#4CAF50', colors.primary] },
     { id: 'ocean', name: 'Океан', icon: 'waves', gradient: ['#2196F3', '#1565C0'] },
     { id: 'sunset', name: 'Закат', icon: 'wb-sunny', gradient: ['#FF9800', '#F57C00'] },
     { id: 'minimal', name: 'Минимал', icon: 'palette', gradient: ['#607D8B', '#455A64'] }
@@ -364,6 +366,7 @@ export default function EnhancedSettingsPage() {
 
   const handleThemeChange = useCallback(async (themeId: string) => {
     setSelectedTheme(themeId);
+    setTheme(themeId as any);
     await saveSettings(STORAGE_KEYS.THEME, themeId);
     
     // Применяем тему к приложению
@@ -374,7 +377,7 @@ export default function EnhancedSettingsPage() {
     if (Platform.OS !== 'web' && Haptics?.impactAsync) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
-  }, [updateUserProfile, saveSettings]);
+  }, [updateUserProfile, saveSettings, setTheme]);
 
   const handleSettingChange = useCallback(async (sectionId: string, settingId: string, value: any) => {
     switch (sectionId) {
@@ -452,8 +455,8 @@ export default function EnhancedSettingsPage() {
   }
 
   return (
-    <ScrollView style={[styles.container, { paddingTop: insets.top }]}>
-      <LinearGradient colors={['#4CAF50', '#2E7D4A']} style={styles.header}>
+    <ScrollView style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+      <LinearGradient colors={colors.headerGradient} style={styles.header}>
         <View style={styles.headerContent}>
           <MaterialIcons name="settings" size={32} color="white" />
           <Text style={styles.headerTitle}>Настройки</Text>
@@ -463,7 +466,7 @@ export default function EnhancedSettingsPage() {
 
       <Animated.View style={[styles.content, fadeInAnimatedStyle]}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🎨 Тема приложения</Text>
+          <Text style={[styles.sectionTitle, { color: colors.primary }]}>🎨 Тема приложения</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={styles.themesContainer}>
               {themes.map((theme) => (
@@ -590,7 +593,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#2E7D4A',
+    color: colors.primary,
     marginBottom: 4
   },
   sectionDescription: {

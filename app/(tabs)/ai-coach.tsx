@@ -12,6 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAICoachViewModel, ChatMessage } from '../../hooks/useAICoachViewModel';
 import { AICoachChallenge } from '../../services/AICoachService';
 import { useRouter } from 'expo-router';
+import { useAppTheme } from '../../contexts/ThemeContext';
 import Animated, {
   FadeInUp,
   FadeInRight,
@@ -28,7 +29,7 @@ const ChallengeCard = React.memo(({ challenge, onComplete }: {
     style={[styles.challengeCard, challenge.completed && styles.challengeCompleted]}
   >
     <View style={styles.challengeIconContainer}>
-      <MaterialIcons name={challenge.icon} size={24} color={challenge.completed ? "#FFF" : "#2E7D4A"} />
+      <MaterialIcons name={challenge.icon} size={24} color={challenge.completed ? "#FFF" : colors.primary} />
     </View>
     <View style={styles.challengeInfo}>
       <Text style={[styles.challengeTitle, challenge.completed && styles.challengeCompletedText]}>
@@ -87,7 +88,7 @@ const MessageBubble = React.memo(({ message, onArticlePress, onCoursePress, onSp
               <MaterialIcons
                 name={isHighUrgency ? "report-problem" : "psychology"}
                 size={16}
-                color={isHighUrgency ? "#FF5252" : "#2E7D4A"}
+                color={isHighUrgency ? "#FF5252" : colors.primary}
               />
               <Text style={[styles.aiLabel, isHighUrgency && { color: '#FF5252' }]}>
                 {isHighUrgency ? 'Экстренный Коуч' : 'AI-Коуч'}
@@ -97,7 +98,7 @@ const MessageBubble = React.memo(({ message, onArticlePress, onCoursePress, onSp
               <MaterialIcons
                 name={isSpeaking ? "volume-up" : "volume-mute"}
                 size={18}
-                color={isHighUrgency ? "#FF5252" : "#2E7D4A"}
+                color={isHighUrgency ? "#FF5252" : colors.primary}
               />
             </TouchableOpacity>
           </View>
@@ -122,7 +123,7 @@ const MessageBubble = React.memo(({ message, onArticlePress, onCoursePress, onSp
                 style={styles.articleLink}
                 onPress={() => onArticlePress(article.id)}
               >
-                <MaterialIcons name="article" size={16} color="#2E7D4A" />
+                <MaterialIcons name="article" size={16} color={colors.primary} />
                 <Text style={styles.articleLinkText}>{article.title}</Text>
               </TouchableOpacity>
             ))}
@@ -138,7 +139,7 @@ const MessageBubble = React.memo(({ message, onArticlePress, onCoursePress, onSp
                 style={styles.articleLink}
                 onPress={() => onCoursePress(course.id)}
               >
-                <MaterialIcons name="school" size={16} color="#2E7D4A" />
+                <MaterialIcons name="school" size={16} color={colors.primary} />
                 <Text style={styles.articleLinkText}>{course.title}</Text>
               </TouchableOpacity>
             ))}
@@ -151,13 +152,14 @@ const MessageBubble = React.memo(({ message, onArticlePress, onCoursePress, onSp
 
 export default function EnhancedAICoach() {
   const insets = useSafeAreaInsets();
+  const { colors } = useAppTheme();
   const vm = useAICoachViewModel();
   const scrollViewRef = useRef<ScrollView>(null);
   const router = useRouter();
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <LinearGradient colors={['#2E7D4A', '#4CAF50']} style={styles.header}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+      <LinearGradient colors={colors.headerGradient} style={styles.header}>
         <MaterialIcons name="psychology" size={32} color="white" />
         <Text style={styles.title}>AI-Коуч 2.0</Text>
         <Text style={styles.headerStats}>Дней: {vm.soberDays}</Text>
@@ -171,10 +173,10 @@ export default function EnhancedAICoach() {
         ].map((tab) => (
           <TouchableOpacity
             key={tab.key}
-            style={[styles.tab, vm.activeTab === tab.key && styles.activeTab]}
+            style={[styles.tab, vm.activeTab === tab.key && { backgroundColor: vm.activeTab === tab.key ? colors.primary : 'transparent', borderRadius: 10 }]}
             onPress={() => vm.setActiveTab(tab.key as any)}
           >
-            <Text style={[styles.tabLabel, vm.activeTab === tab.key && styles.activeTabLabel]}>
+            <Text style={[styles.tabLabel, { color: vm.activeTab === tab.key ? 'white' : colors.primary, fontWeight: 'bold' }]}>
               {tab.label}
             </Text>
           </TouchableOpacity>
@@ -240,7 +242,7 @@ export default function EnhancedAICoach() {
               ))}
               {vm.isTyping && (
                 <View style={styles.typingContainer}>
-                  <ActivityIndicator size="small" color="#2E7D4A" />
+                  <ActivityIndicator size="small" color={colors.primary} />
                   <Text style={styles.typingText}>Коуч печатает...</Text>
                 </View>
               )}
@@ -281,7 +283,7 @@ export default function EnhancedAICoach() {
                 }}
                 disabled={!vm.inputText.trim()}
               >
-                <MaterialIcons name="send" size={24} color={vm.inputText.trim() ? "#2E7D4A" : "#CCC"} />
+                <MaterialIcons name="send" size={24} color={vm.inputText.trim() ? colors.primary : "#CCC"} />
               </TouchableOpacity>
             </View>
           </KeyboardAvoidingView>
@@ -320,7 +322,7 @@ export default function EnhancedAICoach() {
                 {vm.roadmap && (
                   <View style={styles.roadmapCard}>
                     <View style={styles.roadmapHeader}>
-                      <MaterialIcons name="event-note" size={24} color="#2E7D4A" />
+                      <MaterialIcons name="event-note" size={24} color={colors.primary} />
                       <View>
                         <Text style={styles.roadmapTitle}>План на {vm.roadmap.weekNumber}-ю неделю</Text>
                         <Text style={styles.roadmapFocus}>Фокус: {vm.roadmap.focus}</Text>
@@ -336,7 +338,7 @@ export default function EnhancedAICoach() {
                           <MaterialIcons
                             name={task.completed ? "check-box" : "check-box-outline-blank"}
                             size={24}
-                            color={task.completed ? "#2E7D4A" : "#CCC"}
+                            color={task.completed ? colors.primary : "#CCC"}
                           />
                           <Text style={[styles.roadmapTaskText, task.completed && styles.roadmapTaskCompleted]}>
                             {task.text}
@@ -359,7 +361,7 @@ export default function EnhancedAICoach() {
                         />
                         <Text style={styles.triggerName}>{trigger.name}</Text>
                         <View style={[styles.severityBadge, { backgroundColor: trigger.severity > 3 ? '#FFE5E5' : '#E5F6ED' }]}>
-                          <Text style={[styles.severityText, { color: trigger.severity > 3 ? '#FF6B6B' : '#2E7D4A' }]}>
+                          <Text style={[styles.severityText, { color: trigger.severity > 3 ? '#FF6B6B' : colors.primary }]}>
                             Ур. {trigger.severity}
                           </Text>
                         </View>
@@ -397,15 +399,15 @@ const styles = StyleSheet.create({
   headerStats: { color: 'white', marginTop: 5 },
   tabBar: { flexDirection: 'row', margin: 10, backgroundColor: 'white', borderRadius: 10 },
   tab: { flex: 1, padding: 12, alignItems: 'center' },
-  activeTab: { backgroundColor: '#2E7D4A', borderRadius: 10 },
-  tabLabel: { color: '#2E7D4A', fontWeight: 'bold' },
+  activeTab: { backgroundColor: colors.primary, borderRadius: 10 },
+  tabLabel: { color: colors.primary, fontWeight: 'bold' },
   activeTabLabel: { color: 'white' },
   content: { flex: 1 },
   messagesContainer: { flex: 1, padding: 10 },
   messageContainer: { marginVertical: 5, alignItems: 'flex-start' },
   userMessageContainer: { alignItems: 'flex-end' },
   messageBubble: { maxWidth: '80%', padding: 12, borderRadius: 15 },
-  userBubble: { backgroundColor: '#2E7D4A' },
+  userBubble: { backgroundColor: colors.primary },
   aiBubble: { backgroundColor: 'white', elevation: 2 },
   highUrgencyBubble: {
     backgroundColor: '#FFEBEE',
@@ -420,7 +422,7 @@ const styles = StyleSheet.create({
   aiMessageText: { color: '#333' },
   aiHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
   aiLabelRow: { flexDirection: 'row', alignItems: 'center' },
-  aiLabel: { fontSize: 10, fontWeight: 'bold', color: '#2E7D4A', marginLeft: 4 },
+  aiLabel: { fontSize: 10, fontWeight: 'bold', color: colors.primary, marginLeft: 4 },
   speakButton: { padding: 4 },
   timestamp: { fontSize: 10, color: '#999', marginTop: 4, alignSelf: 'flex-end' },
   recommendationsContainer: {
@@ -446,7 +448,7 @@ const styles = StyleSheet.create({
   },
   articleLinkText: {
     fontSize: 12,
-    color: '#2E7D4A',
+    color: colors.primary,
     fontWeight: '500',
     flex: 1,
   },
@@ -465,11 +467,11 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#2E7D4A',
+    borderColor: colors.primary,
     justifyContent: 'center',
   },
   suggestionText: {
-    color: '#2E7D4A',
+    color: colors.primary,
     fontSize: 14,
     fontWeight: '500',
   },
@@ -487,14 +489,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-  cardTitle: { fontSize: 18, fontWeight: 'bold', color: '#2E7D4A', marginBottom: 10 },
+  cardTitle: { fontSize: 18, fontWeight: 'bold', color: colors.primary, marginBottom: 10 },
   statusText: { fontSize: 16, color: '#333', marginBottom: 15 },
   statsRow: { flexDirection: 'row', justifyContent: 'space-around', borderTopWidth: 1, borderTopColor: '#F0F0F0', paddingTop: 15 },
   statItem: { alignItems: 'center' },
-  statValue: { fontSize: 20, fontWeight: 'bold', color: '#2E7D4A' },
+  statValue: { fontSize: 20, fontWeight: 'bold', color: colors.primary },
   statLabel: { fontSize: 12, color: '#666' },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 15 },
-  sectionSmallTitle: { fontSize: 14, fontWeight: 'bold', color: '#2E7D4A', marginHorizontal: 15, marginTop: 10, marginBottom: 5 },
+  sectionSmallTitle: { fontSize: 14, fontWeight: 'bold', color: colors.primary, marginHorizontal: 15, marginTop: 10, marginBottom: 5 },
   challengesSection: { backgroundColor: '#E8F5E8', paddingVertical: 10 },
   challengesScroll: { paddingHorizontal: 10, gap: 10 },
   challengeCard: {
@@ -507,7 +509,7 @@ const styles = StyleSheet.create({
     elevation: 2,
     gap: 10
   },
-  challengeCompleted: { backgroundColor: '#2E7D4A' },
+  challengeCompleted: { backgroundColor: colors.primary },
   challengeIconContainer: {
     width: 40,
     height: 40,
@@ -518,13 +520,13 @@ const styles = StyleSheet.create({
   },
   challengeInfo: { flex: 1 },
   challengeTitle: { fontSize: 14, fontWeight: 'bold', color: '#333' },
-  challengePoints: { fontSize: 12, color: '#2E7D4A', fontWeight: '600' },
+  challengePoints: { fontSize: 12, color: colors.primary, fontWeight: '600' },
   challengeCompletedText: { color: 'white' },
   completeButton: {
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: '#2E7D4A',
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center'
   },
@@ -568,7 +570,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     borderLeftWidth: 4,
-    borderLeftColor: '#2E7D4A',
+    borderLeftColor: colors.primary,
   },
   roadmapHeader: {
     flexDirection: 'row',
@@ -583,7 +585,7 @@ const styles = StyleSheet.create({
   },
   roadmapFocus: {
     fontSize: 12,
-    color: '#2E7D4A',
+    color: colors.primary,
     fontWeight: '600',
   },
   roadmapTasks: {
@@ -624,7 +626,7 @@ const styles = StyleSheet.create({
   startersTitle: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#2E7D4A',
+    color: colors.primary,
     marginBottom: 10,
     textTransform: 'uppercase',
   },
