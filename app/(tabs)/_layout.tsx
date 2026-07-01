@@ -2,6 +2,8 @@ import React from 'react';
 import { Tabs } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 
+type TabIconProps = { color: string; size: number };
+
 const TabLayout = () => {
   const tabOptions = {
     headerShown: false,
@@ -14,11 +16,11 @@ const TabLayout = () => {
     }
   };
 
-  const homeIcon = ({ color, size }) => <MaterialIcons name="home" size={size} color={color} />;
-  const coachIcon = ({ color, size }) => <MaterialIcons name="psychology" size={size} color={color} />;
-  const courseIcon = ({ color, size }) => <MaterialIcons name="school" size={size} color={color} />;
-  const communityIcon = ({ color, size }) => <MaterialIcons name="people" size={size} color={color} />;
-  const settingsIcon = ({ color, size }) => <MaterialIcons name="settings" size={size} color={color} />;
+  const homeIcon = ({ color, size }: TabIconProps) => <MaterialIcons name="home" size={size} color={color} />;
+  const coachIcon = ({ color, size }: TabIconProps) => <MaterialIcons name="psychology" size={size} color={color} />;
+  const courseIcon = ({ color, size }: TabIconProps) => <MaterialIcons name="school" size={size} color={color} />;
+  const communityIcon = ({ color, size }: TabIconProps) => <MaterialIcons name="people" size={size} color={color} />;
+  const settingsIcon = ({ color, size }: TabIconProps) => <MaterialIcons name="settings" size={size} color={color} />;
 
   return React.createElement(Tabs, { screenOptions: tabOptions },
     React.createElement(Tabs.Screen, { name: 'index', options: { title: 'Главная', tabBarIcon: homeIcon } }),

@@ -6,8 +6,26 @@ import { PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
+const stackScreenOptions = {
+  headerShown: false,
+};
+
 export default function RootLayout() {
   return (
-    <SafeAreaProvider><PaperProvider><RecoveryProvider><AnalyticsProvider><StatusBar style="dark" /><Stack screenOptions={{ headerShown: false }}><Stack.Screen name="(tabs)" /><Stack.Screen name="onboarding" /><Stack.Screen name="emergency" /><Stack.Screen name="analytics" /></Stack></AnalyticsProvider></RecoveryProvider></PaperProvider></SafeAreaProvider>
+    <SafeAreaProvider>
+      <PaperProvider>
+        <RecoveryProvider>
+          <AnalyticsProvider>
+            <StatusBar style="dark" />
+            <Stack screenOptions={stackScreenOptions}>
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="onboarding" />
+              <Stack.Screen name="emergency" />
+              <Stack.Screen name="analytics" />
+            </Stack>
+          </AnalyticsProvider>
+        </RecoveryProvider>
+      </PaperProvider>
+    </SafeAreaProvider>
   );
 }
