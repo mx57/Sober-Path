@@ -102,6 +102,14 @@ export function useAICoachViewModel() {
     setIsSpeaking(false);
   };
 
+  const toggleTask = useCallback(async (taskId: string) => {
+    const result = await AICoachService.toggleRoadmapTask(userProfile?.id || 'default', taskId);
+    if (result.success) {
+      setRoadmap(result.data);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+  }, [userProfile?.id]);
+
   const sendMessage = async (overrideText?: string) => {
     const textToSend = typeof overrideText === 'string' ? overrideText : inputText;
     if (!textToSend.trim() || isTyping) return;
@@ -201,6 +209,8 @@ export function useAICoachViewModel() {
     speak,
     stopSpeaking,
     isSpeaking,
-    chatStarters
+    chatStarters,
+    roadmap,
+    toggleTask
   };
 }

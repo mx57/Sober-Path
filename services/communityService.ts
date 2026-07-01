@@ -417,24 +417,34 @@ export class CommunityService {
     }
   }
 
-  static getCircles(): { id: string; name: string; icon: string; color: string }[] {
+  static getCircles(): { id: string; name: string; icon: string; color: string; description: string }[] {
     return [
-      { id: 'all', name: 'Все', icon: 'apps', color: '#2E7D4A' },
-      { id: 'motivation', name: 'Мотивация', icon: 'auto-awesome', color: '#FFC107' },
-      { id: 'question', name: 'Вопросы', icon: 'help-outline', color: '#2196F3' },
-      { id: 'support', name: 'Поддержка', icon: 'favorite-border', color: '#4CAF50' },
-      { id: 'milestone', name: 'Достижения', icon: 'emoji-events', color: '#E91E63' },
-      { id: 'group_early', name: 'Первые шаги', icon: 'child-care', color: '#FF5722' },
-      { id: 'group_work', name: 'Работа и стресс', icon: 'business-center', color: '#607D8B' }
+      { id: 'all', name: 'Все', icon: 'apps', color: '#2E7D4A', description: 'Общий поток всех сообщений сообщества.' },
+      { id: 'motivation', name: 'Мотивация', icon: 'auto-awesome', color: '#FFC107', description: 'Цитаты, личные инсайты и всё, что дает силы двигаться дальше.' },
+      { id: 'question', name: 'Вопросы', icon: 'help-outline', color: '#2196F3', description: 'Спрашивайте совета у тех, кто уже прошел через это.' },
+      { id: 'support', name: 'Поддержка', icon: 'favorite-border', color: '#4CAF50', description: 'Взаимная помощь в трудные минуты.' },
+      { id: 'milestone', name: 'Достижения', icon: 'emoji-events', color: '#E91E63', description: 'Делитесь своими победами, большими и маленькими!' },
+      { id: 'group_early', name: 'Первые шаги', icon: 'child-care', color: '#FF5722', description: 'Комната для тех, у кого стаж трезвости меньше 30 дней.' },
+      { id: 'group_work', name: 'Работа и стресс', icon: 'business-center', color: '#607D8B', description: 'Обсуждаем, как оставаться трезвым в рабочем ритме.' }
     ];
   }
 
-  static getMentorshipAdvice(): { author: string; text: string; role: string }[] {
-    return [
-      { author: 'Виктор', role: 'Наставник (3 года)', text: 'В моменты тяги просто скажите себе: "Не сейчас". Не "никогда", а просто не в эту минуту. Это снимает панику.' },
-      { author: 'Марина', role: 'Наставник (5 лет)', text: 'Скука — это ваш мозг восстанавливается. Дайте ему время научиться радоваться простым вещам без допинга.' },
-      { author: 'Алексей', role: 'Наставник (1.5 года)', text: 'Окружение решает всё. Если друзья не уважают ваш выбор — они не друзья.' }
+  static getMentorshipAdvice(categoryId?: string): { author: string; text: string; role: string }[] {
+    const allAdvice = [
+      { category: 'all', author: 'Виктор', role: 'Наставник (3 года)', text: 'В моменты тяги просто скажите себе: "Не сейчас". Не "никогда", а просто не в эту минуту. Это снимает панику.' },
+      { category: 'motivation', author: 'Марина', role: 'Наставник (5 лет)', text: 'Скука — это ваш мозг восстанавливается. Дайте ему время научиться радоваться простым вещам без допинга.' },
+      { category: 'group_early', author: 'Алексей', role: 'Наставник (1.5 года)', text: 'Окружение решает всё. Если друзья не уважают ваш выбор — они не друзья.' },
+      { category: 'question', author: 'Елена', role: 'Наставник (2 года)', text: 'Не бойтесь показаться слабым. Просить о помощи — это признак силы, а не поражения.' },
+      { category: 'milestone', author: 'Сергей', role: 'Наставник (4 года)', text: 'Каждая победа заслуживает празднования. Новым кроссовкам или походу в кино — да, алкоголю — нет.' },
+      { category: 'group_work', author: 'Ирина', role: 'Наставник (3.5 года)', text: 'Работа — это просто работа. Ваша трезвость всегда должна быть на первом месте в списке приоритетов.' },
+      { category: 'support', author: 'Дмитрий', role: 'Наставник (6 лет)', text: 'Помогая другим, мы помогаем себе. Это один из главных принципов долгосрочной трезвости.' }
     ];
+
+    if (!categoryId || categoryId === 'all') {
+      return [allAdvice[0], allAdvice[1], allAdvice[6]];
+    }
+
+    return allAdvice.filter(a => a.category === categoryId || a.category === 'all');
   }
 
   static getExpertQA(): ExpertQA[] {

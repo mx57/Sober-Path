@@ -286,7 +286,8 @@ export default function CommunityPage() {
   );
 
   const renderHeader = () => {
-    const mentorshipAdvice = CommunityService.getMentorshipAdvice();
+    const mentorshipAdvice = CommunityService.getMentorshipAdvice(selectedCircle);
+    const currentCircle = circles.find(c => c.id === selectedCircle);
 
     return (
     <View>
@@ -309,7 +310,10 @@ export default function CommunityPage() {
                 styles.circleButton,
                 selectedCircle === circle.id && { backgroundColor: circle.color }
               ]}
-              onPress={() => setSelectedCircle(circle.id)}
+              onPress={() => {
+                setSelectedCircle(circle.id);
+                Haptics.selectionAsync();
+              }}
             >
               <MaterialIcons
                 name={circle.icon}
@@ -326,6 +330,13 @@ export default function CommunityPage() {
           ))
         )}
       </ScrollView>
+
+      {currentCircle && selectedCircle !== 'all' && (
+        <Animated.View entering={FadeInUp} style={styles.circleInfoCard}>
+          <Text style={styles.circleInfoTitle}>{currentCircle.name}</Text>
+          <Text style={styles.circleInfoDesc}>{currentCircle.description}</Text>
+        </Animated.View>
+      )}
 
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Ответы экспертов</Text>
@@ -376,12 +387,17 @@ export default function CommunityPage() {
         {isLoading ? (
           <Skeleton width="100%" height={80} borderRadius={16} />
         ) : (
-          mentorshipAdvice.slice(0, 1).map((advice, idx) => (
-            <View key={idx} style={styles.mentorshipCard}>
-              <Text style={styles.mentorshipAuthor}>{advice.author}</Text>
-              <Text style={styles.mentorshipRole}>{advice.role}</Text>
+          mentorshipAdvice.slice(0, 2).map((advice, idx) => (
+            <Animated.View entering={FadeInUp.delay(idx * 100)} key={idx} style={styles.mentorshipCard}>
+              <View style={styles.mentorshipHeader}>
+                <View>
+                  <Text style={styles.mentorshipAuthor}>{advice.author}</Text>
+                  <Text style={styles.mentorshipRole}>{advice.role}</Text>
+                </View>
+                <MaterialIcons name="verified" size={20} color="#F57F17" />
+              </View>
               <Text style={styles.mentorshipText}>«{advice.text}»</Text>
-            </View>
+            </Animated.View>
           ))
         )}
       </View>
@@ -614,6 +630,27 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333'
   },
+  circleInfoCard: {
+    backgroundColor: 'white',
+    marginHorizontal: 20,
+    marginTop: 15,
+    padding: 15,
+    borderRadius: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#2E7D4A',
+    elevation: 2,
+  },
+  circleInfoTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 4,
+  },
+  circleInfoDesc: {
+    fontSize: 13,
+    color: '#666',
+    lineHeight: 18,
+  },
   header: {
     padding: 20,
     paddingBottom: 25,
@@ -752,6 +789,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#FFF59D',
     marginBottom: 12,
+  },
+  mentorshipHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   mentorshipAuthor: {
     fontSize: 14,

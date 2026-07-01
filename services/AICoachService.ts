@@ -72,10 +72,16 @@ export interface RecommendedCourse {
   title: string;
 }
 
+export interface RoadmapTask {
+  id: string;
+  text: string;
+  completed: boolean;
+}
+
 export interface WeeklyRoadmap {
   weekNumber: number;
   focus: string;
-  tasks: string[];
+  tasks: RoadmapTask[];
   recommendedLessons: string[];
 }
 
@@ -106,10 +112,12 @@ export interface AICoachChallenge {
 
 const MEMORY_STORAGE_KEY = 'sober_path_ai_memory';
 const CHALLENGES_STORAGE_KEY = 'sober_path_ai_challenges';
+const ROADMAP_STORAGE_KEY = 'sober_path_ai_roadmap';
 
 export class AICoachService {
   private static memory: Map<string, ConversationMemory> = new Map();
   private static userChallenges: Map<string, AICoachChallenge[]> = new Map();
+  private static userRoadmaps: Map<string, WeeklyRoadmap> = new Map();
   private static initialized = false;
 
   static async loadFromStorage(): Promise<void> {
@@ -125,6 +133,11 @@ export class AICoachService {
         const parsed = JSON.parse(storedChallenges);
         this.userChallenges = new Map(Object.entries(parsed));
       }
+      const storedRoadmaps = await AsyncStorage.getItem(ROADMAP_STORAGE_KEY);
+      if (storedRoadmaps) {
+        const parsed = JSON.parse(storedRoadmaps);
+        this.userRoadmaps = new Map(Object.entries(parsed));
+      }
       this.initialized = true;
     } catch (e) {
       console.error('Failed to load AI Coach data from storage', e);
@@ -138,6 +151,9 @@ export class AICoachService {
 
       const challengesObj = Object.fromEntries(this.userChallenges.entries());
       await AsyncStorage.setItem(CHALLENGES_STORAGE_KEY, JSON.stringify(challengesObj));
+
+      const roadmapsObj = Object.fromEntries(this.userRoadmaps.entries());
+      await AsyncStorage.setItem(ROADMAP_STORAGE_KEY, JSON.stringify(roadmapsObj));
     } catch (e) {
       console.error('Failed to save AI Coach data to storage', e);
     }
@@ -405,29 +421,66 @@ export class AICoachService {
   }
 
   static async getWeeklyRoadmap(userId: string, soberDays: number): Promise<WeeklyRoadmap> {
-    const memory = this.getUserMemory(userId);
+    await this.loadFromStorage();
+    if (this.userRoadmaps.has(userId)) {
+      const existing = this.userRoadmaps.get(userId)!;
+      // Если неделя сменилась, генерируем новый
+      if (existing.weekNumber !== Math.floor(soberDays / 7) + 1) {
+        return this.generateNewRoadmap(userId, soberDays);
+      }
+      return existing;
+    }
+    return this.generateNewRoadmap(userId, soberDays);
+  }
+
+  private static async generateNewRoadmap(userId: string, soberDays: number): Promise<WeeklyRoadmap> {
     const triggers = this.detectTriggerPatterns(userId);
 
     let focus = "Укрепление фундамента";
-    let tasks = ["Отмечать прогресс ежедневно", "Прочитать 2 статьи о тяге", "Сделать HALT-чек утром"];
-    let recommendedLessons = ["f1_l1", "f1_l2"];
+    let taskTexts = ["Отмечать прогресс ежедневно", "Прочитать 2 статьи о тяге", "Сделать HALT-чек утром"];
+    let recommendedLessons = ["sf-1", "sf-2"];
 
     if (soberDays > 30) {
       focus = "Эмоциональная зрелость";
-      tasks = ["Начать новое хобби", "Помочь новичку в сообществе", "Практика осознанности 15 мин"];
-      recommendedLessons = ["lr_l1", "lr_l2"];
+      taskTexts = ["Начать новое хобби", "Помочь новичку в сообществе", "Практика осознанности 15 мин"];
+      recommendedLessons = ["er-1", "er-2"];
     } else if (triggers.some(t => t.severity >= 4)) {
       focus = "Работа с острыми триггерами";
-      tasks = ["Составить карту триггеров", "Сделать упражнение 'Серфинг по тяге'", "Избегать шумных компаний"];
-      recommendedLessons = ["tr_l1", "tr_l2"];
+      taskTexts = ["Составить карту триггеров", "Сделать упражнение 'Серфинг по тяге'", "Избегать шумных компаний"];
+      recommendedLessons = ["tm-1", "tm-2"];
     }
 
-    return {
+    const tasks: RoadmapTask[] = taskTexts.map((text, idx) => ({
+      id: `task_${Date.now()}_${idx}`,
+      text,
+      completed: false
+    }));
+
+    const roadmap: WeeklyRoadmap = {
       weekNumber: Math.floor(soberDays / 7) + 1,
       focus,
       tasks,
       recommendedLessons
     };
+
+    this.userRoadmaps.set(userId, roadmap);
+    await this.saveToStorage();
+    return roadmap;
+  }
+
+  static async toggleRoadmapTask(userId: string, taskId: string): Promise<Result<WeeklyRoadmap>> {
+    await this.loadFromStorage();
+    const roadmap = this.userRoadmaps.get(userId);
+    if (!roadmap) return failure(new Error('Roadmap not found'));
+
+    const updatedTasks = roadmap.tasks.map(t =>
+      t.id === taskId ? { ...t, completed: !t.completed } : t
+    );
+
+    const updatedRoadmap = { ...roadmap, tasks: updatedTasks };
+    this.userRoadmaps.set(userId, updatedRoadmap);
+    await this.saveToStorage();
+    return success(updatedRoadmap);
   }
 
   static async getEveningReflection(userId: string): Promise<EnhancedAIResponse> {
