@@ -47,6 +47,21 @@ jobs:
       - name: Prebuild Android project
         run: npx expo prebuild --platform android --clean --no-install
 
+      - name: Patch Gradle repository URL syntax
+        run: |
+          python3 - <<'PATCH'
+          from pathlib import Path
+          import re
+
+          build_gradle = Path('android/build.gradle')
+          text = build_gradle.read_text()
+
+          text = re.sub(r'(?<![A-Za-z0-9_])url\s*\(', 'url = uri(', text)
+          text = re.sub(r'(?<![A-Za-z0-9_])url\s+(["\'][^"\']+["\'])', r'url = uri(\1)', text)
+
+          build_gradle.write_text(text)
+          PATCH
+
       - name: Generate debug keystore for release signing
         run: |
           mkdir -p android/app
