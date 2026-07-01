@@ -116,5 +116,37 @@ export const microCoursesDatabase: MicroCourse[] = [
         type: 'text'
       }
     ]
+  },
+  {
+    id: 'emotional_intelligence',
+    title: 'Эмоциональный интеллект',
+    description: 'Развитие способности понимать свои чувства и управлять ими без алкоголя.',
+    category: 'growth',
+    difficulty: 'intermediate',
+    icon: 'psychology',
+    points: 180,
+    lessons: [
+      {
+        id: 'ei_l1',
+        title: 'Азбука чувств',
+        content: 'Зависимость притупляет эмоции. Наша задача — заново научиться распознавать тонкие оттенки настроения.',
+        duration: 8,
+        type: 'text'
+      },
+      {
+        id: 'ei_l2',
+        title: 'Контейнирование эмоций',
+        content: 'Упражнение: представьте свои чувства как объекты в безопасном контейнере. Вы наблюдаете за ними, но они не управляют вами.',
+        duration: 12,
+        type: 'exercise'
+      },
+      {
+        id: 'ei_l3',
+        title: 'Эмпатия к себе',
+        content: 'Перестаньте быть своим самым строгим судьей. Учитесь состраданию к себе в моменты слабости.',
+        duration: 10,
+        type: 'text'
+      }
+    ]
   }
 ];

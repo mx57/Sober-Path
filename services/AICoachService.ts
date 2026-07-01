@@ -85,6 +85,14 @@ export interface WeeklyRoadmap {
   recommendedLessons: string[];
 }
 
+export interface InteractiveExercise {
+  id: string;
+  name: string;
+  steps: string[];
+  currentStep: number;
+  type: 'grounding' | 'breathing' | 'nlp';
+}
+
 export interface EnhancedAIResponse {
   message: string;
   emotionalTone: 'empathetic' | 'motivational' | 'educational' | 'supportive';
@@ -97,6 +105,7 @@ export interface EnhancedAIResponse {
   checkInRequired?: boolean;
   isReflection?: boolean;
   urgency?: 'low' | 'medium' | 'high' | 'critical';
+  exercise?: InteractiveExercise;
 }
 
 export interface AICoachChallenge {
@@ -236,6 +245,31 @@ export class AICoachService {
 
         const topics = this.extractTopics(lowercaseMessage);
         const knowledgeMatch = findRelevantKnowledge(userMessage);
+
+        // Проверка на запрос упражнения
+        if (lowercaseMessage.includes('заземление') || lowercaseMessage.includes('5-4-3-2-1')) {
+          return success({
+            message: 'Давайте выполним технику заземления 5-4-3-2-1. Она поможет вам вернуться в настоящий момент и снизить тревогу. Готовы начать?',
+            emotionalTone: 'supportive',
+            suggestions: ['Начать упражнение', 'Не сейчас'],
+            followUpQuestions: [],
+            memoryUpdates: ['User requested grounding exercise'],
+            confidenceLevel: 1.0,
+            exercise: {
+              id: 'grounding_54321',
+              name: 'Техника заземления 5-4-3-2-1',
+              type: 'grounding',
+              currentStep: -1,
+              steps: [
+                'Найдите и назовите 5 вещей, которые вы видите прямо сейчас.',
+                'Найдите и назовите 4 вещи, которых вы можете коснуться.',
+                'Найдите и назовите 3 звука, которые вы слышите.',
+                'Найдите и назовите 2 запаха, которые вы чувствуете (или ваши любимые запахи).',
+                'Назовите 1 вещь, которую вы можете попробовать на вкус (или ваш любимый вкус).'
+              ]
+            }
+          });
+        }
 
         let response: string;
         let emotionalTone: 'empathetic' | 'motivational' | 'educational' | 'supportive';

@@ -109,6 +109,25 @@ const MessageBubble = React.memo(({ message, onArticlePress, onCoursePress, onSp
         ]}>
           {message.text}
         </Text>
+
+        {message.exercise && (
+          <View style={styles.exerciseProgressContainer}>
+            <View style={styles.exerciseProgressBar}>
+              {message.exercise.steps.map((_: any, idx: number) => (
+                <View
+                  key={idx}
+                  style={[
+                    styles.exerciseProgressStep,
+                    idx <= message.exercise.currentStep && styles.exerciseProgressStepActive
+                  ]}
+                />
+              ))}
+            </View>
+            <Text style={styles.exerciseStepInfo}>
+              Шаг {message.exercise.currentStep + 1} из {message.exercise.steps.length}
+            </Text>
+          </View>
+        )}
         <Text style={styles.timestamp}>
           {message.timestamp.toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })}
         </Text>
@@ -416,6 +435,33 @@ const styles = StyleSheet.create({
     backgroundColor: '#D32F2F',
   },
   messageText: { fontSize: 16 },
+  exerciseProgressContainer: {
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+  },
+  exerciseProgressBar: {
+    flexDirection: 'row',
+    height: 4,
+    gap: 4,
+    marginBottom: 6,
+  },
+  exerciseProgressStep: {
+    flex: 1,
+    height: '100%',
+    backgroundColor: '#E0E0E0',
+    borderRadius: 2,
+  },
+  exerciseProgressStepActive: {
+    backgroundColor: '#2E7D4A',
+  },
+  exerciseStepInfo: {
+    fontSize: 10,
+    color: '#666',
+    textAlign: 'center',
+    fontWeight: 'bold',
+  },
   userMessageText: { color: 'white' },
   aiMessageText: { color: '#333' },
   aiHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },

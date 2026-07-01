@@ -18,6 +18,7 @@ export interface ChatMessage {
   isReflection?: boolean;
   roadmap?: any;
   urgency?: 'low' | 'medium' | 'high' | 'critical';
+  exercise?: any;
 }
 
 export function useAICoachViewModel() {
@@ -33,6 +34,7 @@ export function useAICoachViewModel() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [chatStarters, setChatStarters] = useState<string[]>([]);
   const [roadmap, setRoadmap] = useState<any>(null);
+  const [activeExercise, setActiveExercise] = useState<any>(null);
 
   useEffect(() => {
     initialize();
@@ -57,7 +59,7 @@ export function useAICoachViewModel() {
     setNotifications(NotificationService.getNotifications());
     const initialChallenges = await AICoachService.getChallenges(userProfile?.id || 'default');
     setChallenges(initialChallenges);
-    setChatStarters([...AICoachService.getChatStarters({ mood: 3, soberDays }), 'План на неделю']);
+    setChatStarters([...AICoachService.getChatStarters({ mood: 3, soberDays }), 'План на неделю', 'Техника 5-4-3-2-1']);
 
     const weeklyPlan = await AICoachService.getWeeklyRoadmap(userProfile?.id || 'default', soberDays);
     setRoadmap(weeklyPlan);
@@ -112,9 +114,65 @@ export function useAICoachViewModel() {
     }
   }, [userProfile?.id]);
 
+  const nextExerciseStep = useCallback(() => {
+    if (!activeExercise) return;
+
+    const nextStep = activeExercise.currentStep + 1;
+    if (nextStep < activeExercise.steps.length) {
+      const updatedExercise = { ...activeExercise, currentStep: nextStep };
+      setActiveExercise(updatedExercise);
+
+      const aiMsg: ChatMessage = {
+        id: `ex_${Date.now()}`,
+        text: updatedExercise.steps[nextStep],
+        isUser: false,
+        timestamp: new Date(),
+        suggestions: nextStep === updatedExercise.steps.length - 1 ? ['Завершить'] : ['Далее'],
+        exercise: updatedExercise
+      };
+      setMessages(prev => [...prev, aiMsg]);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } else {
+      setActiveExercise(null);
+      const aiMsg: ChatMessage = {
+        id: `ex_end_${Date.now()}`,
+        text: 'Отлично! Вы успешно выполнили упражнение. Как вы себя чувствуете сейчас?',
+        isUser: false,
+        timestamp: new Date(),
+        suggestions: ['Намного лучше', 'Немного успокоился', 'Все еще тревожно']
+      };
+      setMessages(prev => [...prev, aiMsg]);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+  }, [activeExercise]);
+
   const sendMessage = async (overrideText?: string) => {
     const textToSend = typeof overrideText === 'string' ? overrideText : inputText;
     if (!textToSend.trim() || isTyping) return;
+
+    if (activeExercise && (textToSend === 'Далее' || textToSend === 'Начать упражнение')) {
+        const userMsg: ChatMessage = {
+            id: Date.now().toString(),
+            text: textToSend,
+            isUser: true,
+            timestamp: new Date()
+        };
+        setMessages(prev => [...prev, userMsg]);
+        nextExerciseStep();
+        return;
+    }
+
+    if (activeExercise && textToSend === 'Завершить') {
+        const userMsg: ChatMessage = {
+            id: Date.now().toString(),
+            text: textToSend,
+            isUser: true,
+            timestamp: new Date()
+        };
+        setMessages(prev => [...prev, userMsg]);
+        nextExerciseStep();
+        return;
+    }
 
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
@@ -165,6 +223,10 @@ export function useAICoachViewModel() {
 
         setMessages(prev => [...prev, aiMsg]);
 
+        if (data.exercise) {
+            setActiveExercise(data.exercise);
+        }
+
         // Планируем напоминание через час, если был высокий стресс или тяга
         if (data.checkInRequired) {
           await AICoachService.scheduleAssistantReminder(
@@ -213,6 +275,7 @@ export function useAICoachViewModel() {
     isSpeaking,
     chatStarters,
     roadmap,
-    toggleTask
+    toggleTask,
+    activeExercise
   };
 }
