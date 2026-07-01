@@ -54,12 +54,49 @@ jobs:
       - name: Prebuild Android (Expo)
         run: npx expo prebuild -p android --no-install
 
-      - name: Optimize Gradle Properties
+      - name: Patch android build to disable splits & add packaging options
         run: |
-          mkdir -p android
-          echo "org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=512m" >> android/gradle.properties
-          echo "android.useNewApkCreator=false" >> android/gradle.properties
-          cat android/gradle.properties
+          if [ -f android/app/build.gradle ]; then
+            python3 - <<'PY'
+import re,sys
+p='android/app/build.gradle'
+s=open(p,'r',encoding='utf-8').read()
+# Find the first occurrence of the android { block and insert packaging/splits config right after it
+m=re.search(r'android\s*\{',s)
+if not m:
+    print('android block not found, skipping patch')
+    sys.exit(0)
+idx=m.end()
+insert='''
+    // CI patch: disable APK splits that can trigger IncrementalSplitter failures and exclude common duplicate META-INF files
+    splits {
+        abi {
+            enable false
+        }
+        density {
+            enable false
+        }
+    }
+    packagingOptions {
+        resources {
+            excludes += ["META-INF/DEPENDENCIES", "META-INF/LICENSE", "META-INF/LICENSE.txt", "META-INF/NOTICE"]
+        }
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+'''
+# Avoid double-patching
+if 'CI patch: disable APK splits' in s:
+    print('already patched')
+    sys.exit(0)
+ns = s[:idx] + insert + s[idx:]
+open(p,'w',encoding='utf-8').write(ns)
+print('patched',p)
+PY
+          else
+            echo "No android/app/build.gradle to patch"
+          fi
 
       - name: Ensure android/gradlew is executable
         run: |
