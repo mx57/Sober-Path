@@ -11,7 +11,11 @@
     "ios": {
       "supportsTablet": true
     },
-    "platforms": ["android", "ios", "web"],
+    "platforms": [
+      "android",
+      "ios",
+      "web"
+    ],
     "android": {
       "package": "com.soberpath.app",
       "adaptiveIcon": {
@@ -26,6 +30,7 @@
       "favicon": "./assets/images/logo.png"
     },
     "plugins": [
+      "./withAndroidReleaseSigning",
       "expo-router",
       [
         "expo-splash-screen",
@@ -36,7 +41,8 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true
