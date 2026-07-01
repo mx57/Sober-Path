@@ -13,8 +13,8 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeInUp, FadeInRight } from 'react-native-reanimated';
-import LottieView from 'lottie-react-native';
+import Animated, { FadeInUp, FadeInRight, useSharedValue, useAnimatedStyle, withSpring, withTiming, withSequence } from 'react-native-reanimated';
+
 import { MicroCoursesService, MicroCourse, Lesson } from '../../services/microCoursesService';
 import { allExpandedTechniques } from '../../services/expandedNLPTechniques';
 import { modernTherapeuticTechniques, microTechniques } from '../../services/therapeuticTechniques';
@@ -54,6 +54,13 @@ export default function CoursesPage() {
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [selectedTechnique, setSelectedTechnique] = useState<any | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
+  const confettiOpacity = useSharedValue(0);
+  const confettiScale = useSharedValue(0);
+
+  const confettiStyle = useAnimatedStyle(() => ({
+    opacity: confettiOpacity.value,
+    transform: [{ scale: confettiScale.value }]
+  }));
 
   const courses = useMemo(() => MicroCoursesService.getCourses(), []);
   const techniques = useMemo(() => [
@@ -181,10 +188,19 @@ export default function CoursesPage() {
               style={styles.completeLessonButton}
               onPress={() => {
                 setShowConfetti(true);
+                confettiOpacity.value = withTiming(1, { duration: 200 });
+                confettiScale.value = withSequence(
+                  withSpring(1.2),
+                  withTiming(1, { duration: 300 })
+                );
                 setTimeout(() => {
-                  setShowConfetti(false);
-                  setSelectedLesson(null);
-                }, 2500);
+                  confettiOpacity.value = withTiming(0, { duration: 500 });
+                  confettiScale.value = withTiming(0, { duration: 500 });
+                  setTimeout(() => {
+                    setShowConfetti(false);
+                    setSelectedLesson(null);
+                  }, 600);
+                }, 2000);
               }}
             >
               <Text style={styles.completeLessonText}>Я выполнил задание</Text>
@@ -192,14 +208,13 @@ export default function CoursesPage() {
           </View>
 
           {showConfetti && (
-            <View style={styles.confettiContainer} pointerEvents="none">
-              <LottieView
-                source={require('../../assets/lottie/celebration.json')}
-                autoPlay
-                loop={false}
-                style={styles.confetti}
-              />
-            </View>
+            <Animated.View style={[styles.confettiContainer, confettiStyle]} pointerEvents="none">
+              <View style={styles.celebrationCard}>
+                <Text style={styles.celebrationEmoji}>🎉</Text>
+                <Text style={styles.celebrationText}>Задание выполнено!</Text>
+                <Text style={styles.celebrationSub}>Отличная работа!</Text>
+              </View>
+            </Animated.View>
           )}
         </View>
       </Modal>
@@ -290,9 +305,31 @@ const styles = StyleSheet.create({
     zIndex: 9999,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.4)',
   },
-  confetti: {
-    width: screenWidth,
-    height: screenWidth,
+  celebrationCard: {
+    backgroundColor: 'white',
+    borderRadius: 24,
+    padding: 40,
+    alignItems: 'center',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  celebrationEmoji: {
+    fontSize: 64,
+    marginBottom: 16,
+  },
+  celebrationText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#2E7D4A',
+    marginBottom: 8,
+  },
+  celebrationSub: {
+    fontSize: 16,
+    color: '#666',
   }
 });

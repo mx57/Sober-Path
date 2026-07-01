@@ -47,7 +47,7 @@ jobs:
       - name: Prebuild Android (Expo)
         run: npx expo prebuild -p android --no-install
 
-      - name: Optimize Gradle Properties
+      - name: Patch android build to disable splits & add packaging options
         run: |
           mkdir -p android
           echo "org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m" >> android/gradle.properties
