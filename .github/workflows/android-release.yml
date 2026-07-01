@@ -3,7 +3,7 @@ name: Android Release APKs
 on:
   push:
     tags:
-      - '*'
+      - 'v*'
   workflow_dispatch: {}
 
 jobs:
@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NODE_OPTIONS: --max_old_space_size=4096
+      ORG_GRADLE_PROJECT_android_enablePngCrunchInReleaseBuilds: true
+      ORG_GRADLE_PROJECT_android_useNewApkCreator: false
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -19,6 +21,19 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
 
       - name: Setup Expo
         uses: expo/expo-github-action@v8
@@ -26,30 +41,8 @@ jobs:
           expo-version: latest
           eas-version: latest
 
-      - name: Cache node modules
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.npm
-            node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
-      - name: Install dependencies
-        run: npm ci --legacy-peer-deps
-
       - name: Export assets
         run: npx expo export --platform android
-
-      - name: Install JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
 
       - name: Prebuild Android (Expo)
         run: npx expo prebuild -p android --no-install
@@ -57,28 +50,25 @@ jobs:
       - name: Optimize Gradle Properties
         run: |
           mkdir -p android
-          echo "org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=512m" >> android/gradle.properties
+          echo "org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m" >> android/gradle.properties
           echo "android.useNewApkCreator=false" >> android/gradle.properties
-          cat android/gradle.properties
 
-      - name: Ensure android/gradlew is executable
-        run: |
-          if [ -f android/gradlew ]; then chmod +x android/gradlew; fi
+      - name: Ensure gradlew is executable
+        run: chmod +x android/gradlew
 
-      - name: Generate test keystore
+      - name: Generate release keystore
         run: |
           mkdir -p android/app
-          keytool -genkeypair -v -storetype JKS -keystore android/app/release.keystore -alias release -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=example"
+          keytool -genkeypair -v -storetype JKS -keystore android/app/release.keystore -alias release -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=SoberPath, OU=Development, O=SoberPath, L=Moscow, ST=Moscow, C=RU"
 
-      - name: Build release APK(s)
+      - name: Build Release APKs
         working-directory: android
-        run: ./gradlew clean assembleRelease --no-daemon --stacktrace --info --warning-mode all
+        run: ./gradlew assembleRelease --no-daemon --stacktrace --warning-mode all
 
-      - name: Find and Sign APKs
+      - name: Collect APKs
         run: |
           mkdir -p $GITHUB_WORKSPACE/artifacts
           find android/app/build/outputs/apk/release -type f -name "*.apk" -print -exec cp {} $GITHUB_WORKSPACE/artifacts/ \;
-          ls -la $GITHUB_WORKSPACE/artifacts || true
 
       - name: Upload APK artifacts
         uses: actions/upload-artifact@v4
@@ -86,11 +76,13 @@ jobs:
           name: release-apks
           path: artifacts/
 
-      - name: Release
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/v')
         with:
           files: artifacts/*.apk
           generate_release_notes: true
+          draft: false
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
