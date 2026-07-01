@@ -17,7 +17,6 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MiniGameEngine, addictionDistractiveGames, MiniGame } from '../../services/miniGamesService';
-import { Canvas, Circle, useSharedValue, useAnimatedGestureHandler, runOnJS } from 'react-native-reanimated';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 

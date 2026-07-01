@@ -19,7 +19,7 @@ export interface SupportPost {
   likes: number;
   comments: number;
   timeAgo: string;
-  category: 'motivation' | 'question' | 'support' | 'milestone' | 'daily_thread';
+  category: 'motivation' | 'question' | 'support' | 'milestone' | 'daily_thread' | 'group_early' | 'group_work';
   reactions?: Record<ReactionType, number>;
 }
 

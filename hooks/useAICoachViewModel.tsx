@@ -3,6 +3,7 @@ import { AICoachService, RecommendedArticle, AICoachChallenge } from '../service
 import { useRecovery } from './useRecovery';
 import NotificationService from '../services/notificationService';
 import * as Speech from 'expo-speech';
+import * as Haptics from 'expo-haptics';
 
 export interface ChatMessage {
   id: string;
@@ -16,6 +17,7 @@ export interface ChatMessage {
   isCheckIn?: boolean;
   isReflection?: boolean;
   roadmap?: any;
+  urgency?: 'low' | 'medium' | 'high' | 'critical';
 }
 
 export function useAICoachViewModel() {
@@ -141,7 +143,7 @@ export function useAICoachViewModel() {
         const plan = await AICoachService.getWeeklyRoadmap(userProfile?.id || 'default', soberDays);
         const aiMsg: ChatMessage = {
           id: (Date.now() + 1).toString(),
-          text: `Вот ваш персональный план на ${plan.weekNumber}-ю неделю:\n\n🎯 Фокус: ${plan.focus}\n\n✅ Задачи:\n${plan.tasks.map(t => `• ${t}`).join('\n')}`,
+          text: `Вот ваш персональный план на ${plan.weekNumber}-ю неделю:\n\n🎯 Фокус: ${plan.focus}\n\n✅ Задачи:\n${plan.tasks.map(t => `• ${t.text}`).join('\n')}`,
           isUser: false,
           timestamp: new Date(),
           roadmap: plan
