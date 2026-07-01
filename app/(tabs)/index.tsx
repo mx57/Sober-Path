@@ -132,6 +132,7 @@ function HomePage() {
   const [dailyQuote, setDailyQuote] = useState<MotivationQuote | null>(null);
   const [dailyTip, setDailyTip] = useState<RecoveryTip | null>(null);
   const [weeklyRoadmap, setWeeklyRoadmap] = useState<WeeklyRoadmap | null>(null);
+  const [isUpdatingRoadmap, setIsUpdatingRoadmap] = useState(false);
   const [alertConfig, setAlertConfig] = useState<{
     visible: boolean;
     title: string;
@@ -144,6 +145,23 @@ function HomePage() {
   const pulseAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: 1 + pulseValue.value * 0.05 }]
   }));
+
+  const handleToggleTask = useCallback(async (taskId: string) => {
+    if (!userProfile?.id || isUpdatingRoadmap) return;
+
+    try {
+      setIsUpdatingRoadmap(true);
+      const result = await AICoachService.toggleRoadmapTask(userProfile.id, taskId);
+      if (result.success) {
+        setWeeklyRoadmap(result.data);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+    } catch (error) {
+      console.error('Failed to toggle task', error);
+    } finally {
+      setIsUpdatingRoadmap(false);
+    }
+  }, [userProfile?.id, isUpdatingRoadmap]);
 
   useEffect(() => {
     pulseValue.value = withRepeat(
@@ -362,6 +380,33 @@ function HomePage() {
                   <Text style={styles.roadmapProgressText}>
                     {weeklyRoadmap.tasks.filter(t => t.completed).length} из {weeklyRoadmap.tasks.length} выполнено
                   </Text>
+                </View>
+                <View style={styles.roadmapTasksPreview}>
+                  {weeklyRoadmap.tasks.map((task) => (
+                    <TouchableOpacity
+                      key={task.id}
+                      style={styles.roadmapTaskPreviewItem}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        handleToggleTask(task.id);
+                      }}
+                    >
+                      <MaterialIcons
+                        name={task.completed ? "check-circle" : "radio-button-unchecked"}
+                        size={18}
+                        color={task.completed ? "#2E7D4A" : "#CCC"}
+                      />
+                      <Text
+                        style={[
+                          styles.roadmapTaskPreviewText,
+                          task.completed && styles.roadmapTaskPreviewCompleted
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {task.text}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
               </LinearGradient>
             </TouchableOpacity>
@@ -1012,6 +1057,24 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#666',
     fontWeight: '500',
+  },
+  roadmapTasksPreview: {
+    marginTop: 10,
+    gap: 6,
+  },
+  roadmapTaskPreviewItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  roadmapTaskPreviewText: {
+    fontSize: 13,
+    color: '#444',
+    flex: 1,
+  },
+  roadmapTaskPreviewCompleted: {
+    color: '#AAA',
+    textDecorationLine: 'line-through',
   },
   modalContainer: {
     flex: 1,

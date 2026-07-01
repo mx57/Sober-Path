@@ -6,8 +6,8 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { CommunityService, SuccessStory, SupportPost, ExpertQA, ReactionType } from '../../services/communityService';
-import Animated, { FadeInUp, useSharedValue, useAnimatedStyle, withSpring, withSequence, withTiming } from 'react-native-reanimated';
+import { CommunityService, SuccessStory, SupportPost, ExpertQA, ReactionType, CommunityGoal } from '../../services/communityService';
+import Animated, { FadeInUp, FadeInRight, useSharedValue, useAnimatedStyle, withSpring, withSequence, withTiming } from 'react-native-reanimated';
 import { Skeleton } from '../../components/Skeleton';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -24,6 +24,26 @@ const SuccessStoryCard = ({ story }: { story: SuccessStory }) => (
     <Text style={styles.storyText} numberOfLines={3}>{story.story}</Text>
   </View>
 );
+
+const CommunityGoalCard = ({ goal }: { goal: CommunityGoal }) => {
+  const progress = goal.currentValue / goal.targetValue;
+  return (
+    <Animated.View entering={FadeInRight} style={styles.goalCard}>
+      <View style={styles.goalHeader}>
+        <View style={[styles.goalIconContainer, { backgroundColor: goal.color + '20' }]}>
+          <MaterialIcons name={goal.icon as any} size={24} color={goal.color} />
+        </View>
+        <View style={styles.goalInfo}>
+          <Text style={styles.goalTitle}>{goal.title}</Text>
+          <Text style={styles.goalValue}>{goal.currentValue} / {goal.targetValue} {goal.unit}</Text>
+        </View>
+      </View>
+      <View style={styles.goalProgressBar}>
+        <View style={[styles.goalProgressFill, { width: `${progress * 100}%`, backgroundColor: goal.color }]} />
+      </View>
+    </Animated.View>
+  );
+};
 
 const ExpertQACard = ({ qa }: { qa: ExpertQA }) => (
   <View style={styles.expertCard}>
@@ -173,6 +193,7 @@ export default function CommunityPage() {
   const [stories, setStories] = useState<SuccessStory[]>([]);
   const [posts, setPosts] = useState<SupportPost[]>([]);
   const [expertQA, setExpertQA] = useState<ExpertQA[]>([]);
+  const [communityGoals, setCommunityGoals] = useState<CommunityGoal[]>([]);
   const [circles, setCircles] = useState<any[]>([]);
   const [selectedCircle, setSelectedCircle] = useState('all');
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -192,6 +213,7 @@ export default function CommunityPage() {
       await new Promise(resolve => setTimeout(resolve, 1500));
       setStories(CommunityService.getSuccessStories());
       setExpertQA(CommunityService.getExpertQA());
+      setCommunityGoals(CommunityService.getCommunityGoals());
 
       const loadedPosts = await CommunityService.getSupportPosts();
       const dailyThread = CommunityService.getDailyThread();
@@ -291,6 +313,24 @@ export default function CommunityPage() {
 
     return (
     <View>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Цели сообщества</Text>
+      </View>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.goalsContainer}
+      >
+        {isLoading ? (
+          [1, 2].map(i => <Skeleton key={i} width={250} height={100} borderRadius={16} />)
+        ) : (
+          communityGoals.map(goal => (
+            <CommunityGoalCard key={goal.id} goal={goal} />
+          ))
+        )}
+      </ScrollView>
+
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Круги поддержки</Text>
       </View>
@@ -610,6 +650,58 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     gap: 12,
     marginBottom: 10
+  },
+  goalsContainer: {
+    paddingHorizontal: 20,
+    gap: 15,
+    marginBottom: 10
+  },
+  goalCard: {
+    backgroundColor: 'white',
+    width: 250,
+    padding: 16,
+    borderRadius: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  goalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 12,
+  },
+  goalIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  goalInfo: {
+    flex: 1,
+  },
+  goalTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  goalValue: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
+  },
+  goalProgressBar: {
+    height: 6,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  goalProgressFill: {
+    height: '100%',
+    borderRadius: 3,
   },
   circleButton: {
     flexDirection: 'row',

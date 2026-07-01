@@ -32,6 +32,16 @@ export interface ExpertQA {
   date: string;
 }
 
+export interface CommunityGoal {
+  id: string;
+  title: string;
+  currentValue: number;
+  targetValue: number;
+  unit: string;
+  icon: string;
+  color: string;
+}
+
 const POSTS_STORAGE_KEY = 'sober_path_community_posts';
 
 export class CommunityService {
@@ -445,6 +455,29 @@ export class CommunityService {
     }
 
     return allAdvice.filter(a => a.category === categoryId || a.category === 'all');
+  }
+
+  static getCommunityGoals(): CommunityGoal[] {
+    return [
+      {
+        id: 'g1',
+        title: 'Общие дни трезвости',
+        currentValue: 8420,
+        targetValue: 10000,
+        unit: 'дней',
+        icon: 'wb-sunny',
+        color: '#2E7D4A'
+      },
+      {
+        id: 'g2',
+        title: 'Взаимная поддержка',
+        currentValue: 1250,
+        targetValue: 2000,
+        unit: 'ответов',
+        icon: 'favorite',
+        color: '#E91E63'
+      }
+    ];
   }
 
   static getExpertQA(): ExpertQA[] {
