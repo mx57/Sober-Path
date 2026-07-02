@@ -35,9 +35,9 @@ const CourseCard = ({ course, onPress }: { course: MicroCourse, onPress: () => v
   </TouchableOpacity>
 );
 
-const TechniqueItem = ({ technique, onPress }: { technique: any, onPress: () => void }) => (
+const TechniqueItem = ({ technique, onPress, colors }: { technique: any, onPress: () => void, colors: any }) => (
   <TouchableOpacity style={styles.techniqueItem} onPress={onPress}>
-    <View style={[styles.techIconContainer, { backgroundColor: '#E8F5E9' }]}>
+    <View style={[styles.techIconContainer, { backgroundColor: colors.primary + '15' }]}>
       <MaterialIcons name="psychology" size={24} color={colors.primary} />
     </View>
     <View style={styles.techInfo}>
@@ -51,6 +51,16 @@ const TechniqueItem = ({ technique, onPress }: { technique: any, onPress: () => 
 export default function CoursesPage() {
   const insets = useSafeAreaInsets();
   const { colors } = useAppTheme();
+
+  const dynamicStyles = useMemo(() => StyleSheet.create({
+    activeTab: { backgroundColor: colors.primary },
+    tabLabel: { fontSize: 14, fontWeight: 'bold', color: colors.primary },
+    lessonNumberText: { fontSize: 14, fontWeight: 'bold', color: colors.primary },
+    taskContainer: { backgroundColor: '#E8F5E8', padding: 20, borderRadius: 16, borderLeftWidth: 4, borderLeftColor: colors.primary },
+    taskTitle: { fontSize: 16, fontWeight: 'bold', color: colors.primary },
+    completeLessonButton: { backgroundColor: colors.primary, padding: 18, borderRadius: 15, alignItems: 'center' }
+  }), [colors]);
+
   const [activeTab, setActiveTab] = useState<'courses' | 'techniques'>('courses');
   const [selectedCourse, setSelectedCourse] = useState<MicroCourse | null>(null);
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
@@ -81,7 +91,7 @@ export default function CoursesPage() {
     <Animated.View entering={FadeInUp.duration(400)} style={styles.tabContent}>
       <Text style={styles.sectionTitle}>Библиотека техник</Text>
       {techniques.map((tech, idx) => (
-        <TechniqueItem key={tech.id || idx} technique={tech} onPress={() => setSelectedTechnique(tech)} />
+        <TechniqueItem key={tech.id || idx} technique={tech} onPress={() => setSelectedTechnique(tech)} colors={colors} />
       ))}
     </Animated.View>
   );
@@ -95,16 +105,16 @@ export default function CoursesPage() {
 
       <View style={styles.tabBar}>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'courses' && { backgroundColor: activeTab === 'courses' ? colors.primary : 'transparent' }]}
+          style={[styles.tab, activeTab === 'courses' && dynamicStyles.activeTab]}
           onPress={() => setActiveTab('courses')}
         >
-          <Text style={[styles.tabLabel, { color: activeTab === 'courses' ? 'white' : colors.primary }]}>Курсы</Text>
+          <Text style={[styles.tabLabel, activeTab === 'courses' ? { color: 'white' } : { color: colors.primary }]}>Курсы</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'techniques' && { backgroundColor: activeTab === 'techniques' ? colors.primary : 'transparent' }]}
+          style={[styles.tab, activeTab === 'techniques' && dynamicStyles.activeTab]}
           onPress={() => setActiveTab('techniques')}
         >
-          <Text style={[styles.tabLabel, { color: activeTab === 'techniques' ? 'white' : colors.primary }]}>Техники</Text>
+          <Text style={[styles.tabLabel, activeTab === 'techniques' ? { color: 'white' } : { color: colors.primary }]}>Техники</Text>
         </TouchableOpacity>
       </View>
 
@@ -138,7 +148,7 @@ export default function CoursesPage() {
             {selectedCourse?.lessons.map((lesson, idx) => (
               <TouchableOpacity key={lesson.id} style={styles.lessonItem} onPress={() => setSelectedLesson(lesson)}>
                 <View style={styles.lessonNumber}>
-                  <Text style={styles.lessonNumberText}>{idx + 1}</Text>
+                  <Text style={dynamicStyles.lessonNumberText}>{idx + 1}</Text>
                 </View>
                 <View style={styles.lessonInfo}>
                   <Text style={styles.lessonTitle}>{lesson.title}</Text>
@@ -167,10 +177,10 @@ export default function CoursesPage() {
               <Text style={styles.lessonText}>{selectedLesson?.content}</Text>
 
               {selectedLesson?.task && (
-                <View style={styles.taskContainer}>
+                <View style={dynamicStyles.taskContainer}>
                   <View style={styles.taskHeader}>
                     <MaterialIcons name="assignment" size={20} color={colors.primary} />
-                    <Text style={styles.taskTitle}>Практическое задание:</Text>
+                    <Text style={dynamicStyles.taskTitle}>Практическое задание:</Text>
                   </View>
                   <Text style={styles.taskText}>{selectedLesson.task}</Text>
                 </View>
@@ -180,7 +190,7 @@ export default function CoursesPage() {
 
           <View style={styles.lessonFooter}>
             <TouchableOpacity
-              style={styles.completeLessonButton}
+              style={dynamicStyles.completeLessonButton}
               onPress={() => {
                 setShowConfetti(true);
                 setTimeout(() => {
@@ -236,7 +246,7 @@ export default function CoursesPage() {
           </ScrollView>
           <View style={styles.lessonFooter}>
             <TouchableOpacity
-              style={styles.completeLessonButton}
+              style={dynamicStyles.completeLessonButton}
               onPress={() => {
                 setShowConfetti(true);
                 setTimeout(() => {
@@ -271,9 +281,7 @@ const styles = StyleSheet.create({
   headerSubtitle: { fontSize: 16, color: 'rgba(255,255,255,0.8)', marginTop: 4 },
   tabBar: { flexDirection: 'row', backgroundColor: 'white', margin: 15, borderRadius: 12, padding: 4, elevation: 2 },
   tab: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 10 },
-  activeTab: { backgroundColor: colors.primary },
-  tabLabel: { fontSize: 14, fontWeight: 'bold', color: colors.primary },
-  activeTabLabel: { color: 'white' },
+  tabLabel: { fontSize: 14, fontWeight: 'bold' },
   scrollContent: { paddingHorizontal: 15, paddingBottom: 40 },
   tabContent: { gap: 15 },
   sectionTitle: { fontSize: 20, fontWeight: 'bold', color: '#333', marginBottom: 5 },
@@ -300,18 +308,14 @@ const styles = StyleSheet.create({
   lessonsTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 15 },
   lessonItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8F9FA', padding: 15, borderRadius: 12, gap: 12, marginBottom: 10 },
   lessonNumber: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#E8F5E8', alignItems: 'center', justifyContent: 'center' },
-  lessonNumberText: { fontSize: 14, fontWeight: 'bold', color: colors.primary },
   lessonInfo: { flex: 1 },
   lessonTitle: { fontSize: 15, fontWeight: '600', color: '#333' },
   lessonDuration: { fontSize: 12, color: '#999', marginTop: 2 },
   lessonBody: { gap: 20 },
   lessonText: { fontSize: 17, lineHeight: 26, color: '#444' },
-  taskContainer: { backgroundColor: '#E8F5E8', padding: 20, borderRadius: 16, borderLeftWidth: 4, borderLeftColor: colors.primary },
   taskHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
-  taskTitle: { fontSize: 16, fontWeight: 'bold', color: colors.primary },
   taskText: { fontSize: 15, color: '#333', lineHeight: 22 },
   lessonFooter: { padding: 20, borderTopWidth: 1, borderTopColor: '#F0F0F0' },
-  completeLessonButton: { backgroundColor: colors.primary, padding: 18, borderRadius: 15, alignItems: 'center' },
   completeLessonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
   stepItem: { marginBottom: 10 },
   stepText: { fontSize: 15, color: '#555', lineHeight: 20 },

@@ -85,6 +85,18 @@ export interface WeeklyRoadmap {
   recommendedLessons: string[];
 }
 
+export interface WeeklyReport {
+  id: string;
+  startDate: Date;
+  endDate: Date;
+  summary: string;
+  moodAvg: number;
+  moodTrend: 'improving' | 'stable' | 'declining';
+  topTriggers: string[];
+  achievements: string[];
+  recommendation: string;
+}
+
 export interface EnhancedAIResponse {
   message: string;
   emotionalTone: 'empathetic' | 'motivational' | 'educational' | 'supportive';
@@ -113,11 +125,13 @@ export interface AICoachChallenge {
 const MEMORY_STORAGE_KEY = 'sober_path_ai_memory';
 const CHALLENGES_STORAGE_KEY = 'sober_path_ai_challenges';
 const ROADMAP_STORAGE_KEY = 'sober_path_ai_roadmap';
+const REPORTS_STORAGE_KEY = 'sober_path_ai_reports';
 
 export class AICoachService {
   private static memory: Map<string, ConversationMemory> = new Map();
   private static userChallenges: Map<string, AICoachChallenge[]> = new Map();
   private static userRoadmaps: Map<string, WeeklyRoadmap> = new Map();
+  private static userReports: Map<string, WeeklyReport[]> = new Map();
   private static initialized = false;
 
   static async loadFromStorage(): Promise<void> {
@@ -138,6 +152,11 @@ export class AICoachService {
         const parsed = JSON.parse(storedRoadmaps);
         this.userRoadmaps = new Map(Object.entries(parsed));
       }
+      const storedReports = await AsyncStorage.getItem(REPORTS_STORAGE_KEY);
+      if (storedReports) {
+        const parsed = JSON.parse(storedReports);
+        this.userReports = new Map(Object.entries(parsed));
+      }
       this.initialized = true;
     } catch (e) {
       console.error('Failed to load AI Coach data from storage', e);
@@ -154,6 +173,9 @@ export class AICoachService {
 
       const roadmapsObj = Object.fromEntries(this.userRoadmaps.entries());
       await AsyncStorage.setItem(ROADMAP_STORAGE_KEY, JSON.stringify(roadmapsObj));
+
+      const reportsObj = Object.fromEntries(this.userReports.entries());
+      await AsyncStorage.setItem(REPORTS_STORAGE_KEY, JSON.stringify(reportsObj));
     } catch (e) {
       console.error('Failed to save AI Coach data to storage', e);
     }
@@ -466,6 +488,47 @@ export class AICoachService {
     this.userRoadmaps.set(userId, roadmap);
     await this.saveToStorage();
     return roadmap;
+  }
+
+  static async generateWeeklyReport(userId: string): Promise<Result<WeeklyReport>> {
+    await this.loadFromStorage();
+    const memory = this.getUserMemory(userId);
+    const last7Days = memory.conversations.filter(c =>
+      (new Date().getTime() - new Date(c.timestamp).getTime()) < 7 * 24 * 60 * 60 * 1000
+    );
+
+    if (last7Days.length === 0) {
+      return failure(new Error('Недостаточно данных для отчета'));
+    }
+
+    const avgMood = last7Days.reduce((acc, c) => acc + c.userMood, 0) / last7Days.length;
+    const moodTrend = memory.emotionalPattern.moodTrend;
+    const topics = Array.from(new Set(last7Days.flatMap(c => c.topics)));
+
+    const report: WeeklyReport = {
+      id: `report_${Date.now()}`,
+      startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+      endDate: new Date(),
+      summary: `Эта неделя была ${moodTrend === 'improving' ? 'продуктивной' : 'стабильной'}. Мы обсудили ${last7Days.length} тем.`,
+      moodAvg: Math.round(avgMood * 10) / 10,
+      moodTrend,
+      topTriggers: topics.slice(0, 3),
+      achievements: memory.userPreferences.goalsSet.slice(-3),
+      recommendation: avgMood < 3
+        ? "Рекомендую уделить больше внимания практике осознанности и HALT-проверкам на следующей неделе."
+        : "Отличный темп! Продолжайте в том же духе, фокусируясь на поддержке в сообществе."
+    };
+
+    const reports = this.userReports.get(userId) || [];
+    this.userReports.set(userId, [report, ...reports].slice(0, 10));
+    await this.saveToStorage();
+
+    return success(report);
+  }
+
+  static async getReports(userId: string): Promise<WeeklyReport[]> {
+    await this.loadFromStorage();
+    return this.userReports.get(userId) || [];
   }
 
   static async toggleRoadmapTask(userId: string, taskId: string): Promise<Result<WeeklyRoadmap>> {

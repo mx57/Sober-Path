@@ -21,6 +21,7 @@ export interface SupportPost {
   timeAgo: string;
   category: 'motivation' | 'question' | 'support' | 'milestone' | 'daily_thread';
   reactions?: Record<ReactionType, number>;
+  isAnonymous?: boolean;
 }
 
 export interface ExpertQA {
@@ -425,7 +426,8 @@ export class CommunityService {
       { id: 'support', name: 'Поддержка', icon: 'favorite-border', color: '#4CAF50', description: 'Взаимная помощь в трудные минуты.' },
       { id: 'milestone', name: 'Достижения', icon: 'emoji-events', color: '#E91E63', description: 'Делитесь своими победами, большими и маленькими!' },
       { id: 'group_early', name: 'Первые шаги', icon: 'child-care', color: '#FF5722', description: 'Комната для тех, у кого стаж трезвости меньше 30 дней.' },
-      { id: 'group_work', name: 'Работа и стресс', icon: 'business-center', color: '#607D8B', description: 'Обсуждаем, как оставаться трезвым в рабочем ритме.' }
+      { id: 'group_work', name: 'Работа и стресс', icon: 'business-center', color: '#607D8B', description: 'Обсуждаем, как оставаться трезвым в рабочем ритме.' },
+      { id: 'anonymous', name: 'Анонимно', icon: 'visibility-off', color: '#673AB7', description: 'Задавайте любые вопросы, не раскрывая своей личности.' }
     ];
   }
 

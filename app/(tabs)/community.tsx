@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   FlatList, Image, Dimensions, Modal, TextInput, Alert
@@ -13,34 +13,40 @@ import { Skeleton } from '../../components/Skeleton';
 
 const { width: screenWidth } = Dimensions.get('window');
 
-const SuccessStoryCard = ({ story }: { story: SuccessStory }) => (
-  <View style={styles.storyCard}>
-    <View style={styles.storyHeader}>
-      <Image source={{ uri: story.avatar }} style={styles.avatar} />
-      <View>
-        <Text style={styles.userName}>{story.userName}</Text>
-        <Text style={styles.daysBadge}>{story.daysSober} дней трезвости</Text>
+const SuccessStoryCard = ({ story }: { story: SuccessStory }) => {
+  const { colors } = useAppTheme();
+  return (
+    <View style={styles.storyCard}>
+      <View style={styles.storyHeader}>
+        <Image source={{ uri: story.avatar }} style={styles.avatar} />
+        <View>
+          <Text style={styles.userName}>{story.userName}</Text>
+          <Text style={[styles.daysBadge, { color: colors.primary }]}>{story.daysSober} дней трезвости</Text>
+        </View>
+      </View>
+      <Text style={styles.storyText} numberOfLines={3}>{story.story}</Text>
+    </View>
+  );
+};
+
+const ExpertQACard = ({ qa }: { qa: ExpertQA }) => {
+  const { colors } = useAppTheme();
+  return (
+    <View style={[styles.expertCard, { borderLeftColor: colors.primary }]}>
+      <View style={styles.expertHeader}>
+        <MaterialIcons name="help-center" size={24} color={colors.primary} />
+        <Text style={styles.expertQuestion} numberOfLines={2}>{qa.question}</Text>
+      </View>
+      <View style={styles.expertAnswerContainer}>
+        <Text style={styles.expertAnswerText} numberOfLines={3}>{qa.answer}</Text>
+      </View>
+      <View style={styles.expertFooter}>
+        <Text style={[styles.expertName, { color: colors.primary }]}>{qa.expertName}</Text>
+        <Text style={styles.expertTitle}>{qa.expertTitle}</Text>
       </View>
     </View>
-    <Text style={styles.storyText} numberOfLines={3}>{story.story}</Text>
-  </View>
-);
-
-const ExpertQACard = ({ qa }: { qa: ExpertQA }) => (
-  <View style={styles.expertCard}>
-    <View style={styles.expertHeader}>
-      <MaterialIcons name="help-center" size={24} color={colors.primary} />
-      <Text style={styles.expertQuestion} numberOfLines={2}>{qa.question}</Text>
-    </View>
-    <View style={styles.expertAnswerContainer}>
-      <Text style={styles.expertAnswerText} numberOfLines={3}>{qa.answer}</Text>
-    </View>
-    <View style={styles.expertFooter}>
-      <Text style={styles.expertName}>{qa.expertName}</Text>
-      <Text style={styles.expertTitle}>{qa.expertTitle}</Text>
-    </View>
-  </View>
-);
+  );
+};
 
 const SupportPostItem = ({
   post,
@@ -51,6 +57,7 @@ const SupportPostItem = ({
   onCommentPress: (post: SupportPost) => void,
   onReactionPress: (postId: string, reaction: ReactionType) => void
 }) => {
+  const { colors } = useAppTheme();
   const [showReactions, setShowReactions] = useState(false);
   const heartScale = useSharedValue(1);
   const heartAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: heartScale.value }] }));
@@ -96,7 +103,12 @@ const SupportPostItem = ({
           <MaterialIcons name={getCategoryIcon(post.category)} size={20} color={getCategoryColor(post.category)} />
         </View>
         <View style={styles.authorInfo}>
-          <Text style={styles.authorName}>{post.author}</Text>
+          <View style={styles.authorNameContainer}>
+            <Text style={styles.authorName}>{post.author}</Text>
+            {post.isAnonymous && (
+              <MaterialIcons name="visibility-off" size={14} color="#999" style={styles.anonymousIcon} />
+            )}
+          </View>
           <Text style={styles.timeAgo}>{post.timeAgo}</Text>
         </View>
         <View style={[styles.categoryBadge, { backgroundColor: getCategoryColor(post.category) }]}>
@@ -172,6 +184,60 @@ const SupportPostItem = ({
 export default function CommunityPage() {
   const insets = useSafeAreaInsets();
   const { colors } = useAppTheme();
+
+  const dynamicStyles = useMemo(() => StyleSheet.create({
+    circleInfoCard: {
+      backgroundColor: 'white',
+      marginHorizontal: 20,
+      marginTop: 15,
+      padding: 15,
+      borderRadius: 16,
+      borderLeftWidth: 4,
+      borderLeftColor: colors.primary,
+      elevation: 2,
+    },
+    seeAllText: {
+      color: colors.primary,
+      fontWeight: '600'
+    },
+    fab: {
+      position: 'absolute',
+      bottom: 25,
+      right: 25,
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      elevation: 5,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+    },
+    submitButton: {
+      backgroundColor: colors.primary,
+      borderRadius: 16,
+      paddingVertical: 15,
+      alignItems: 'center'
+    },
+    targetPostPreview: {
+      backgroundColor: '#F0F7F0',
+      padding: 12,
+      borderRadius: 12,
+      marginBottom: 15,
+      borderLeftWidth: 3,
+      borderLeftColor: colors.primary
+    },
+    targetPostAuthor: {
+      fontSize: 12,
+      fontWeight: 'bold',
+      color: colors.primary,
+      marginBottom: 4
+    }
+  }), [colors]);
+
   const [stories, setStories] = useState<SuccessStory[]>([]);
   const [posts, setPosts] = useState<SupportPost[]>([]);
   const [expertQA, setExpertQA] = useState<ExpertQA[]>([]);
@@ -184,13 +250,13 @@ export default function CommunityPage() {
   const [newCommentText, setNewCommentText] = useState('');
   const [newPostContent, setNewPostContent] = useState('');
   const [newStoryContent, setNewStoryContent] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<'motivation' | 'question' | 'support' | 'milestone'>('support');
+  const [selectedCategory, setSelectedCategory] = useState<'motivation' | 'question' | 'support' | 'milestone' | 'anonymous'>('support');
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
-      // Simulate network delay
       await new Promise(resolve => setTimeout(resolve, 1500));
       setStories(CommunityService.getSuccessStories());
       setExpertQA(CommunityService.getExpertQA());
@@ -198,7 +264,6 @@ export default function CommunityPage() {
       const loadedPosts = await CommunityService.getSupportPosts();
       const dailyThread = CommunityService.getDailyThread();
 
-      // Ensure daily thread is at the top if it doesn't exist in loaded posts
       if (!loadedPosts.find(p => p.id === dailyThread.id)) {
         setPosts([dailyThread, ...loadedPosts]);
       } else {
@@ -233,12 +298,13 @@ export default function CommunityPage() {
 
     const newPost: SupportPost = {
       id: `p${Date.now()}`,
-      author: 'Вы',
+      author: isAnonymous || selectedCategory === 'anonymous' ? 'Анонимно' : 'Вы',
       content: newPostContent,
       likes: 0,
       comments: 0,
       timeAgo: 'Только что',
-      category: selectedCategory
+      category: selectedCategory as any,
+      isAnonymous: isAnonymous || selectedCategory === 'anonymous'
     };
 
     await CommunityService.saveUserPost(newPost);
@@ -272,7 +338,7 @@ export default function CommunityPage() {
     const newStory: SuccessStory = {
       id: `s${Date.now()}`,
       userName: 'Вы',
-      daysSober: 0, // Should ideally come from context
+      daysSober: 0,
       story: newStoryContent,
       date: new Date().toISOString()
     };
@@ -334,7 +400,7 @@ export default function CommunityPage() {
       </ScrollView>
 
       {currentCircle && selectedCircle !== 'all' && (
-        <Animated.View entering={FadeInUp} style={styles.circleInfoCard}>
+        <Animated.View entering={FadeInUp} style={dynamicStyles.circleInfoCard}>
           <Text style={styles.circleInfoTitle}>{currentCircle.name}</Text>
           <Text style={styles.circleInfoDesc}>{currentCircle.description}</Text>
         </Animated.View>
@@ -362,7 +428,7 @@ export default function CommunityPage() {
         <Text style={styles.sectionTitle}>Истории успеха</Text>
         {!isLoading && (
           <TouchableOpacity onPress={() => setIsStoryModalVisible(true)}>
-            <Text style={styles.seeAllText}>Поделиться</Text>
+            <Text style={dynamicStyles.seeAllText}>Поделиться</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -459,7 +525,7 @@ export default function CommunityPage() {
       )}
 
       <TouchableOpacity
-        style={[styles.fab, { backgroundColor: colors.primary }]}
+        style={dynamicStyles.fab}
         onPress={() => setIsModalVisible(true)}
       >
         <MaterialIcons name="edit" size={24} color="white" />
@@ -488,7 +554,10 @@ export default function CommunityPage() {
                     styles.categoryOption,
                     selectedCategory === circle.id && { backgroundColor: circle.color }
                   ]}
-                  onPress={() => setSelectedCategory(circle.id)}
+                  onPress={() => {
+                    setSelectedCategory(circle.id as any);
+                    if (circle.id === 'anonymous') setIsAnonymous(true);
+                  }}
                 >
                   <Text style={[
                     styles.categoryOptionText,
@@ -499,6 +568,20 @@ export default function CommunityPage() {
                 </TouchableOpacity>
               ))}
             </View>
+
+            {selectedCategory !== 'anonymous' && (
+              <TouchableOpacity
+                style={styles.anonymousToggle}
+                onPress={() => setIsAnonymous(!isAnonymous)}
+              >
+                <MaterialIcons
+                  name={isAnonymous ? "check-box" : "check-box-outline-blank"}
+                  size={24}
+                  color={isAnonymous ? colors.primary : "#666"}
+                />
+                <Text style={styles.anonymousToggleText}>Опубликовать анонимно</Text>
+              </TouchableOpacity>
+            )}
 
             <TextInput
               style={styles.postInput}
@@ -511,7 +594,7 @@ export default function CommunityPage() {
             />
 
             <TouchableOpacity
-              style={styles.submitButton}
+              style={dynamicStyles.submitButton}
               onPress={handleCreatePost}
             >
               <Text style={styles.submitButtonText}>Опубликовать</Text>
@@ -548,7 +631,7 @@ export default function CommunityPage() {
             />
 
             <TouchableOpacity
-              style={styles.submitButton}
+              style={dynamicStyles.submitButton}
               onPress={handleCreateStory}
             >
               <Text style={styles.submitButtonText}>Опубликовать историю</Text>
@@ -573,8 +656,8 @@ export default function CommunityPage() {
             </View>
 
             {selectedPostForComment && (
-              <View style={styles.targetPostPreview}>
-                <Text style={styles.targetPostAuthor}>{selectedPostForComment.author}:</Text>
+              <View style={dynamicStyles.targetPostPreview}>
+                <Text style={dynamicStyles.targetPostAuthor}>{selectedPostForComment.author}:</Text>
                 <Text style={styles.targetPostText} numberOfLines={2}>{selectedPostForComment.content}</Text>
               </View>
             )}
@@ -591,7 +674,7 @@ export default function CommunityPage() {
             />
 
             <TouchableOpacity
-              style={styles.submitButton}
+              style={dynamicStyles.submitButton}
               onPress={handleAddComment}
             >
               <Text style={styles.submitButtonText}>Ответить</Text>
@@ -632,15 +715,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333'
   },
-  circleInfoCard: {
-    backgroundColor: 'white',
-    marginHorizontal: 20,
-    marginTop: 15,
-    padding: 15,
-    borderRadius: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: colors.primary,
-    elevation: 2,
+  authorNameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4
+  },
+  anonymousIcon: {
+    marginLeft: 2
   },
   circleInfoTitle: {
     fontSize: 16,
@@ -685,10 +766,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333'
   },
-  seeAllText: {
-    color: colors.primary,
-    fontWeight: '600'
-  },
   storiesContainer: {
     paddingHorizontal: 15,
     gap: 15
@@ -723,7 +800,6 @@ const styles = StyleSheet.create({
   },
   daysBadge: {
     fontSize: 12,
-    color: colors.primary,
     fontWeight: '600'
   },
   storyText: {
@@ -742,7 +818,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     borderLeftWidth: 4,
-    borderLeftColor: colors.primary
   },
   expertHeader: {
     flexDirection: 'row',
@@ -774,7 +849,6 @@ const styles = StyleSheet.create({
   expertName: {
     fontSize: 13,
     fontWeight: '700',
-    color: colors.primary
   },
   expertTitle: {
     fontSize: 11,
@@ -945,22 +1019,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center'
   },
-  fab: {
-    position: 'absolute',
-    bottom: 25,
-    right: 25,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -1013,30 +1071,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E0E0E0'
   },
-  submitButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 16,
-    paddingVertical: 15,
-    alignItems: 'center'
-  },
   submitButtonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold'
-  },
-  targetPostPreview: {
-    backgroundColor: '#F0F7F0',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 15,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.primary
-  },
-  targetPostAuthor: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: colors.primary,
-    marginBottom: 4
   },
   targetPostText: {
     fontSize: 13,
@@ -1048,5 +1086,16 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 15,
     lineHeight: 20
+  },
+  anonymousToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 15,
+  },
+  anonymousToggleText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
   }
 });

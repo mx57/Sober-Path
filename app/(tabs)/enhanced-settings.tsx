@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -22,7 +22,6 @@ import Animated, {
   withSpring,
   withTiming,
   withRepeat,
-  interpolate,
   runOnJS
 } from 'react-native-reanimated';
 import { useRecovery } from '../../hooks/useRecovery';
@@ -50,7 +49,6 @@ interface Setting {
   max?: number;
 }
 
-// Константы для ключей хранилища
 const STORAGE_KEYS = {
   THEME: '@settings/theme',
   NOTIFICATIONS: '@settings/notifications',
@@ -68,7 +66,7 @@ const MemoizedThemeCard = React.memo(({ theme, isSelected, onPress }: {
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scaleValue.value }],
-    shadowOpacity: interpolate(glowValue.value, [0, 1], [0.2, 0.4])
+    shadowOpacity: glowValue.value * 0.2 + 0.2
   }));
 
   const handlePress = () => {
@@ -174,6 +172,22 @@ const MemoizedSettingRow = React.memo(({ setting, onValueChange }: {
 export default function EnhancedSettingsPage() {
   const insets = useSafeAreaInsets();
   const { colors, theme: currentTheme, setTheme } = useAppTheme();
+
+  const dynamicStyles = useMemo(() => StyleSheet.create({
+    sectionTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: colors.primary,
+      marginBottom: 4
+    },
+    webAlertButton: {
+        backgroundColor: colors.primary,
+        padding: 12,
+        borderRadius: 8,
+        alignItems: 'center'
+    }
+  }), [colors]);
+
   const { userProfile, updateUserProfile } = useRecovery();
   
   const [selectedTheme, setSelectedTheme] = useState(currentTheme);
@@ -369,7 +383,6 @@ export default function EnhancedSettingsPage() {
     setTheme(themeId as any);
     await saveSettings(STORAGE_KEYS.THEME, themeId);
     
-    // Применяем тему к приложению
     if (updateUserProfile) {
       await updateUserProfile({ theme: themeId });
     }
@@ -401,7 +414,6 @@ export default function EnhancedSettingsPage() {
         setAccessibilitySettings(newAccessibilitySettings);
         await saveSettings(STORAGE_KEYS.ACCESSIBILITY, newAccessibilitySettings);
         
-        // Применяем настройки доступности к приложению
         if (updateUserProfile) {
           await updateUserProfile({ accessibility: newAccessibilitySettings });
         }
@@ -466,7 +478,7 @@ export default function EnhancedSettingsPage() {
 
       <Animated.View style={[styles.content, fadeInAnimatedStyle]}>
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.primary }]}>🎨 Тема приложения</Text>
+          <Text style={dynamicStyles.sectionTitle}>🎨 Тема приложения</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={styles.themesContainer}>
               {themes.map((theme) => (
@@ -486,7 +498,7 @@ export default function EnhancedSettingsPage() {
             <View style={styles.sectionHeader}>
               <MaterialIcons name={section.icon} size={24} color="#4CAF50" />
               <View style={styles.sectionInfo}>
-                <Text style={styles.sectionTitle}>{section.title}</Text>
+                <Text style={styles.sectionTitleStatic}>{section.title}</Text>
                 <Text style={styles.sectionDescription}>{section.description}</Text>
               </View>
             </View>
@@ -504,7 +516,7 @@ export default function EnhancedSettingsPage() {
         ))}
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🔧 Дополнительно</Text>
+          <Text style={styles.sectionTitleStatic}>🔧 Дополнительно</Text>
           <View style={styles.actionButtonsContainer}>
             <TouchableOpacity style={styles.actionButton} onPress={handleResetAllSettings}>
               <MaterialIcons name="refresh" size={24} color="#FF9800" />
@@ -529,7 +541,7 @@ export default function EnhancedSettingsPage() {
               <Text style={styles.webAlertTitle}>{alertConfig.title}</Text>
               <Text style={styles.webAlertMessage}>{alertConfig.message}</Text>
               <TouchableOpacity 
-                style={styles.webAlertButton}
+                style={dynamicStyles.webAlertButton}
                 onPress={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
               >
                 <Text style={styles.webAlertButtonText}>OK</Text>
@@ -590,10 +602,10 @@ const styles = StyleSheet.create({
     marginLeft: 12,
     flex: 1
   },
-  sectionTitle: {
+  sectionTitleStatic: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: colors.primary,
+    color: '#333',
     marginBottom: 4
   },
   sectionDescription: {
@@ -750,12 +762,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     lineHeight: 22,
     color: '#666'
-  },
-  webAlertButton: {
-    backgroundColor: '#4CAF50',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center'
   },
   webAlertButtonText: {
     color: 'white',

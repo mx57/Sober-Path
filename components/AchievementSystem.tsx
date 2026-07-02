@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, Animated, Easing } from 'react-native';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Animated, Easing, FlatList } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRecovery } from '../hooks/useRecovery';
+import { useAppTheme } from '../contexts/ThemeContext';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface Achievement {
   id: string;
@@ -14,15 +16,24 @@ interface Achievement {
   category: 'milestone' | 'streak' | 'learning' | 'dedication';
 }
 
-const achievements: Achievement[] = [
+const achievementsData: Achievement[] = [
   {
     id: '1',
     title: 'Первый шаг',
-    description: 'Создали профиль и начали свой путь',
+    description: 'Начало великого пути к трезвости',
     icon: 'emoji-events',
-    condition: () => true,
+    condition: (sober) => sober >= 1,
     unlocked: false,
     category: 'milestone'
+  },
+  {
+    id: 'streak_3',
+    title: 'Три дня дисциплины',
+    description: 'Первые три дня — самые важные',
+    icon: 'bolt',
+    condition: (_, streak) => streak >= 3,
+    unlocked: false,
+    category: 'streak'
   },
   {
     id: '2',
@@ -30,6 +41,24 @@ const achievements: Achievement[] = [
     description: '7 дней трезвости подряд',
     icon: 'local-fire-department',
     condition: (_, streak) => streak >= 7,
+    unlocked: false,
+    category: 'streak'
+  },
+  {
+    id: 'streak_14',
+    title: 'Две недели осознанности',
+    description: '14 дней без срывов',
+    icon: 'self-improvement',
+    condition: (_, streak) => streak >= 14,
+    unlocked: false,
+    category: 'streak'
+  },
+  {
+    id: 'streak_21',
+    title: 'Марафон привычки',
+    description: 'Три недели чистого разума',
+    icon: 'directions-run',
+    condition: (_, streak) => streak >= 21,
     unlocked: false,
     category: 'streak'
   },
@@ -43,9 +72,36 @@ const achievements: Achievement[] = [
     category: 'streak'
   },
   {
+    id: '6',
+    title: 'Сто дней свободы',
+    description: '100 дней трезвости подряд',
+    icon: 'workspace-premium',
+    condition: (_, streak) => streak >= 100,
+    unlocked: false,
+    category: 'streak'
+  },
+  {
+    id: 'total_50',
+    title: 'Полсотни',
+    description: '50 дней трезвости в сумме',
+    icon: 'auto-graph',
+    condition: (sober) => sober >= 50,
+    unlocked: false,
+    category: 'milestone'
+  },
+  {
+    id: 'total_365',
+    title: 'Золотой год',
+    description: '365 дней новой жизни',
+    icon: 'stars',
+    condition: (sober) => sober >= 365,
+    unlocked: false,
+    category: 'milestone'
+  },
+  {
     id: '4',
-    title: 'Исследователь НЛП',
-    description: 'Завершили 5 НЛП упражнений',
+    title: 'Исследователь',
+    description: 'Активное изучение материалов',
     icon: 'psychology',
     condition: (_, __, exercises) => exercises >= 5,
     unlocked: false,
@@ -54,26 +110,18 @@ const achievements: Achievement[] = [
   {
     id: '5',
     title: 'Мастер медитации',
-    description: 'Использовали аудиотерапию 10 раз',
+    description: 'Регулярная аудиотерапия',
     icon: 'spa',
-    condition: () => false, // Будет связано с аудио счетчиком
+    condition: () => false,
     unlocked: false,
     category: 'dedication'
-  },
-  {
-    id: '6',
-    title: 'Сто дней свободы',
-    description: '100 дней трезвости подряд',
-    icon: 'workspace-premium',
-    condition: (_, streak) => streak >= 100,
-    unlocked: false,
-    category: 'streak'
   }
 ];
 
 export default function AchievementSystem() {
-  const { soberDays, getStreakDays } = useRecovery();
-  const [userAchievements, setUserAchievements] = useState<Achievement[]>(achievements);
+  const { colors } = useAppTheme();
+  const { soberDays, getStreakDays, getTotalSoberDays } = useRecovery();
+  const [userAchievements, setUserAchievements] = useState<Achievement[]>(achievementsData);
   const [newAchievement, setNewAchievement] = useState<Achievement | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [fadeAnim] = useState(new Animated.Value(0));
@@ -85,10 +133,11 @@ export default function AchievementSystem() {
 
   const checkAchievements = () => {
     const streakDays = getStreakDays();
-    const completedExercises = 0; // Это будет связано с реальным счетчиком
+    const totalSober = getTotalSoberDays();
+    const completedExercises = 0;
 
     const updatedAchievements = userAchievements.map(achievement => {
-      if (!achievement.unlocked && achievement.condition(soberDays, streakDays, completedExercises)) {
+      if (!achievement.unlocked && achievement.condition(totalSober, streakDays, completedExercises)) {
         const newAchievement = {
           ...achievement,
           unlocked: true,
@@ -160,21 +209,23 @@ export default function AchievementSystem() {
     dedication: 'Посвященность'
   };
 
-  const unlockedCount = userAchievements.filter(a => a.unlocked).length;
+  const unlockedCount = useMemo(() => userAchievements.filter(a => a.unlocked).length, [userAchievements]);
   const totalCount = userAchievements.length;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: 'white' }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>Достижения</Text>
-        <Text style={styles.progress}>{unlockedCount}/{totalCount}</Text>
+        <Text style={[styles.title, { color: colors.primary }]}>Достижения</Text>
+        <View style={[styles.badge, { backgroundColor: colors.primary + '15' }]}>
+            <Text style={[styles.progress, { color: colors.primary }]}>{unlockedCount}/{totalCount}</Text>
+        </View>
       </View>
 
-      <View style={styles.progressBar}>
+      <View style={[styles.progressBar, { backgroundColor: colors.secondary + '20' }]}>
         <View 
           style={[
             styles.progressFill, 
-            { width: `${(unlockedCount / totalCount) * 100}%` }
+            { width: `${(unlockedCount / totalCount) * 100}%`, backgroundColor: colors.primary }
           ]} 
         />
       </View>
@@ -185,7 +236,7 @@ export default function AchievementSystem() {
             key={achievement.id} 
             style={[
               styles.achievementCard,
-              achievement.unlocked ? styles.unlockedCard : styles.lockedCard
+              achievement.unlocked ? [styles.unlockedCard, { borderColor: colors.primary + '30' }] : styles.lockedCard
             ]}
           >
             <View style={[
@@ -194,7 +245,7 @@ export default function AchievementSystem() {
             ]}>
               <MaterialIcons 
                 name={achievement.icon as any} 
-                size={24} 
+                size={22}
                 color={achievement.unlocked ? 'white' : '#999'} 
               />
             </View>
@@ -202,7 +253,7 @@ export default function AchievementSystem() {
             <View style={styles.achievementInfo}>
               <Text style={[
                 styles.achievementTitle,
-                !achievement.unlocked && styles.lockedText
+                achievement.unlocked ? { color: colors.primary } : styles.lockedText
               ]}>
                 {achievement.title}
               </Text>
@@ -212,15 +263,12 @@ export default function AchievementSystem() {
               ]}>
                 {achievement.description}
               </Text>
-              {achievement.unlocked && achievement.unlockedAt && (
-                <Text style={styles.unlockedDate}>
-                  Получено: {new Date(achievement.unlockedAt).toLocaleDateString('ru-RU')}
-                </Text>
-              )}
             </View>
 
-            {achievement.unlocked && (
+            {achievement.unlocked ? (
               <MaterialIcons name="check-circle" size={20} color={categoryColors[achievement.category]} />
+            ) : (
+                <MaterialIcons name="lock-outline" size={18} color="#CCC" />
             )}
           </View>
         ))}
@@ -307,10 +355,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#2E7D4A'
   },
+  badge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
   progress: {
-    fontSize: 16,
-    color: '#666',
-    fontWeight: '500'
+    fontSize: 14,
+    fontWeight: 'bold'
   },
   progressBar: {
     height: 8,
@@ -394,7 +446,8 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#2E7D4A',
-    marginTop: 10
+    marginTop: 10,
+    textAlign: 'center'
   },
   newAchievementIcon: {
     width: 80,

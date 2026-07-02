@@ -22,6 +22,8 @@ import Animated, {
 
 import { MemoizedHealthMetric } from '../../components/home/HealthMetric';
 import { StatCard } from '../../components/home/StatCard';
+import { QuestMap } from '../../components/home/QuestMap';
+import { QuestService, QuestMilestone } from '../../services/questService';
 import { DailyMotivationService, MotivationQuote, RecoveryTip } from '../../services/dailyMotivationService';
 import { LineChart } from 'react-native-chart-kit';
 import { AICoachService, WeeklyRoadmap } from '../../services/AICoachService';
@@ -113,6 +115,102 @@ function HomePage() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { colors } = useAppTheme();
+
+  const dynamicStyles = useMemo(() => StyleSheet.create({
+    loadingText: {
+      fontSize: 18,
+      color: colors.primary,
+      marginTop: 15,
+      fontWeight: '500'
+    },
+    welcomeTitle: {
+      fontSize: 32,
+      fontWeight: 'bold',
+      textAlign: 'center',
+      marginTop: 30,
+      marginBottom: 10,
+      color: colors.primary
+    },
+    startButton: {
+      borderRadius: 30,
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 6
+    },
+    title: {
+      fontSize: 32,
+      fontWeight: 'bold',
+      color: colors.primary
+    },
+    quoteAuthor: {
+      fontSize: 14,
+      color: colors.primary,
+      textAlign: 'right',
+      marginTop: 10,
+      fontWeight: '600',
+    },
+    roadmapWidgetTitle: {
+      flex: 1,
+      fontSize: 14,
+      fontWeight: 'bold',
+      color: colors.primary,
+    },
+    sectionTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: colors.primary,
+      marginBottom: 15
+    },
+    healthModalTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: colors.primary,
+      flex: 1,
+      textAlign: 'center'
+    },
+    healthModalBold: {
+      fontWeight: 'bold',
+      fontSize: 17,
+      color: colors.primary,
+      marginTop: 12,
+      marginBottom: 8
+    },
+    benefitsTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: colors.primary,
+      marginBottom: 15
+    },
+    calendarTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: colors.primary
+    },
+    selectedDayTitle: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: colors.primary,
+      marginBottom: 8
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      textAlign: 'center',
+      marginBottom: 8,
+      color: colors.primary
+    },
+    selectedMood: {
+      backgroundColor: '#E8F5E8',
+      borderColor: colors.primary
+    },
+    selectedMoodLabel: {
+      color: colors.primary,
+      fontWeight: 'bold'
+    }
+  }), [colors]);
+
   const { 
     soberDays, 
     getStreakDays, 
@@ -134,6 +232,7 @@ function HomePage() {
   const [dailyQuote, setDailyQuote] = useState<MotivationQuote | null>(null);
   const [dailyTip, setDailyTip] = useState<RecoveryTip | null>(null);
   const [weeklyRoadmap, setWeeklyRoadmap] = useState<WeeklyRoadmap | null>(null);
+  const [selectedMilestone, setSelectedMilestone] = useState<QuestMilestone | null>(null);
   const [alertConfig, setAlertConfig] = useState<{
     visible: boolean;
     title: string;
@@ -255,7 +354,7 @@ function HomePage() {
     return (
       <View style={[styles.container, styles.loadingContainer, { paddingTop: insets.top, backgroundColor: colors.background }]}>
         <MaterialIcons name="hourglass-empty" size={50} color={colors.primary} />
-        <Text style={[styles.loadingText, { color: colors.primary }]}>{t('common.loading')}</Text>
+        <Text style={dynamicStyles.loadingText}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -268,14 +367,14 @@ function HomePage() {
       >
         <View style={styles.welcomeContainer}>
           <MaterialIcons name="eco" size={100} color={colors.primary} />
-          <Text style={[styles.welcomeTitle, { color: colors.primary }]}>Sober Path</Text>
+          <Text style={dynamicStyles.welcomeTitle}>Sober Path</Text>
           <Text style={[styles.welcomeSubtitle, { color: colors.secondary }]}>Ваш проводник к новой жизни</Text>
           <Text style={styles.welcomeText}>
             Начните свой путь к здоровой жизни без алкоголя. 
             Получите поддержку, отслеживайте прогресс и достигайте целей.
           </Text>
           <Link href="/onboarding" asChild>
-            <TouchableOpacity style={[styles.startButton, { shadowColor: colors.primary }]}>
+            <TouchableOpacity style={dynamicStyles.startButton}>
               <LinearGradient colors={colors.headerGradient} style={styles.startButtonGradient}>
                 <MaterialIcons name="play-arrow" size={24} color="white" />
                 <Text style={styles.startButtonText}>Начать путь</Text>
@@ -292,7 +391,7 @@ function HomePage() {
       <LinearGradient colors={['white', colors.background]} style={styles.header}>
         <View style={styles.headerContent}>
           <View>
-            <Text style={[styles.title, { color: colors.primary }]}>{t('home.title')}</Text>
+            <Text style={dynamicStyles.title}>{t('home.title')}</Text>
             <Text style={styles.greeting}>{t('home.welcomeBack')}</Text>
           </View>
           <TouchableOpacity 
@@ -310,7 +409,7 @@ function HomePage() {
             <LinearGradient colors={[colors.secondary + '15', colors.secondary + '05']} style={styles.motivationGradient}>
               <MaterialIcons name="format-quote" size={32} color={colors.primary} style={styles.quoteIcon} />
               <Text style={styles.quoteText}>{dailyQuote.text}</Text>
-              <Text style={[styles.quoteAuthor, { color: colors.primary }]}>— {dailyQuote.author}</Text>
+              <Text style={dynamicStyles.quoteAuthor}>— {dailyQuote.author}</Text>
             </LinearGradient>
           </View>
         )}
@@ -335,6 +434,11 @@ function HomePage() {
           primary
           animatedStyle={pulseAnimatedStyle}
         />
+
+        <QuestMap
+          soberDays={soberDays}
+          onMilestonePress={(milestone) => setSelectedMilestone(milestone)}
+        />
         
         <View style={styles.secondaryStats}>
           <StatCard icon="local-fire-department" number={streakDays} label={t('home.streak')} />
@@ -347,7 +451,7 @@ function HomePage() {
               <LinearGradient colors={[colors.secondary + '10', '#FFFFFF']} style={styles.roadmapWidgetGradient}>
                 <View style={styles.roadmapWidgetHeader}>
                   <MaterialIcons name="event-note" size={20} color={colors.primary} />
-                  <Text style={[styles.roadmapWidgetTitle, { color: colors.primary }]}>План на неделю {weeklyRoadmap.weekNumber}</Text>
+                  <Text style={dynamicStyles.roadmapWidgetTitle}>План на неделю {weeklyRoadmap.weekNumber}</Text>
                   <MaterialIcons name="chevron-right" size={20} color={colors.primary} />
                 </View>
                 <View style={styles.roadmapWidgetProgress}>
@@ -415,7 +519,7 @@ function HomePage() {
       {healthMetrics.length > 0 && (
         <View style={styles.healthContainer}>
           <View style={styles.healthHeader}>
-            <Text style={styles.sectionTitle}>💚 {t('home.healthAchievements')}</Text>
+            <Text style={dynamicStyles.sectionTitle}>💚 {t('home.healthAchievements')}</Text>
             <MaterialIcons name="touch-app" size={16} color="#666" />
             <Text style={styles.tapHintText}>{t('home.tapForDetails')}</Text>
           </View>
@@ -434,7 +538,7 @@ function HomePage() {
       )}
 
       <View style={styles.quickActionsContainer}>
-        <Text style={[styles.sectionTitle, { color: colors.primary }]}>⚡ {t('home.quickActions')}</Text>
+        <Text style={dynamicStyles.sectionTitle}>⚡ {t('home.quickActions')}</Text>
         <View style={styles.quickActionsGrid}>
           <TouchableOpacity 
             style={[
@@ -495,7 +599,7 @@ function HomePage() {
               <TouchableOpacity onPress={() => setSelectedHealthMetric(null)}>
                 <MaterialIcons name="close" size={24} color="#666" />
               </TouchableOpacity>
-              <Text style={styles.healthModalTitle}>{healthKnowledge[selectedHealthMetric].title}</Text>
+              <Text style={dynamicStyles.healthModalTitle}>{healthKnowledge[selectedHealthMetric].title}</Text>
               <View style={{ width: 24 }} />
             </View>
 
@@ -511,7 +615,7 @@ function HomePage() {
                       key={index}
                       style={[
                         styles.healthModalParagraph,
-                        isBold && styles.healthModalBold
+                        isBold && dynamicStyles.healthModalBold
                       ]}
                     >
                       {cleanText}
@@ -521,7 +625,7 @@ function HomePage() {
               </View>
 
               <View style={styles.benefitsSection}>
-                <Text style={styles.benefitsTitle}>✨ Ключевые преимущества:</Text>
+                <Text style={dynamicStyles.benefitsTitle}>✨ Ключевые преимущества:</Text>
                 {healthKnowledge[selectedHealthMetric].benefits.map((benefit, index) => (
                   <View key={index} style={styles.benefitItem}>
                     <MaterialIcons name="check-circle" size={20} color="#4CAF50" />
@@ -537,7 +641,7 @@ function HomePage() {
       <Modal visible={showCalendar} animationType="slide">
         <View style={[styles.modalContainer, { paddingTop: insets.top }]}>
           <View style={styles.calendarHeader}>
-            <Text style={styles.calendarTitle}>Календарь прогресса</Text>
+            <Text style={dynamicStyles.calendarTitle}>Календарь прогресса</Text>
             <TouchableOpacity onPress={() => setShowCalendar(false)}>
               <MaterialIcons name="close" size={24} color="#666" />
             </TouchableOpacity>
@@ -582,7 +686,7 @@ function HomePage() {
 
           {selectedDate && (
             <View style={styles.selectedDayInfo}>
-              <Text style={styles.selectedDayTitle}>
+              <Text style={dynamicStyles.selectedDayTitle}>
                 {new Date(selectedDate).toLocaleDateString(i18n.language, {
                   weekday: 'long', 
                   year: 'numeric', 
@@ -605,7 +709,7 @@ function HomePage() {
       <Modal visible={showMoodSelector} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.moodModalContent}>
-            <Text style={styles.modalTitle}>{t('home.howIsMood')}</Text>
+            <Text style={dynamicStyles.modalTitle}>{t('home.howIsMood')}</Text>
             <Text style={styles.modalSubtitle}>
               {t('home.chooseState', { date: new Date(selectedDate).toLocaleDateString(i18n.language) })}
             </Text>
@@ -616,7 +720,7 @@ function HomePage() {
                   key={moodValue}
                   style={[
                     styles.moodButton,
-                    mood === moodValue && styles.selectedMood
+                    mood === moodValue && dynamicStyles.selectedMood
                   ]}
                   onPress={() => setMood(moodValue as 1 | 2 | 3 | 4 | 5)}
                 >
@@ -626,7 +730,7 @@ function HomePage() {
                   </Text>
                   <Text style={[
                     styles.moodLabel,
-                    mood === moodValue && styles.selectedMoodLabel
+                    mood === moodValue && dynamicStyles.selectedMoodLabel
                   ]}>
                     {moodValue === 1 ? t('home.mood.bad') : moodValue === 2 ? t('home.mood.sad') :
                      moodValue === 3 ? t('home.mood.neutral') : moodValue === 4 ? t('home.mood.good') : t('home.mood.great')}
@@ -695,6 +799,51 @@ function HomePage() {
           />
         </React.Suspense>
       )}
+
+      {/* Quest Milestone Modal */}
+      <Modal visible={selectedMilestone !== null} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.moodModalContent, { padding: 30 }]}>
+            <View style={styles.milestoneIconContainer}>
+              <MaterialIcons
+                name={selectedMilestone?.completed ? "stars" : "lock"}
+                size={60}
+                color={selectedMilestone?.completed ? colors.primary : "#9E9E9E"}
+              />
+            </View>
+            <Text style={[styles.modalTitle, { marginTop: 15 }]}>{selectedMilestone?.title}</Text>
+            <Text style={styles.milestoneDayText}>День {selectedMilestone?.day}</Text>
+            <Text style={[styles.modalSubtitle, { marginBottom: 20 }]}>{selectedMilestone?.description}</Text>
+
+            <View style={styles.rewardContainer}>
+              <MaterialIcons name="monetization-on" size={24} color="#FFD700" />
+              <Text style={styles.rewardText}>+{selectedMilestone?.rewardPoints} очков опыта</Text>
+            </View>
+
+            {selectedMilestone?.unlocked && !selectedMilestone.completed && (
+              <TouchableOpacity
+                style={[styles.confirmButton, styles.milestoneActionBtn]}
+                onPress={async () => {
+                  if (selectedMilestone) {
+                    await QuestService.completeMilestone(selectedMilestone.id);
+                    setSelectedMilestone(null);
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                  }
+                }}
+              >
+                <Text style={styles.confirmButtonText}>Завершить этап</Text>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity
+              style={[styles.modalButton, { marginTop: 10 }]}
+              onPress={() => setSelectedMilestone(null)}
+            >
+              <Text style={styles.modalButtonText}>Закрыть</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -710,25 +859,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20
   },
-  loadingText: {
-    fontSize: 18,
-    color: colors.primary,
-    marginTop: 15,
-    fontWeight: '500'
-  },
   welcomeContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 30
-  },
-  welcomeTitle: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginTop: 30,
-    marginBottom: 10,
-    color: colors.primary
   },
   welcomeSubtitle: {
     fontSize: 18,
@@ -744,14 +879,6 @@ const styles = StyleSheet.create({
     marginBottom: 40,
     lineHeight: 24,
     paddingHorizontal: 20
-  },
-  startButton: {
-    borderRadius: 30,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6
   },
   startButtonGradient: {
     flexDirection: 'row',
@@ -781,11 +908,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center'
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: colors.primary
   },
   greeting: {
     fontSize: 16,
@@ -828,13 +950,6 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     textAlign: 'center',
     fontWeight: '500',
-  },
-  quoteAuthor: {
-    fontSize: 14,
-    color: colors.primary,
-    textAlign: 'right',
-    marginTop: 10,
-    fontWeight: '600',
   },
   tipCard: {
     borderRadius: 16,
@@ -929,12 +1044,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold'
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.primary,
-    marginBottom: 15
-  },
   chartCard: {
     backgroundColor: 'white',
     borderRadius: 16,
@@ -992,12 +1101,6 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 10,
   },
-  roadmapWidgetTitle: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: colors.primary,
-  },
   roadmapWidgetProgress: {
     gap: 8,
   },
@@ -1009,7 +1112,6 @@ const styles = StyleSheet.create({
   },
   roadmapProgressFill: {
     height: '100%',
-    backgroundColor: colors.primary,
   },
   roadmapProgressText: {
     fontSize: 11,
@@ -1028,13 +1130,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0'
   },
-  healthModalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.primary,
-    flex: 1,
-    textAlign: 'center'
-  },
   healthModalContent: {
     flex: 1
   },
@@ -1047,23 +1142,10 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     marginBottom: 12
   },
-  healthModalBold: {
-    fontWeight: 'bold',
-    fontSize: 17,
-    color: colors.primary,
-    marginTop: 12,
-    marginBottom: 8
-  },
   benefitsSection: {
     backgroundColor: '#E8F5E8',
     padding: 20,
     marginTop: 10
-  },
-  benefitsTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.primary,
-    marginBottom: 15
   },
   benefitItem: {
     flexDirection: 'row',
@@ -1084,11 +1166,6 @@ const styles = StyleSheet.create({
     padding: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0'
-  },
-  calendarTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.primary
   },
   calendarLegend: {
     flexDirection: 'row',
@@ -1116,12 +1193,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F9FA',
     alignItems: 'center'
   },
-  selectedDayTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.primary,
-    marginBottom: 8
-  },
   selectedDayStatus: {
     fontSize: 14,
     color: '#666'
@@ -1138,13 +1209,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     width: screenWidth * 0.9,
     maxWidth: 400
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 8,
-    color: colors.primary
   },
   modalSubtitle: {
     fontSize: 14,
@@ -1166,10 +1230,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'transparent'
   },
-  selectedMood: {
-    backgroundColor: '#E8F5E8',
-    borderColor: colors.primary
-  },
   moodEmoji: {
     fontSize: 28,
     marginBottom: 6
@@ -1178,10 +1238,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     color: '#666'
-  },
-  selectedMoodLabel: {
-    color: colors.primary,
-    fontWeight: 'bold'
   },
   modalButtons: {
     flexDirection: 'row',
@@ -1199,7 +1255,6 @@ const styles = StyleSheet.create({
     gap: 6
   },
   confirmButton: {
-    backgroundColor: colors.primary
   },
   modalButtonText: {
     fontSize: 16,
@@ -1220,6 +1275,37 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#FF6B6B',
     fontWeight: '600'
+  },
+  milestoneIconContainer: {
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  milestoneDayText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  rewardContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFF9C4',
+    padding: 10,
+    borderRadius: 12,
+    marginBottom: 20,
+    gap: 8,
+  },
+  rewardText: {
+    fontWeight: 'bold',
+    color: '#F57F17',
+  },
+  milestoneActionBtn: {
+    padding: 16,
+    borderRadius: 12,
+    width: '100%',
+    alignItems: 'center',
   },
   webAlertOverlay: {
     flex: 1,
@@ -1247,7 +1333,6 @@ const styles = StyleSheet.create({
     color: '#666'
   },
   webAlertButton: {
-    backgroundColor: colors.primary,
     padding: 12,
     borderRadius: 8,
     alignItems: 'center'

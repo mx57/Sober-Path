@@ -1,5 +1,5 @@
 
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useRef, useMemo } from 'react';
 import { 
   View, Text, StyleSheet, ScrollView, TouchableOpacity, 
   TextInput, KeyboardAvoidingView, Platform, Modal,
@@ -20,13 +20,14 @@ import Animated, {
 
 const { width: screenWidth } = Dimensions.get('window');
 
-const ChallengeCard = React.memo(({ challenge, onComplete }: {
+const ChallengeCard = React.memo(({ challenge, onComplete, colors }: {
   challenge: AICoachChallenge,
-  onComplete: (id: string) => void
+  onComplete: (id: string) => void,
+  colors: any
 }) => (
   <Animated.View
     entering={FadeInRight.delay(200)}
-    style={[styles.challengeCard, challenge.completed && styles.challengeCompleted]}
+    style={[styles.challengeCard, challenge.completed && { backgroundColor: colors.primary }]}
   >
     <View style={styles.challengeIconContainer}>
       <MaterialIcons name={challenge.icon} size={24} color={challenge.completed ? "#FFF" : colors.primary} />
@@ -35,13 +36,13 @@ const ChallengeCard = React.memo(({ challenge, onComplete }: {
       <Text style={[styles.challengeTitle, challenge.completed && styles.challengeCompletedText]}>
         {challenge.title}
       </Text>
-      <Text style={[styles.challengePoints, challenge.completed && styles.challengeCompletedText]}>
+      <Text style={[styles.challengePoints, { color: colors.primary }, challenge.completed && styles.challengeCompletedText]}>
         +{challenge.rewardPoints} XP
       </Text>
     </View>
     {!challenge.completed && (
       <TouchableOpacity
-        style={styles.completeButton}
+        style={[styles.completeButton, { backgroundColor: colors.primary }]}
         onPress={() => {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           onComplete(challenge.id);
@@ -54,12 +55,13 @@ const ChallengeCard = React.memo(({ challenge, onComplete }: {
 ));
 
 // Refactored Message component
-const MessageBubble = React.memo(({ message, onArticlePress, onCoursePress, onSpeak, isSpeaking }: {
+const MessageBubble = React.memo(({ message, onArticlePress, onCoursePress, onSpeak, isSpeaking, colors }: {
   message: ChatMessage,
   onArticlePress: (id: string) => void,
   onCoursePress: (id: string) => void,
   onSpeak: (text: string) => void,
-  isSpeaking: boolean
+  isSpeaking: boolean,
+  colors: any
 }) => {
   const isUser = message.isUser;
   const isHighUrgency = message.urgency === 'high' || message.urgency === 'critical';
@@ -67,7 +69,7 @@ const MessageBubble = React.memo(({ message, onArticlePress, onCoursePress, onSp
   const getBubbleStyle = (): ViewStyle[] => {
     const base: ViewStyle[] = [styles.messageBubble];
     if (isUser) {
-      base.push(styles.userBubble);
+      base.push({ backgroundColor: colors.primary } as any);
     } else {
       base.push(styles.aiBubble);
       if (message.urgency === 'critical') base.push(styles.criticalBubble);
@@ -90,7 +92,7 @@ const MessageBubble = React.memo(({ message, onArticlePress, onCoursePress, onSp
                 size={16}
                 color={isHighUrgency ? "#FF5252" : colors.primary}
               />
-              <Text style={[styles.aiLabel, isHighUrgency && { color: '#FF5252' }]}>
+              <Text style={[styles.aiLabel, { color: isHighUrgency ? '#FF5252' : colors.primary }]}>
                 {isHighUrgency ? 'Экстренный Коуч' : 'AI-Коуч'}
               </Text>
             </View>
@@ -124,7 +126,7 @@ const MessageBubble = React.memo(({ message, onArticlePress, onCoursePress, onSp
                 onPress={() => onArticlePress(article.id)}
               >
                 <MaterialIcons name="article" size={16} color={colors.primary} />
-                <Text style={styles.articleLinkText}>{article.title}</Text>
+                <Text style={[styles.articleLinkText, { color: colors.primary }]}>{article.title}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -140,7 +142,7 @@ const MessageBubble = React.memo(({ message, onArticlePress, onCoursePress, onSp
                 onPress={() => onCoursePress(course.id)}
               >
                 <MaterialIcons name="school" size={16} color={colors.primary} />
-                <Text style={styles.articleLinkText}>{course.title}</Text>
+                <Text style={[styles.articleLinkText, { color: colors.primary }]}>{course.title}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -156,6 +158,40 @@ export default function EnhancedAICoach() {
   const vm = useAICoachViewModel();
   const scrollViewRef = useRef<ScrollView>(null);
   const router = useRouter();
+
+  const dynamicStyles = useMemo(() => StyleSheet.create({
+    activeTab: { backgroundColor: colors.primary, borderRadius: 10 },
+    tabLabel: { color: colors.primary, fontWeight: 'bold' },
+    suggestionButton: {
+      backgroundColor: 'white',
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: colors.primary,
+      justifyContent: 'center',
+    },
+    suggestionText: {
+      color: colors.primary,
+      fontSize: 14,
+      fontWeight: '500',
+    },
+    cardTitle: { fontSize: 18, fontWeight: 'bold', color: colors.primary, marginBottom: 10 },
+    statValue: { fontSize: 20, fontWeight: 'bold', color: colors.primary },
+    sectionSmallTitle: { fontSize: 14, fontWeight: 'bold', color: colors.primary, marginHorizontal: 15, marginTop: 10, marginBottom: 5 },
+    roadmapFocus: {
+      fontSize: 12,
+      color: colors.primary,
+      fontWeight: '600',
+    },
+    startersTitle: {
+      fontSize: 12,
+      fontWeight: 'bold',
+      color: colors.primary,
+      marginBottom: 10,
+      textTransform: 'uppercase',
+    }
+  }), [colors]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
@@ -173,10 +209,12 @@ export default function EnhancedAICoach() {
         ].map((tab) => (
           <TouchableOpacity
             key={tab.key}
-            style={[styles.tab, vm.activeTab === tab.key && { backgroundColor: vm.activeTab === tab.key ? colors.primary : 'transparent', borderRadius: 10 }]}
+            style={[styles.tab, vm.activeTab === tab.key && dynamicStyles.activeTab]}
             onPress={() => vm.setActiveTab(tab.key as any)}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: vm.activeTab === tab.key }}
           >
-            <Text style={[styles.tabLabel, { color: vm.activeTab === tab.key ? 'white' : colors.primary, fontWeight: 'bold' }]}>
+            <Text style={[dynamicStyles.tabLabel, vm.activeTab === tab.key && { color: 'white' }]}>
               {tab.label}
             </Text>
           </TouchableOpacity>
@@ -191,7 +229,7 @@ export default function EnhancedAICoach() {
           >
             {vm.challenges && vm.challenges.length > 0 && (
               <View style={styles.challengesSection}>
-                <Text style={styles.sectionSmallTitle}>Ежедневные испытания</Text>
+                <Text style={dynamicStyles.sectionSmallTitle}>Ежедневные испытания</Text>
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
@@ -202,6 +240,7 @@ export default function EnhancedAICoach() {
                       key={ch.id}
                       challenge={ch}
                       onComplete={vm.completeChallenge}
+                      colors={colors}
                     />
                   ))}
                 </ScrollView>
@@ -215,7 +254,7 @@ export default function EnhancedAICoach() {
             >
               {vm.messages.length === 1 && vm.chatStarters.length > 0 && (
                 <View style={styles.startersContainer}>
-                  <Text style={styles.startersTitle}>Частые вопросы:</Text>
+                  <Text style={dynamicStyles.startersTitle}>Частые вопросы:</Text>
                   <View style={styles.startersGrid}>
                     {vm.chatStarters.map((starter, index) => (
                       <TouchableOpacity
@@ -238,6 +277,7 @@ export default function EnhancedAICoach() {
                   onCoursePress={(id) => router.push({ pathname: '/micro-courses', params: { id } })}
                   onSpeak={vm.speak}
                   isSpeaking={vm.isSpeaking}
+                  colors={colors}
                 />
               ))}
               {vm.isTyping && (
@@ -258,10 +298,10 @@ export default function EnhancedAICoach() {
                 {vm.messages[vm.messages.length - 1].suggestions?.map((suggestion, index) => (
                   <TouchableOpacity
                     key={index}
-                    style={styles.suggestionButton}
+                    style={dynamicStyles.suggestionButton}
                     onPress={() => vm.sendMessage(suggestion)}
                   >
-                    <Text style={styles.suggestionText}>{suggestion}</Text>
+                    <Text style={dynamicStyles.suggestionText}>{suggestion}</Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
@@ -282,6 +322,8 @@ export default function EnhancedAICoach() {
                   }
                 }}
                 disabled={!vm.inputText.trim()}
+                accessibilityLabel="Отправить сообщение"
+                accessibilityRole="button"
               >
                 <MaterialIcons name="send" size={24} color={vm.inputText.trim() ? colors.primary : "#CCC"} />
               </TouchableOpacity>
@@ -292,7 +334,7 @@ export default function EnhancedAICoach() {
         {vm.activeTab === 'insights' && vm.insights && (
             <ScrollView style={styles.scrollContent}>
                 <View style={styles.insightCard}>
-                  <Text style={styles.cardTitle}>Прогресс</Text>
+                  <Text style={dynamicStyles.cardTitle}>Прогресс</Text>
                   <Text style={styles.statusText}>{vm.insights.progressSummary}</Text>
 
                   {vm.insights.achievements && vm.insights.achievements.length > 0 && (
@@ -309,11 +351,11 @@ export default function EnhancedAICoach() {
 
                   <View style={styles.statsRow}>
                     <View style={styles.statItem}>
-                      <Text style={styles.statValue}>{vm.insights.conversationCount}</Text>
+                      <Text style={dynamicStyles.statValue}>{vm.insights.conversationCount}</Text>
                       <Text style={styles.statLabel}>Сессий</Text>
                     </View>
                     <View style={styles.statItem}>
-                      <Text style={styles.statValue}>{vm.soberDays}</Text>
+                      <Text style={dynamicStyles.statValue}>{vm.soberDays}</Text>
                       <Text style={styles.statLabel}>Дней</Text>
                     </View>
                   </View>
@@ -321,11 +363,11 @@ export default function EnhancedAICoach() {
 
                 {vm.roadmap && (
                   <View style={styles.roadmapCard}>
-                    <View style={styles.roadmapHeader}>
+                    <View style={[styles.roadmapHeader, { borderLeftColor: colors.primary }]}>
                       <MaterialIcons name="event-note" size={24} color={colors.primary} />
                       <View>
                         <Text style={styles.roadmapTitle}>План на {vm.roadmap.weekNumber}-ю неделю</Text>
-                        <Text style={styles.roadmapFocus}>Фокус: {vm.roadmap.focus}</Text>
+                        <Text style={dynamicStyles.roadmapFocus}>Фокус: {vm.roadmap.focus}</Text>
                       </View>
                     </View>
                     <View style={styles.roadmapTasks}>
@@ -399,15 +441,11 @@ const styles = StyleSheet.create({
   headerStats: { color: 'white', marginTop: 5 },
   tabBar: { flexDirection: 'row', margin: 10, backgroundColor: 'white', borderRadius: 10 },
   tab: { flex: 1, padding: 12, alignItems: 'center' },
-  activeTab: { backgroundColor: colors.primary, borderRadius: 10 },
-  tabLabel: { color: colors.primary, fontWeight: 'bold' },
-  activeTabLabel: { color: 'white' },
   content: { flex: 1 },
   messagesContainer: { flex: 1, padding: 10 },
   messageContainer: { marginVertical: 5, alignItems: 'flex-start' },
   userMessageContainer: { alignItems: 'flex-end' },
   messageBubble: { maxWidth: '80%', padding: 12, borderRadius: 15 },
-  userBubble: { backgroundColor: colors.primary },
   aiBubble: { backgroundColor: 'white', elevation: 2 },
   highUrgencyBubble: {
     backgroundColor: '#FFEBEE',
@@ -422,7 +460,7 @@ const styles = StyleSheet.create({
   aiMessageText: { color: '#333' },
   aiHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
   aiLabelRow: { flexDirection: 'row', alignItems: 'center' },
-  aiLabel: { fontSize: 10, fontWeight: 'bold', color: colors.primary, marginLeft: 4 },
+  aiLabel: { fontSize: 10, fontWeight: 'bold', marginLeft: 4 },
   speakButton: { padding: 4 },
   timestamp: { fontSize: 10, color: '#999', marginTop: 4, alignSelf: 'flex-end' },
   recommendationsContainer: {
@@ -448,7 +486,6 @@ const styles = StyleSheet.create({
   },
   articleLinkText: {
     fontSize: 12,
-    color: colors.primary,
     fontWeight: '500',
     flex: 1,
   },
@@ -460,20 +497,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     alignItems: 'center',
     gap: 8,
-  },
-  suggestionButton: {
-    backgroundColor: 'white',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.primary,
-    justifyContent: 'center',
-  },
-  suggestionText: {
-    color: colors.primary,
-    fontSize: 14,
-    fontWeight: '500',
   },
   inputContainer: { flexDirection: 'row', padding: 15, backgroundColor: 'white', alignItems: 'center' },
   textInput: { flex: 1, backgroundColor: '#F0F0F0', borderRadius: 20, paddingHorizontal: 15, paddingVertical: 8, marginRight: 10 },
@@ -489,14 +512,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-  cardTitle: { fontSize: 18, fontWeight: 'bold', color: colors.primary, marginBottom: 10 },
   statusText: { fontSize: 16, color: '#333', marginBottom: 15 },
   statsRow: { flexDirection: 'row', justifyContent: 'space-around', borderTopWidth: 1, borderTopColor: '#F0F0F0', paddingTop: 15 },
   statItem: { alignItems: 'center' },
-  statValue: { fontSize: 20, fontWeight: 'bold', color: colors.primary },
   statLabel: { fontSize: 12, color: '#666' },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 15 },
-  sectionSmallTitle: { fontSize: 14, fontWeight: 'bold', color: colors.primary, marginHorizontal: 15, marginTop: 10, marginBottom: 5 },
   challengesSection: { backgroundColor: '#E8F5E8', paddingVertical: 10 },
   challengesScroll: { paddingHorizontal: 10, gap: 10 },
   challengeCard: {
@@ -509,7 +529,6 @@ const styles = StyleSheet.create({
     elevation: 2,
     gap: 10
   },
-  challengeCompleted: { backgroundColor: colors.primary },
   challengeIconContainer: {
     width: 40,
     height: 40,
@@ -520,13 +539,11 @@ const styles = StyleSheet.create({
   },
   challengeInfo: { flex: 1 },
   challengeTitle: { fontSize: 14, fontWeight: 'bold', color: '#333' },
-  challengePoints: { fontSize: 12, color: colors.primary, fontWeight: '600' },
   challengeCompletedText: { color: 'white' },
   completeButton: {
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center'
   },
@@ -570,7 +587,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     borderLeftWidth: 4,
-    borderLeftColor: colors.primary,
   },
   roadmapHeader: {
     flexDirection: 'row',
@@ -582,11 +598,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
-  },
-  roadmapFocus: {
-    fontSize: 12,
-    color: colors.primary,
-    fontWeight: '600',
   },
   roadmapTasks: {
     gap: 10,
@@ -622,13 +633,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F7F0',
     borderRadius: 16,
     marginBottom: 15,
-  },
-  startersTitle: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: colors.primary,
-    marginBottom: 10,
-    textTransform: 'uppercase',
   },
   startersGrid: {
     flexDirection: 'row',
