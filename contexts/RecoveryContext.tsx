@@ -215,6 +215,8 @@ export function RecoveryProvider({ children }: { children: ReactNode }) {
       const today = new Date();
       let streak = 0;
       let currentDate = new Date(today);
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
       const startDate = new Date(userProfile.startDate);
 
       while (currentDate >= startDate) {
@@ -227,7 +229,7 @@ export function RecoveryProvider({ children }: { children: ReactNode }) {
           } else if (dayEntry.status === 'relapse') {
             break;
           }
-        } else if (currentDate < new Date().setHours(0, 0, 0, 0)) {
+        } else if (currentDate < todayStart) {
           break;
         }
         

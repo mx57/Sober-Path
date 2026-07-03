@@ -4,6 +4,7 @@ import {
   FlatList, Image, Dimensions, Modal, TextInput, Alert
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CommunityService, SuccessStory, SupportPost, ExpertQA, ReactionType, CommunityGoal } from '../../services/communityService';

@@ -64,7 +64,10 @@ export default function ExercisesPage() {
     submodalities: '#FF9800',
     swish: '#F44336',
     phobia: '#795548',
-    belief_change: '#607D8B'
+    belief_change: '#607D8B',
+    parts_integration: '#00BCD4',
+    meta_program: '#E91E63',
+    perceptual_positions: '#FF9800'
   };
 
   const nlpCategoryNames = {
@@ -74,8 +77,11 @@ export default function ExercisesPage() {
     submodalities: 'Субмодальности',
     swish: 'Свиш-паттерн',
     phobia: 'Работа с фобиями',
-    belief_change: 'Изменение убеждений'
-  };
+    belief_change: 'Изменение убеждений',
+    parts_integration: 'Интеграция частей личности: согласование конфликтующих внутренних частей для достижения внутренней гармонии.',
+    meta_program: 'Мета-программы: выявление и изменение глубинных ментальных шаблонов, влияющих на восприятие и поведение.',
+    perceptual_positions: 'Позиции восприятия: взгляд на ситуацию с точки зрения себя, другого человека и наблюдателя для объективного понимания.'
+  } as Record<string, string>;
 
   const startTechnique = (technique: NLPTechnique) => {
     setSelectedTechnique(technique);

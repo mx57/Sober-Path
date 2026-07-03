@@ -8,6 +8,16 @@ export interface RelaxingSound {
   duration: number;
   benefits: string[];
   uri?: string;
+  frequency?: string;
+}
+
+export interface HypnotherapySession {
+  id: string;
+  title: string;
+  description: string;
+  duration: number;
+  category?: string;
+  benefits?: string[];
 }
 
 export const generatedSounds: RelaxingSound[] = [

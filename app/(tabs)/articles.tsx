@@ -43,12 +43,12 @@ import { articlesDatabase } from '../../services/articlesDatabase';
 
 const articles: Article[] = articlesDatabase;
 
-const MemoizedArticleCard = React.memo(({ article, onPress, isFavorite, onToggleFavorite }: {
+const MemoizedArticleCard = React.memo(function MemoizedArticleCard({ article, onPress, isFavorite, onToggleFavorite }: {
   article: Article;
   onPress: () => void;
   isFavorite: boolean;
   onToggleFavorite: (id: string) => void;
-}) => {
+}) {
   const scaleValue = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scaleValue.value }]
@@ -104,12 +104,12 @@ const MemoizedArticleCard = React.memo(({ article, onPress, isFavorite, onToggle
   );
 });
 
-const MemoizedFilterChip = React.memo(({ label, selected, onPress, count }: {
+const MemoizedFilterChip = React.memo(function MemoizedFilterChip({ label, selected, onPress, count }: {
   label: string;
   selected: boolean;
   onPress: () => void;
   count: number;
-}) => {
+}) {
   const scaleValue = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scaleValue.value }]

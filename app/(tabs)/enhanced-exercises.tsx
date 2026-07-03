@@ -38,14 +38,14 @@ const { width: screenWidth } = Dimensions.get('window');
 
 // Объединенная библиотека всех техник
 const allTechniques = [
-  ...advancedNLPTechniques.map(tech => ({ ...tech, category: 'НЛП Базовые', color: '#FF9800' })),
-  ...additionalNLPTechniques.map(tech => ({ ...tech, category: 'НЛП Продвинутые', color: '#FF5722' })),
-  ...beliefWorkTechniques.map(tech => ({ ...tech, category: 'Работа с убеждениями', color: '#E91E63' })),
-  ...integrativeNLPTechniques.map(tech => ({ ...tech, category: 'НЛП Интегративные', color: '#9C27B0' })),
-  ...advancedCBTTechniques.map(tech => ({ ...tech, category: 'КПТ', color: '#2196F3' })),
-  ...traumaInformedTechniques.map(tech => ({ ...tech, category: 'Работа с травмой', color: '#673AB7' })),
-  ...integrativeTherapyTechniques.map(tech => ({ ...tech, category: 'Интегративные методы', color: '#4CAF50' })),
-  ...allExpandedTechniques.map(tech => ({ ...tech, category: 'НЛП Расширенные', color: '#00BCD4' }))
+  ...advancedNLPTechniques.map(tech => ({ ...tech, category: 'НЛП Базовые', color: '#FF9800', difficulty: (tech as any).difficulty ?? 'intermediate' })),
+  ...additionalNLPTechniques.map(tech => ({ ...tech, category: 'НЛП Продвинутые', color: '#FF5722', difficulty: (tech as any).difficulty ?? 'intermediate' })),
+  ...beliefWorkTechniques.map(tech => ({ ...tech, category: 'Работа с убеждениями', color: '#E91E63', difficulty: (tech as any).difficulty ?? 'intermediate' })),
+  ...integrativeNLPTechniques.map(tech => ({ ...tech, category: 'НЛП Интегративные', color: '#9C27B0', difficulty: (tech as any).difficulty ?? 'intermediate' })),
+  ...advancedCBTTechniques.map(tech => ({ ...tech, category: 'КПТ', color: '#2196F3', difficulty: (tech as any).difficulty ?? 'intermediate' })),
+  ...traumaInformedTechniques.map(tech => ({ ...tech, category: 'Работа с травмой', color: '#673AB7', difficulty: (tech as any).difficulty ?? 'intermediate' })),
+  ...integrativeTherapyTechniques.map(tech => ({ ...tech, category: 'Интегративные методы', color: '#4CAF50', difficulty: (tech as any).difficulty ?? 'intermediate' })),
+  ...allExpandedTechniques.map(tech => ({ ...tech, category: 'НЛП Расширенные', color: '#00BCD4', difficulty: (tech as any).difficulty ?? 'intermediate' }))
 ];
 
 interface Technique {
@@ -128,6 +128,7 @@ const MemoizedTechniqueCard = React.memo(({ technique, onPress }: {
     </Animated.View>
   );
 });
+MemoizedTechniqueCard.displayName = 'MemoizedTechniqueCard';
 
 const MemoizedFilterChip = React.memo(({ label, selected, onPress, color }: {
   label: string;
@@ -168,6 +169,7 @@ const MemoizedFilterChip = React.memo(({ label, selected, onPress, color }: {
     </Animated.View>
   );
 });
+MemoizedFilterChip.displayName = 'MemoizedFilterChip';
 
 export default function EnhancedExercisesPage() {
   const insets = useSafeAreaInsets();

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, ViewStyle, StyleProp } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import Animated, {
   useSharedValue,
@@ -15,9 +15,10 @@ interface StatCardProps {
   label: string;
   primary?: boolean;
   index?: number;
+  animatedStyle?: StyleProp<ViewStyle>;
 }
 
-export const StatCard = ({ icon, number, label, primary, index = 0 }: StatCardProps) => {
+export const StatCard = ({ icon, number, label, primary, index = 0, animatedStyle }: StatCardProps) => {
   const n = typeof number === 'number' ? number : parseInt(number, 10) || 0;
 
   const milestones = [
@@ -45,7 +46,7 @@ export const StatCard = ({ icon, number, label, primary, index = 0 }: StatCardPr
     translateY.value = withDelay(index * 100, withSpring(0));
   }, []);
 
-  const animatedStyle = useAnimatedStyle(() => ({
+  const entranceStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
     transform: [{ translateY: translateY.value }]
   }));
@@ -54,7 +55,8 @@ export const StatCard = ({ icon, number, label, primary, index = 0 }: StatCardPr
     <Animated.View style={[
       styles.statCard,
       primary && styles.primaryStatCard,
-      animatedStyle
+      animatedStyle,
+      entranceStyle
     ]}>
       <MaterialIcons name={icon as any} size={primary ? 40 : 28} color={primary ? 'white' : '#FF9800'} />
       <Text style={[styles.statNumber, primary && styles.statNumberPrimary]}>{number}</Text>

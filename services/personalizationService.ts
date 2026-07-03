@@ -258,10 +258,95 @@ export class PersonalizationEngine {
   private calculateVolatility(data: number[]): 'stable' | 'moderate' | 'high' {
     const average = data.reduce((a, b) => a + b, 0) / data.length;
     const variance = data.reduce((acc, val) => acc + Math.pow(val - average, 2), 0) / data.length;
-    
+
     if (variance < 0.5) return 'stable';
     if (variance < 1.5) return 'moderate';
     return 'high';
+  }
+
+  // === Stub implementations for callers of private helpers ===
+
+  private findOptimalTimes(timeOfDayPreferences: TimeOfDayPreference[]): OptimalTimePattern[] {
+    return [];
+  }
+
+  private rankTechniques(techniques: string[], successfulTechniques: string[]): TechniqueRanking[] {
+    return [];
+  }
+
+  private assessRiskFactors(behaviorData: UserBehaviorData): RiskFactor[] {
+    return [];
+  }
+
+  private calculateResilienceScore(behaviorData: UserBehaviorData): ResilienceScore {
+    return {
+      overall: 0,
+      emotional: 0,
+      social: 0,
+      cognitive: 0,
+      behavioral: 0
+    };
+  }
+
+  private calculateConfidence(behaviorData: UserBehaviorData): number {
+    return 0;
+  }
+
+  private assessCurrentRisk(currentContext: CurrentContext, userProfile: UserProfile): { level: string } {
+    return { level: 'low' };
+  }
+
+  private generatePreventiveRecommendations(
+    context: CurrentContext,
+    profile: UserProfile
+  ): PersonalizedRecommendation[] {
+    return [];
+  }
+
+  private generateMaintenanceRecommendations(
+    context: CurrentContext,
+    profile: UserProfile
+  ): PersonalizedRecommendation[] {
+    return [];
+  }
+
+  private recommendSocialSupport(
+    context: CurrentContext,
+    profile: UserProfile
+  ): PersonalizedRecommendation[] {
+    return [];
+  }
+
+  private identifyLowMoodTriggers(moodData: number[]): string[] {
+    return [];
+  }
+
+  private groupTriggersByTime(triggers: TriggerPattern[]): { [key: string]: TriggerPattern[] } {
+    return {};
+  }
+
+  private groupTriggersByEmotion(triggers: TriggerPattern[]): { [key: string]: TriggerPattern[] } {
+    return {};
+  }
+
+  private groupTriggersByContext(triggers: TriggerPattern[]): { [key: string]: TriggerPattern[] } {
+    return {};
+  }
+
+  private updateTechniqueWeights(recommendationId: string, outcome: RecommendationOutcome): void {
+    // Заглушка: в реальном приложении обновление весов техник в ML-модели.
+  }
+
+  private updateContextualWeights(context: CurrentContext, effectiveness: number): void {
+    // Заглушка: в реальном приложении обновление контекстных весов.
+  }
+
+  private updateTimeBasedWeights(timeOfDay: number, effectiveness: number): void {
+    // Заглушка: в реальном приложении обновление весов по времени суток.
+  }
+
+  private saveLearningData(data: LearningData): void {
+    // Заглушка: в реальном приложении сохранение обучающих данных.
   }
 }
 
@@ -341,6 +426,19 @@ interface RecommendationOutcome {
   context: CurrentContext;
   timeOfDay: number;
   feedback: string;
+}
+
+interface TimeOfDayPreference {
+  hour: number;
+  activity: string;
+}
+
+interface LearningData {
+  userId: string;
+  recommendationId: string;
+  context: CurrentContext;
+  effectiveness: number;
+  timestamp: Date;
 }
 
 export default PersonalizationEngine;

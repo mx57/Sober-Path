@@ -89,7 +89,7 @@ export default function AdvancedTherapyPage() {
       </ScrollView>
 
       <AdvancedTherapyPlayer visible={showTherapyPlayer} therapy={selectedTherapy || undefined} onClose={() => setShowTherapyPlayer(false)} />
-      <TherapeuticSoundPlayer visible={showSoundPlayer} sound={selectedSound || undefined} onClose={() => setShowSoundPlayer(false)} />
+      <TherapeuticSoundPlayer sound={selectedSound || undefined} onClose={() => setShowSoundPlayer(false)} />
     </View>
   );
 }

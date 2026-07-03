@@ -59,10 +59,10 @@ interface AIAssistantPageProps {
 }
 
 // Компонент сообщения в чате
-const MessageBubble = React.memo(({ message, onSuggestionPress }: {
+const MessageBubble = React.memo(function MessageBubble({ message, onSuggestionPress }: {
   message: ChatMessage;
   onSuggestionPress: (suggestion: ActionSuggestion) => void;
-}) => {
+}) {
   const isUser = message.senderType === 'user';
   const isEmergency = message.messageType === 'emergency';
   
@@ -81,7 +81,7 @@ const MessageBubble = React.memo(({ message, onSuggestionPress }: {
     slideValue.value = withSpring(0, { damping: 15 });
   }, []);
 
-  const getBubbleColor = () => {
+  const getBubbleColor = (): readonly [string, string] => {
     if (isEmergency) return ['#FF5722', '#FF3D00'];
     if (isUser) return ['#2E7D4A', '#1B5E20'];
     return ['#FFFFFF', '#F1F8E9'];
@@ -161,10 +161,10 @@ const MessageBubble = React.memo(({ message, onSuggestionPress }: {
 });
 
 // Компонент быстрых ответов
-const QuickResponses = React.memo(({ onSelect, currentMood }: {
+const QuickResponses = React.memo(function QuickResponses({ onSelect, currentMood }: {
   onSelect: (response: string) => void;
   currentMood: number;
-}) => {
+}) {
   const getQuickResponses = () => {
     if (currentMood <= 2) {
       return [
@@ -211,7 +211,7 @@ const QuickResponses = React.memo(({ onSelect, currentMood }: {
 });
 
 // Индикатор печати ИИ
-const TypingIndicator = React.memo(() => {
+const TypingIndicator = React.memo(function TypingIndicator() {
   const dot1 = useSharedValue(0.3);
   const dot2 = useSharedValue(0.3);
   const dot3 = useSharedValue(0.3);
@@ -338,15 +338,20 @@ const AIAssistantPage: React.FC<AIAssistantPageProps> = ({ initialContext }) => 
         timeOfDay: new Date().getHours() > 12 ? 'afternoon' : 'morning',
       });
 
+      if (!aiResponse.success) {
+        setIsTyping(false);
+        return;
+      }
+
       const responseMessage: ChatMessage = {
         id: `ai_${Date.now()}`,
         senderId: 'ai_coach',
         senderType: 'ai',
-        content: aiResponse.message,
+        content: aiResponse.data.message,
         timestamp: new Date(),
         messageType: 'text',
         metadata: {
-          suggestions: aiResponse.suggestions.map((s, i) => ({
+          suggestions: aiResponse.data.suggestions.map((s: string, i: number) => ({
             id: `s_${i}`,
             type: 'technique',
             title: s,

@@ -14,7 +14,7 @@ interface HealthMetricProps {
   onPress: () => void;
 }
 
-export const MemoizedHealthMetric = React.memo(({ metric, onPress }: HealthMetricProps) => {
+export const MemoizedHealthMetric = React.memo(function MemoizedHealthMetric({ metric, onPress }: HealthMetricProps) {
   const { t } = useTranslation();
   return (
     <TouchableOpacity onPress={onPress} style={[styles.healthMetric, { borderColor: metric.color }]}>

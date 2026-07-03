@@ -5,7 +5,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // Настройки уведомлений
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
   }),
@@ -211,34 +212,35 @@ class NotificationService {
   }
 
   // Создание триггера для уведомления
-  private createTrigger(trigger: NotificationTrigger) {
+  private createTrigger(trigger: NotificationTrigger): Notifications.NotificationTriggerInput {
     switch (trigger.type) {
       case 'daily':
         return {
+          type: Notifications.SchedulableTriggerInputTypes.DAILY,
           hour: trigger.hour || 9,
           minute: trigger.minute || 0,
-          repeats: true
         };
-      
+
       case 'weekly':
         return {
+          type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
           weekday: trigger.weekday || 1,
           hour: trigger.hour || 9,
           minute: trigger.minute || 0,
-          repeats: true
         };
-      
+
       case 'interval':
         return {
+          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
           seconds: trigger.seconds || 3600,
-          repeats: true
+          repeats: true,
         };
-      
+
       default:
         return {
+          type: Notifications.SchedulableTriggerInputTypes.DAILY,
           hour: 9,
           minute: 0,
-          repeats: true
         };
     }
   }
@@ -341,8 +343,9 @@ class NotificationService {
         sound: 'default',
       },
       trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
         seconds,
-        repeats: false
+        repeats: false,
       },
     });
   }
@@ -399,7 +402,7 @@ class NotificationService {
   }
 
   // Web push notifications setup
-  async setupWebNotifications(): Promise<void> {
+  async setupWebNotifications(): Promise<boolean> {
     if (Platform.OS === 'web' && 'Notification' in window) {
       if (Notification.permission === 'default') {
         const permission = await Notification.requestPermission();
