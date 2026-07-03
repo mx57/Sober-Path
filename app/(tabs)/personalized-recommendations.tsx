@@ -238,6 +238,7 @@ const MemoizedRecommendationCard = React.memo(({
     </Animated.View>
   );
 });
+MemoizedRecommendationCard.displayName = 'MemoizedRecommendationCard';
 
 const PersonalizedRecommendationsPage = () => {
   const insets = useSafeAreaInsets();

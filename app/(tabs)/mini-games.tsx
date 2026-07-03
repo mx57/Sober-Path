@@ -33,7 +33,7 @@ const BreathBubbleGame = ({ onGameComplete }: { onGameComplete: (score: number) 
   const [breathPhase, setBreathPhase] = useState<'inhale' | 'hold' | 'exhale'>('inhale');
   const [phaseTime, setPhaseTime] = useState(0);
   const [gameActive, setGameActive] = useState(false);
-  const animationRef = useRef<any>();
+  const animationRef = useRef<any>(null);
 
   interface Bubble {
     id: string;
@@ -220,7 +220,7 @@ const MindfulMazeGame = ({ onGameComplete }: { onGameComplete: (score: number) =
   const [maze, setMaze] = useState<number[][]>([]);
   const [collectibles, setCollectibles] = useState<{x: number, y: number}[]>([]);
   const [gameTime, setGameTime] = useState(0);
-  const gameTimerRef = useRef<any>();
+  const gameTimerRef = useRef<any>(null);
 
   const CELL_SIZE = 25;
   const MAZE_SIZE = 15;
@@ -382,7 +382,7 @@ const DecisionChallengeGame = ({ onGameComplete }: { onGameComplete: (score: num
   const [gameActive, setGameActive] = useState(false);
   const [timeLeft, setTimeLeft] = useState(10);
   const [scenarioIndex, setScenarioIndex] = useState(0);
-  const timerRef = useRef<any>();
+  const timerRef = useRef<any>(null);
 
   const scenarios = [
     {
@@ -742,7 +742,7 @@ const StressBallGame = ({ onGameComplete }: { onGameComplete: (score: number) =>
   const [ballSize, setBallSize] = useState(new Animated.Value(80));
   const [ballColor, setBallColor] = useState('#4CAF50');
   const [breathingPhase, setBreathingPhase] = useState<'inhale' | 'exhale'>('inhale');
-  const gameTimerRef = useRef<any>();
+  const gameTimerRef = useRef<any>(null);
 
   const startGame = () => {
     setGameActive(true);

@@ -36,6 +36,7 @@ interface Sound {
   color: string;
   frequency?: string;
   benefits: string[];
+  duration: number;
 }
 
 // Мемоизированные компоненты
@@ -90,6 +91,7 @@ const MemoizedSoundCard = React.memo(({ sound, onPlay }: {
     </Animated.View>
   );
 });
+MemoizedSoundCard.displayName = 'MemoizedSoundCard';
 
 function SoundsPage() {
   const insets = useSafeAreaInsets();
@@ -127,6 +129,7 @@ function SoundsPage() {
   const sounds = useMemo<Sound[]>(() => [
     {
       id: '1',
+      duration: 600,
       name: 'Глубокая медитация',
       description: 'Погружение в состояние покоя',
       category: 'meditation',
@@ -137,6 +140,7 @@ function SoundsPage() {
     },
     {
       id: '2',
+      duration: 600,
       name: 'Шум океана',
       description: 'Успокаивающие звуки прибоя',
       category: 'nature',
@@ -146,6 +150,7 @@ function SoundsPage() {
     },
     {
       id: '3',
+      duration: 600,
       name: 'Бинауральные ритмы',
       description: 'Синхронизация мозговых волн',
       category: 'binaural',
@@ -156,6 +161,7 @@ function SoundsPage() {
     },
     {
       id: '4',
+      duration: 600,
       name: 'Исцеляющие частоты',
       description: 'Сольфеджио для восстановления',
       category: 'healing',
@@ -166,6 +172,7 @@ function SoundsPage() {
     },
     {
       id: '5',
+      duration: 600,
       name: 'Лесные звуки',
       description: 'Пение птиц и шелест листвы',
       category: 'nature',
@@ -175,6 +182,7 @@ function SoundsPage() {
     },
     {
       id: '6',
+      duration: 600,
       name: 'Дождь и гром',
       description: 'Атмосферные осадки',
       category: 'nature',
@@ -184,6 +192,7 @@ function SoundsPage() {
     },
     {
       id: '7',
+      duration: 600,
       name: 'Тибетские поющие чаши',
       description: 'Древние звуки для очищения',
       category: 'healing',
@@ -194,6 +203,7 @@ function SoundsPage() {
     },
     {
       id: '8',
+      duration: 600,
       name: 'Колыбельная вселенной',
       description: 'Глубокий восстановительный сон',
       category: 'sleep',
@@ -403,7 +413,7 @@ function SoundsPage() {
             </Text>
           </View>
           <View style={styles.benefitItem}>
-            <MaterialIcons name="neurology" size={24} color="#FF9800" />
+            <MaterialIcons name={"neurology" as keyof typeof MaterialIcons.glyphMap} size={24} color="#FF9800" />
             <Text style={styles.benefitDescription}>
               Увеличение выработки ГАМК (нейромедиатор покоя)
             </Text>

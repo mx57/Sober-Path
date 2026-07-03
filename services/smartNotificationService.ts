@@ -78,7 +78,8 @@ class SmartNotificationService {
     // Настройка обработчика уведомлений
     Notifications.setNotificationHandler({
       handleNotification: async () => ({
-        shouldShowAlert: true,
+        shouldShowBanner: true,
+        shouldShowList: true,
         shouldPlaySound: true,
         shouldSetBadge: false,
       }),
@@ -246,7 +247,9 @@ class SmartNotificationService {
       }
     }
 
-    const trigger = notification.scheduledFor ? { date: notification.scheduledFor } : null;
+    const trigger: Notifications.NotificationTriggerInput = notification.scheduledFor
+      ? { type: Notifications.SchedulableTriggerInputTypes.DATE, date: notification.scheduledFor }
+      : null;
 
     await Notifications.scheduleNotificationAsync({
       identifier: notification.id,

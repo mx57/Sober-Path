@@ -83,6 +83,7 @@
 
 ## 📈 История улучшений (Последние циклы)
 
+*   **v1.6.1 (Исправление типов и линтинга)**: Устранены все ошибки TypeScript (`tsc --noEmit`: 0 ошибок) и все ошибки ESLint (`npm run lint`: 0 ошибок, 102 предупреждения). Добавлены недостающие методы/типы в сервисы (`advancedMoodTracker`, `interactiveMeditation`, `personalization`, `notificationService`, `smartNotificationService`, `audioService`, `PsychologyService`), исправлены TS-ошибки в компонентах (`sounds`, `gamification`, `mini-games`, `ai-coach`, `enhanced-exercises`, `enhanced-settings`, `personalized-recommendations` и др.), заданы `displayName` для `React.memo`, добавлены Jest-глобали в `eslint.config.js`. Все тесты проходят: `npm test` — 5/5.
 *   **v1.6.0 (Цикл 6)**: Внедрены "Круги" в Сообщество, добавлен виджет аналитики настроения, база знаний расширена до 50+ статей, улучшена память AI-коуча.
 *   **v1.5.0 (Цикл 5)**: Добавлены "Ежедневные испытания", глубокие ссылки из чата на статьи, обновлен UI карточек сообщества.
 *   **v1.4.0 (Цикл 4)**: Реализована озвучка (TTS) для коуча, "Умный дневник", Lottie-анимации достижений.

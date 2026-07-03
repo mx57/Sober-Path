@@ -26,10 +26,10 @@ import { smartNotificationService } from '../../services/smartNotificationServic
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 // Мемоизированные компоненты для производительности
-const MemoizedInsightCard = React.memo(({ insight, onPress }: { 
-  insight: PersonalInsight; 
-  onPress: () => void; 
-}) => {
+const MemoizedInsightCard = React.memo(function MemoizedInsightCard({ insight, onPress }: {
+  insight: PersonalInsight;
+  onPress: () => void;
+}) {
   const scaleValue = useSharedValue(1);
   const opacityValue = useSharedValue(1);
 
@@ -101,10 +101,10 @@ const MemoizedInsightCard = React.memo(({ insight, onPress }: {
   );
 });
 
-const MemoizedRiskIndicator = React.memo(({ riskLevel, factors }: {
+const MemoizedRiskIndicator = React.memo(function MemoizedRiskIndicator({ riskLevel, factors }: {
   riskLevel: string;
   factors: string[];
-}) => {
+}) {
   const getRiskColor = (level: string) => {
     switch (level) {
       case 'low': return '#4CAF50';
@@ -165,7 +165,7 @@ const MemoizedRiskIndicator = React.memo(({ riskLevel, factors }: {
 export default function AdvancedAnalyticsPage() {
   const insets = useSafeAreaInsets();
   const { userProfile, progress, soberDays } = useRecovery();
-  const { moodData, getAnalytics } = useAnalytics();
+  const { moodEntries } = useAnalytics();
 
   const [insights, setInsights] = useState<PersonalInsight[]>([]);
   const [riskAssessment, setRiskAssessment] = useState<any>(null);
@@ -199,16 +199,16 @@ export default function AdvancedAnalyticsPage() {
       setLoading(true);
       
       // Анализируем паттерны пользователя
-      const userInsights = advancedInsightsService.analyzeUserPatterns(progress || [], moodData || []);
+      const userInsights = advancedInsightsService.analyzeUserPatterns(progress || [], moodEntries || []);
       setInsights(userInsights);
 
       // Оцениваем текущий риск
       const currentRisk = advancedInsightsService.assessRelapsRisk({
-        mood: moodData?.[moodData.length - 1]?.mood || 3,
-        stress: moodData?.[moodData.length - 1]?.stressLevel || 3,
-        sleep: moodData?.[moodData.length - 1]?.sleepQuality || 3,
+        mood: moodEntries?.[moodEntries.length - 1]?.mood || 3,
+        stress: moodEntries?.[moodEntries.length - 1]?.stressLevel || 3,
+        sleep: moodEntries?.[moodEntries.length - 1]?.sleepQuality || 3,
         socialSupport: 4, // заглушка
-        cravings: moodData?.[moodData.length - 1]?.cravingLevel || 2
+        cravings: moodEntries?.[moodEntries.length - 1]?.cravingLevel || 2
       });
       setRiskAssessment(currentRisk);
 

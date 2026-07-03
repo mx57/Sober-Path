@@ -222,7 +222,7 @@ export default function GamificationDashboard() {
     setChallenges(challengesData);
   };
 
-  const getRarityColor = (rarity: string) => {
+  const getRarityColor = (rarity: string): readonly [string, string] => {
     switch (rarity) {
       case 'common': return ['#95A5A6', '#BDC3C7'];
       case 'rare': return ['#3498DB', '#5DADE2'];

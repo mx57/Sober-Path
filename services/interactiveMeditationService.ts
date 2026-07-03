@@ -471,6 +471,92 @@ export class InteractiveMeditationEngine {
       phases: []
     };
   }
+
+  // === Stub implementations for callers of private helpers ===
+
+  private async loadMeditationSession(sessionId: string): Promise<MeditationSession> {
+    // Заглушка: в реальном приложении загрузка сессии из каталога или БД.
+    return this.getDefaultEmergencyMeditation();
+  }
+
+  private async applyAdaptations(adaptations: Adaptation[]): Promise<void> {
+    // Заглушка: в реальном приложении применяет изменения к currentSession.
+  }
+
+  private async completeMeditation(): Promise<void> {
+    // Заглушка: в реальном приложении сохраняет сессию и аналитику.
+  }
+
+  private async scheduleInstruction(instruction: Instruction, startTime: number): Promise<void> {
+    // Заглушка: в реальном приложении запускает воспроизведение аудио-инструкции.
+  }
+
+  private async showVisualFeedback(feedback: FeedbackMethod, deviation: number): Promise<void> {
+    // Заглушка: визуальная обратная связь (например, дыхательный круг).
+  }
+
+  private async playAudioFeedback(feedback: FeedbackMethod, deviation: number): Promise<void> {
+    // Заглушка: звуковая обратная связь (тоны, подсказки).
+  }
+
+  private async triggerHapticFeedback(feedback: FeedbackMethod, deviation: number): Promise<void> {
+    // Заглушка: тактильная обратная связь через expo-haptics.
+  }
+
+  private scalePhaseDurations(phases: MeditationPhase[], scale: number): MeditationPhase[] {
+    return phases.map(phase => ({ ...phase, duration: phase.duration * scale }));
+  }
+
+  private adaptInstructions(phases: MeditationPhase[], experienceLevel: string): MeditationPhase[] {
+    return phases;
+  }
+
+  private customizeBiofeedback(
+    config: BiofeedbackConfig | undefined,
+    preferences: Partial<BiofeedbackConfig> | undefined
+  ): BiofeedbackConfig | undefined {
+    if (!config) return config;
+    if (!preferences) return config;
+    return { ...config, ...preferences };
+  }
+
+  private getLatestBiometrics(): BiometricReading {
+    const data = this.currentSession?.biometricData;
+    if (!data || data.length === 0) {
+      return { timestamp: new Date() };
+    }
+    return data[data.length - 1];
+  }
+
+  private analyzeBiometricData(biometricData: BiometricReading[]): BiometricAnalysis {
+    return {
+      averageHeartRate: 0,
+      averageHRV: 0,
+      averageBreathingRate: 0,
+      stressLevel: 0,
+      coherenceScore: 0,
+      insights: []
+    };
+  }
+
+  private analyzeAdaptations(adaptations: Adaptation[]): AdaptationAnalysis {
+    return {
+      totalAdaptations: adaptations.length,
+      adaptationTypes: [],
+      effectiveness: 0
+    };
+  }
+
+  private generateRecommendations(
+    biometricAnalysis: BiometricAnalysis,
+    adaptationAnalysis: AdaptationAnalysis
+  ): string[] {
+    return [];
+  }
+
+  private suggestNextSessions(session: ActiveMeditationSession): string[] {
+    return [];
+  }
 }
 
 // Поддерживающие классы и интерфейсы
@@ -557,6 +643,21 @@ interface VisualEffect {
   id: string;
   type: 'breathing_guide' | 'heart_coherence' | 'progress' | 'nature_scene';
   parameters: any;
+}
+
+interface BiometricAnalysis {
+  averageHeartRate: number;
+  averageHRV: number;
+  averageBreathingRate: number;
+  stressLevel: number;
+  coherenceScore: number;
+  insights: string[];
+}
+
+interface AdaptationAnalysis {
+  totalAdaptations: number;
+  adaptationTypes: string[];
+  effectiveness: number;
 }
 
 export default InteractiveMeditationEngine;

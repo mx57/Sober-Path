@@ -72,6 +72,13 @@ export interface ModernTechnique {
   benefits: string[];
 }
 
+export interface MindfulnessExercise {
+  id: string;
+  title: string;
+  description: string;
+  duration?: number;
+}
+
 export const advancedCBTTechniques: CBTTechnique[] = [
   {
     id: 'thought-defusion',
@@ -192,6 +199,33 @@ export const modernTechniques: ModernTechnique[] = [
     difficulty: 'beginner',
     benefits: ['Быстрое снижение интенсивности эмоций'],
     instructions: ['S - СТОП', 'T - ТЕМПЕРАТУРА', 'O - ОРГАНИЗМ', 'P - ПРОГРЕССИВНАЯ релаксация']
+  }
+];
+
+export const mindfulnessExercises: MindfulnessExercise[] = [
+  {
+    id: 'breath-awareness',
+    title: 'Осознание дыхания',
+    description: 'Простая практика наблюдения за вдохом и выдохом для возвращения в настоящий момент',
+    duration: 5
+  },
+  {
+    id: 'body-scan',
+    title: 'Сканирование тела',
+    description: 'Постепенное внимание к ощущениям в каждой части тела для снятия напряжения',
+    duration: 10
+  },
+  {
+    id: 'loving-kindness',
+    title: 'Любящая доброта',
+    description: 'Медитация направленная на развитие сострадания к себе и окружающим',
+    duration: 15
+  },
+  {
+    id: 'urge-surfing',
+    title: 'Серфинг тяги',
+    description: 'Техника наблюдения за импульсом как за волной, которая неизбежно проходит',
+    duration: 10
   }
 ];
 

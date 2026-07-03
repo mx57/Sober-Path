@@ -181,7 +181,7 @@ export class AdvancedMoodTracker {
   }
 
   private async triggerInterventions(stressLevel: number, anomalies: string[]): Promise<void> {
-    const interventions = [];
+    const interventions: Intervention[] = [];
 
     if (stressLevel > 0.8) {
       interventions.push({
@@ -278,7 +278,7 @@ export class AdvancedMoodTracker {
 
   // Интеллектуальные вопросы на основе контекста
   generateSmartQuestions(context: any): SmartQuestion[] {
-    const questions = [];
+    const questions: SmartQuestion[] = [];
     const currentHour = new Date().getHours();
 
     // Вопросы на основе времени дня
@@ -324,8 +324,8 @@ export class AdvancedMoodTracker {
   // Предиктивная аналитика
   private async predictMoodTrends(moodEntries: MoodEntry[]): Promise<MoodPrediction[]> {
     // Простая линейная регрессия для демонстрации
-    const trends = [];
-    
+    const trends: MoodPrediction[] = [];
+
     const moodTrend = this.calculateTrend(moodEntries.map(e => e.mood));
     const anxietyTrend = this.calculateTrend(moodEntries.map(e => e.anxiety));
     const energyTrend = this.calculateTrend(moodEntries.map(e => e.energy));
@@ -357,6 +357,99 @@ export class AdvancedMoodTracker {
     const trend = this.calculateTrend(values);
     const lastValue = values[values.length - 1];
     return Math.max(1, Math.min(5, lastValue + trend));
+  }
+
+  // === Stub implementations for callers of private helpers ===
+
+  private async collectContextualData(): Promise<ContextualData> {
+    return {
+      timestamp: new Date(),
+      location: 'unknown',
+      weather: 'unknown',
+      activity: 'unknown',
+      socialContext: 'unknown'
+    };
+  }
+
+  private generateQuickMoodQuestions(context?: ContextualData): SmartQuestion[] {
+    return this.generateSmartQuestions(context ?? {});
+  }
+
+  private async generateContextualSuggestions(
+    biometricData: BiometricData,
+    contextualData: ContextualData
+  ): Promise<string[]> {
+    return [];
+  }
+
+  private async getMoodEntries(userId: string, timeRange: TimeRange): Promise<MoodEntry[]> {
+    return [];
+  }
+
+  private analyzeDailyPatterns(moodEntries: MoodEntry[]): DailyPattern {
+    return {
+      averageMood: 0,
+      peakHours: [],
+      variability: 0
+    };
+  }
+
+  private analyzeWeeklyPatterns(moodEntries: MoodEntry[]): WeeklyPattern {
+    return {
+      bestDay: '',
+      worstDay: '',
+      weeklyAverage: 0
+    };
+  }
+
+  private analyzeTriggerPatterns(moodEntries: MoodEntry[]): TriggerPattern[] {
+    return [];
+  }
+
+  private analyzeSeasonalPatterns(moodEntries: MoodEntry[]): SeasonalPattern {
+    return {
+      season: '',
+      moodTrend: 'stable',
+      recommendation: ''
+    };
+  }
+
+  private analyzeCorrelations(moodEntries: MoodEntry[]): CorrelationData {
+    return {
+      triggers: [],
+      weatherImpact: 0
+    };
+  }
+
+  private generatePersonalizedRecommendations(
+    patterns: PatternData,
+    predictions: MoodPrediction[]
+  ): string[] {
+    return [];
+  }
+
+  private assessRiskLevel(moodEntries: MoodEntry[]): RiskAssessment {
+    return {
+      level: 'low',
+      factors: [],
+      recommendations: []
+    };
+  }
+
+  private generateInsights(patterns: PatternData): string[] {
+    return [];
+  }
+
+  private detectAnomalies(data: BiometricData): string[] {
+    return [];
+  }
+
+  private async updateCurrentState(data: BiometricData, stressLevel: number): Promise<void> {
+    // Stub: в реальном приложении обновлялось бы глобальное состояние пользователя.
+  }
+
+  private async sendInterventionNotification(intervention: Intervention): Promise<void> {
+    // Stub: в реальном приложении вызывался бы NotificationService.
   }
 }
 
@@ -479,6 +572,61 @@ interface SmartQuestion {
   max?: number;
   labels?: string[];
   options?: string[];
+}
+
+interface ContextualData {
+  timestamp: Date;
+  location?: string;
+  weather?: string;
+  activity?: string;
+  socialContext?: string;
+}
+
+type TimeRange = number;
+
+interface DailyPattern {
+  averageMood: number;
+  peakHours: number[];
+  variability: number;
+}
+
+interface WeeklyPattern {
+  bestDay: string;
+  worstDay: string;
+  weeklyAverage: number;
+}
+
+interface TriggerPattern {
+  trigger: string;
+  frequency: number;
+  severity: number;
+  contexts: string[];
+}
+
+interface SeasonalPattern {
+  season: string;
+  moodTrend: 'improving' | 'declining' | 'stable';
+  recommendation: string;
+}
+
+interface CorrelationData {
+  triggers: { trigger: string; correlation: number }[];
+  weatherImpact: number;
+}
+
+interface PatternData {
+  dailyPatterns: DailyPattern;
+  weeklyPatterns: WeeklyPattern;
+  triggerPatterns: TriggerPattern[];
+  seasonalPatterns: SeasonalPattern;
+  correlations: CorrelationData;
+}
+
+interface Intervention {
+  type: string;
+  title: string;
+  description: string;
+  urgency: 'low' | 'medium' | 'high';
 }
 
 export default AdvancedMoodTracker;

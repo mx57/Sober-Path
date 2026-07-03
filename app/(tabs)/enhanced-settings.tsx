@@ -107,6 +107,7 @@ const MemoizedThemeCard = React.memo(({ theme, isSelected, onPress }: {
     </Animated.View>
   );
 });
+MemoizedThemeCard.displayName = 'MemoizedThemeCard';
 
 const MemoizedSettingRow = React.memo(({ setting, onValueChange }: {
   setting: Setting;
@@ -169,6 +170,7 @@ const MemoizedSettingRow = React.memo(({ setting, onValueChange }: {
     </Animated.View>
   );
 });
+MemoizedSettingRow.displayName = 'MemoizedSettingRow';
 
 export default function EnhancedSettingsPage() {
   const insets = useSafeAreaInsets();
@@ -481,7 +483,7 @@ export default function EnhancedSettingsPage() {
         {settingSections.map((section) => (
           <View key={section.id} style={styles.section}>
             <View style={styles.sectionHeader}>
-              <MaterialIcons name={section.icon} size={24} color="#4CAF50" />
+              <MaterialIcons name={section.icon as keyof typeof MaterialIcons.glyphMap} size={24} color="#4CAF50" />
               <View style={styles.sectionInfo}>
                 <Text style={styles.sectionTitle}>{section.title}</Text>
                 <Text style={styles.sectionDescription}>{section.description}</Text>

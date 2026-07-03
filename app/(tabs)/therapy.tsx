@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { modernTechniques, ModernTechnique, mindfulnessExercises } from '../../services/PsychologyService';
+import { modernTechniques, ModernTechnique, mindfulnessExercises, MindfulnessExercise } from '../../services/PsychologyService';
 
 export default function TherapyPage() {
   const insets = useSafeAreaInsets();
@@ -140,7 +140,7 @@ export default function TherapyPage() {
         <View style={styles.mindfulnessSection}>
           <Text style={styles.sectionTitle}>Практики осознанности</Text>
           
-          {mindfulnessExercises.map((exercise, index) => (
+          {mindfulnessExercises.map((exercise: MindfulnessExercise, index: number) => (
             <View key={exercise.id} style={styles.mindfulnessCard}>
               <MaterialIcons name="spa" size={24} color="#2E7D4A" />
               <View style={styles.mindfulnessContent}>

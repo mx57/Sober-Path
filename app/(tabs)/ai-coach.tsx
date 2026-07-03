@@ -28,7 +28,7 @@ const ChallengeCard = React.memo(({ challenge, onComplete }: {
     style={[styles.challengeCard, challenge.completed && styles.challengeCompleted]}
   >
     <View style={styles.challengeIconContainer}>
-      <MaterialIcons name={challenge.icon} size={24} color={challenge.completed ? "#FFF" : "#2E7D4A"} />
+      <MaterialIcons name={challenge.icon as keyof typeof MaterialIcons.glyphMap} size={24} color={challenge.completed ? "#FFF" : "#2E7D4A"} />
     </View>
     <View style={styles.challengeInfo}>
       <Text style={[styles.challengeTitle, challenge.completed && styles.challengeCompletedText]}>
@@ -51,6 +51,7 @@ const ChallengeCard = React.memo(({ challenge, onComplete }: {
     )}
   </Animated.View>
 ));
+ChallengeCard.displayName = 'ChallengeCard';
 
 // Refactored Message component
 const MessageBubble = React.memo(({ message, onArticlePress, onCoursePress, onSpeak, isSpeaking }: {
@@ -167,6 +168,7 @@ const MessageBubble = React.memo(({ message, onArticlePress, onCoursePress, onSp
     </Animated.View>
   );
 });
+MessageBubble.displayName = 'MessageBubble';
 
 export default function EnhancedAICoach() {
   const insets = useSafeAreaInsets();

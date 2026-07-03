@@ -135,7 +135,7 @@ export const advancedNLPExercises: NLPExercise[] = [
         instruction: 'Создайте яркий образ себя - уверенного, здорового, легко справляющегося с этой ситуацией. Вы видите себя со стороны, излучающего спокойствие и силу.',
         duration: 4,
         visualAids: [
-          { type: 'image', url: 'confident_self_visualization.jpg' }
+          { type: 'image', url: 'confident_self_visualization.jpg', description: 'Визуализация уверенного себя' }
         ]
       },
       {

@@ -10,9 +10,9 @@ const resources = {
   ru: { translation: ru },
 };
 
-const getLanguage = () => {
-  const locale = Localization.getLocales()[0].languageCode;
-  return resources.hasOwnProperty(locale) ? locale : 'en';
+const getLanguage = (): string => {
+  const locale = Localization.getLocales()[0]?.languageCode;
+  return locale && resources.hasOwnProperty(locale) ? locale : 'en';
 };
 
 i18n
