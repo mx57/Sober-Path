@@ -119,6 +119,14 @@ export interface AICoachChallenge {
   icon: string;
 }
 
+export interface MorningBriefing {
+  title: string;
+  plan: string[];
+  motivation: string;
+  focus: string;
+  quickTips: string[];
+}
+
 const MEMORY_STORAGE_KEY = 'sober_path_ai_memory';
 const CHALLENGES_STORAGE_KEY = 'sober_path_ai_challenges';
 const ROADMAP_STORAGE_KEY = 'sober_path_ai_roadmap';
@@ -613,6 +621,53 @@ export class AICoachService {
     this.userChallenges.set(userId, updated);
     await this.saveToStorage();
     return success(updated);
+  }
+
+  static async getMorningBriefing(userId: string, soberDays: number, mood: number): Promise<MorningBriefing> {
+    const allQuickTips = [
+      "Пейте больше воды при появлении тяги",
+      "Сделайте 10 глубоких вдохов при стрессе",
+      "Позвоните другу, если станет трудно",
+      "Съешьте что-нибудь сладкое (глюкоза помогает мозгу)",
+      "Примите контрастный душ для перезагрузки",
+      "Запишите 3 вещи, за которые вы благодарны сегодня",
+      "Смените обстановку: просто выйдете в другую комнату или на улицу",
+      "Послушайте любимую энергичную музыку",
+      "Сделайте 15 приседаний, чтобы переключить внимание",
+      "Напомните себе: тяга длится всего 15 минут",
+      "Посмотрите на фото близких или целей, ради которых вы это делаете",
+      "Прочитайте одну главу книги или статью в нашем приложении"
+    ];
+
+    // Выбираем 3 случайных совета
+    const quickTips = [...allQuickTips]
+      .sort(() => 0.5 - Math.random())
+      .slice(0, 3);
+
+    let title = "Ваш план на сегодня";
+    let plan = [
+      "Отметить день в календаре",
+      "Прочитать одну статью о восстановлении",
+      "Сделать 5-минутную медитацию"
+    ];
+    let motivation = "Каждый день без алкоголя делает вас сильнее и свободнее.";
+    let focus = "Сохранение спокойствия и осознанности";
+
+    if (mood <= 2) {
+      title = "Поддержка в трудный день";
+      plan = [
+        "Избегать триггерных мест и людей",
+        "Слушать успокаивающее SOS-аудио",
+        "Записать свои чувства в дневник"
+      ];
+      focus = "Эмоциональная безопасность";
+    }
+
+    if (soberDays > 30) {
+      plan.push("Поделиться опытом в сообществе");
+    }
+
+    return { title, plan, motivation, focus, quickTips };
   }
 
   private static extractTopics(message: string): string[] {
