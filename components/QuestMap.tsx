@@ -1,8 +1,15 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useAppTheme } from '../context/ThemeContext';
+import { MaterialIcons } from '@expo/vector-icons';
 import { QuestMilestone } from '../services/questService';
+
+const COLORS = {
+  primary: '#2E7D4A',
+  text: '#333333',
+  textSecondary: '#666666',
+  card: '#F0F0F0',
+  border: '#E0E0E0',
+};
 
 interface QuestMapProps {
   milestones: QuestMilestone[];
@@ -10,7 +17,7 @@ interface QuestMapProps {
 }
 
 export const QuestMap: React.FC<QuestMapProps> = ({ milestones, currentSoberDays }) => {
-  const { colors } = useAppTheme();
+  const colors = COLORS;
 
   return (
     <View style={styles.container}>
@@ -27,10 +34,10 @@ export const QuestMap: React.FC<QuestMapProps> = ({ milestones, currentSoberDays
                 { backgroundColor: isCompleted ? colors.primary : colors.card },
                 isCurrent && { borderColor: colors.primary, borderWidth: 2 }
               ]}>
-                <Ionicons
-                  name={isCompleted ? "checkmark-circle" : "lock-closed"}
+                <MaterialIcons
+                  name={isCompleted ? 'check-circle' : 'lock'}
                   size={24}
-                  color={isCompleted ? "#fff" : colors.textSecondary}
+                  color={isCompleted ? '#fff' : colors.textSecondary}
                 />
               </View>
               <Text style={[styles.dayText, { color: colors.text }]}>{milestone.day} день</Text>
