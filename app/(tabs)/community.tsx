@@ -7,7 +7,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { CommunityService, SuccessStory, SupportPost, ExpertQA, ReactionType, CommunityGoal } from '../../services/communityService';
+import { CommunityService, SuccessStory, SupportPost, ExpertQA, ReactionType, CommunityGoal, GroupChallenge } from '../../services/communityService';
 import Animated, { FadeInUp, FadeInRight, useSharedValue, useAnimatedStyle, withSpring, withSequence, withTiming } from 'react-native-reanimated';
 import { Skeleton } from '../../components/Skeleton';
 
@@ -195,6 +195,7 @@ export default function CommunityPage() {
   const [posts, setPosts] = useState<SupportPost[]>([]);
   const [expertQA, setExpertQA] = useState<ExpertQA[]>([]);
   const [communityGoals, setCommunityGoals] = useState<CommunityGoal[]>([]);
+  const [groupChallenges, setGroupChallenges] = useState<GroupChallenge[]>([]);
   const [circles, setCircles] = useState<any[]>([]);
   const [selectedCircle, setSelectedCircle] = useState('all');
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -215,6 +216,7 @@ export default function CommunityPage() {
       setStories(CommunityService.getSuccessStories());
       setExpertQA(CommunityService.getExpertQA());
       setCommunityGoals(CommunityService.getCommunityGoals());
+      setGroupChallenges(CommunityService.getGroupChallenges());
 
       const loadedPosts = await CommunityService.getSupportPosts();
       const dailyThread = CommunityService.getDailyThread();
@@ -314,6 +316,37 @@ export default function CommunityPage() {
 
     return (
     <View>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Групповые челленджи</Text>
+      </View>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.goalsContainer}
+      >
+        {isLoading ? (
+          [1, 2].map(i => <Skeleton key={i} width={250} height={120} borderRadius={16} />)
+        ) : (
+          groupChallenges.map(challenge => (
+            <TouchableOpacity key={challenge.id} style={styles.challengeCard}>
+              <View style={styles.challengeHeader}>
+                <View style={styles.challengeBadge}>
+                  <Text style={styles.challengeBadgeText}>{challenge.category}</Text>
+                </View>
+                <Text style={styles.challengeDays}>осталось {challenge.daysRemaining} дн.</Text>
+              </View>
+              <Text style={styles.challengeTitle}>{challenge.title}</Text>
+              <Text style={styles.challengeDesc} numberOfLines={2}>{challenge.description}</Text>
+              <View style={styles.challengeFooter}>
+                <MaterialIcons name="people" size={16} color="#666" />
+                <Text style={styles.challengeParticipants}>{challenge.participants} участников</Text>
+              </View>
+            </TouchableOpacity>
+          ))
+        )}
+      </ScrollView>
+
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Цели сообщества</Text>
       </View>
@@ -783,6 +816,61 @@ const styles = StyleSheet.create({
   storiesContainer: {
     paddingHorizontal: 15,
     gap: 15
+  },
+  challengeCard: {
+    width: 280,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 15,
+    marginRight: 15,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  challengeHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  challengeBadge: {
+    backgroundColor: '#E8F5E8',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  challengeBadgeText: {
+    color: '#2E7D4A',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  challengeDays: {
+    fontSize: 11,
+    color: '#F44336',
+    fontWeight: '500',
+  },
+  challengeTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 5,
+  },
+  challengeDesc: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 10,
+    lineHeight: 18,
+  },
+  challengeFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  challengeParticipants: {
+    fontSize: 11,
+    color: '#666',
   },
   storyCard: {
     backgroundColor: 'white',

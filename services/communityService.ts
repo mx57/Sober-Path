@@ -42,6 +42,15 @@ export interface CommunityGoal {
   color: string;
 }
 
+export interface GroupChallenge {
+  id: string;
+  title: string;
+  description: string;
+  participants: number;
+  daysRemaining: number;
+  category: string;
+}
+
 const POSTS_STORAGE_KEY = 'sober_path_community_posts';
 
 export class CommunityService {
@@ -151,6 +160,27 @@ export class CommunityService {
         story: 'Более трех лет чистоты. Свобода от зависимости — это самое ценное, что у меня есть. Помогаю новичкам и верю в каждого.',
         avatar: 'https://i.pravatar.cc/150?u=victor',
         date: '2024-04-15'
+      }
+    ];
+  }
+
+  static getGroupChallenges(): GroupChallenge[] {
+    return [
+      {
+        id: 'c1',
+        title: 'Марафон "Чистый Октябрь"',
+        description: 'Продержимся весь месяц вместе! Еженедельные созвоны и поддержка.',
+        participants: 450,
+        daysRemaining: 12,
+        category: 'Марафон'
+      },
+      {
+        id: 'c2',
+        title: 'Утренняя осознанность',
+        description: 'Группа для тех, кто практикует медитацию каждое утро.',
+        participants: 120,
+        daysRemaining: 5,
+        category: 'Привычки'
       }
     ];
   }

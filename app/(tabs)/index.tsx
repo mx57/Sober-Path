@@ -24,7 +24,10 @@ import { MemoizedHealthMetric } from '../../components/home/HealthMetric';
 import { StatCard } from '../../components/home/StatCard';
 import { DailyMotivationService, MotivationQuote, RecoveryTip } from '../../services/dailyMotivationService';
 import { LineChart } from 'react-native-chart-kit';
-import { AICoachService, WeeklyRoadmap } from '../../services/AICoachService';
+import { AICoachService, WeeklyRoadmap, MorningBriefing } from '../../services/AICoachService';
+import questService, { QuestMilestone } from '../../services/questService';
+import { QuestMap } from '../../components/QuestMap';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const AchievementSystem = React.lazy(() => import('../../components/AchievementSystem'));
 const CrisisIntervention = React.lazy(() => import('../../components/CrisisIntervention'));
@@ -133,6 +136,9 @@ function HomePage() {
   const [dailyTip, setDailyTip] = useState<RecoveryTip | null>(null);
   const [weeklyRoadmap, setWeeklyRoadmap] = useState<WeeklyRoadmap | null>(null);
   const [isUpdatingRoadmap, setIsUpdatingRoadmap] = useState(false);
+  const [questMilestones, setQuestMilestones] = useState<QuestMilestone[]>([]);
+  const [showBriefing, setShowBriefing] = useState(false);
+  const [morningBriefing, setMorningBriefing] = useState<MorningBriefing | null>(null);
   const [alertConfig, setAlertConfig] = useState<{
     visible: boolean;
     title: string;
@@ -178,8 +184,28 @@ function HomePage() {
         setWeeklyRoadmap(roadmap);
       }
     };
+
+    const loadQuest = async () => {
+      const milestones = await questService.updateQuestProgress(soberDays);
+      setQuestMilestones(milestones);
+    };
+
+    const checkBriefing = async () => {
+      if (!userProfile?.id) return;
+      const lastBriefing = await AsyncStorage.getItem(`last_briefing_${userProfile.id}`);
+      const today = new Date().toDateString();
+      if (lastBriefing !== today) {
+        const briefing = await AICoachService.getMorningBriefing(userProfile.id, soberDays, mood);
+        setMorningBriefing(briefing);
+        setShowBriefing(true);
+        await AsyncStorage.setItem(`last_briefing_${userProfile.id}`, today);
+      }
+    };
+
     loadRoadmap();
-  }, [pulseValue, userProfile?.id, soberDays]);
+    loadQuest();
+    checkBriefing();
+  }, [pulseValue, userProfile?.id, soberDays, mood]);
 
   const showWebAlert = useCallback((title: string, message: string, onOk?: () => void) => {
     if (Platform.OS === 'web') {
@@ -356,6 +382,8 @@ function HomePage() {
           <StatCard icon="local-fire-department" number={streakDays} label={t('home.streak')} />
           <StatCard icon="check-circle" number={totalSoberDays} label={t('home.totalSober')} />
         </View>
+
+        <QuestMap milestones={questMilestones} currentSoberDays={soberDays} />
 
         {weeklyRoadmap && (
           <Link href="/ai-coach" asChild>
@@ -698,6 +726,54 @@ function HomePage() {
               onPress={() => handleLogDay('relapse')}
             >
               <Text style={styles.relapseButtonText}>{t('home.relapse')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Morning Briefing Modal */}
+      <Modal
+        visible={showBriefing}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowBriefing(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.moodModalContent, { maxHeight: '80%' }]}>
+            <View style={{ alignItems: 'center', marginBottom: 15 }}>
+              <MaterialIcons name="wb-sunny" size={40} color="#FFB300" />
+              <Text style={styles.modalTitle}>{morningBriefing?.title}</Text>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text style={styles.briefingFocus}>Установка дня: {morningBriefing?.focus}</Text>
+
+              <Text style={styles.briefingSectionTitle}>Ваш план:</Text>
+              {morningBriefing?.plan.map((item, idx) => (
+                <View key={idx} style={styles.briefingItem}>
+                  <MaterialIcons name="check" size={18} color="#2E7D4A" />
+                  <Text style={styles.briefingText}>{item}</Text>
+                </View>
+              ))}
+
+              <Text style={styles.briefingSectionTitle}>Советы:</Text>
+              {morningBriefing?.quickTips.map((tip, idx) => (
+                <View key={idx} style={styles.briefingItem}>
+                  <MaterialIcons name="lightbulb" size={18} color="#FFB300" />
+                  <Text style={styles.briefingText}>{tip}</Text>
+                </View>
+              ))}
+
+              <View style={styles.motivationQuoteBox}>
+                <Text style={styles.briefingMotivation}>"{morningBriefing?.motivation}"</Text>
+              </View>
+            </ScrollView>
+
+            <TouchableOpacity
+              style={[styles.modalButton, styles.confirmButton, { marginTop: 20 }]}
+              onPress={() => setShowBriefing(false)}
+            >
+              <Text style={styles.confirmButtonText}>Понятно</Text>
             </TouchableOpacity>
           </View>
         </View>
