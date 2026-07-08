@@ -40,6 +40,7 @@ interface Article {
 }
 
 import { articlesDatabase } from '../../services/articlesDatabase';
+import { ArticleQuiz } from '../../components/ArticleQuiz';
 
 const articles: Article[] = articlesDatabase;
 
@@ -346,6 +347,16 @@ export default function ArticlesPage() {
                   );
                 })}
               </View>
+
+              {selectedArticle.quiz && (
+                <ArticleQuiz
+                  questions={selectedArticle.quiz}
+                  onComplete={(score) => {
+                    console.log(`Quiz completed with score: ${score}`);
+                    // Можно добавить логику награды здесь
+                  }}
+                />
+              )}
               
               <View style={styles.actionButtons}>
                 <TouchableOpacity

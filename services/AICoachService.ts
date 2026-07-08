@@ -623,7 +623,18 @@ export class AICoachService {
     return success(updated);
   }
 
-  static async getMorningBriefing(userId: string, soberDays: number, mood: number): Promise<MorningBriefing> {
+  static async getMorningBriefing(userId: string, soberDays: number, currentMood: number): Promise<MorningBriefing> {
+    // Получаем историю настроения для адаптации
+    const memory = this.getUserMemory(userId);
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayConversations = memory.conversations.filter(c =>
+      new Date(c.timestamp).toDateString() === yesterday.toDateString()
+    );
+    const avgYesterdayMood = yesterdayConversations.length > 0
+      ? yesterdayConversations.reduce((acc, curr) => acc + curr.userMood, 0) / yesterdayConversations.length
+      : 3;
+
     const allQuickTips = [
       "Пейте больше воды при появлении тяги",
       "Сделайте 10 глубоких вдохов при стрессе",
@@ -653,13 +664,16 @@ export class AICoachService {
     let motivation = "Каждый день без алкоголя делает вас сильнее и свободнее.";
     let focus = "Сохранение спокойствия и осознанности";
 
-    if (mood <= 2) {
-      title = "Поддержка в трудный день";
+    if (currentMood <= 2 || avgYesterdayMood <= 2) {
+      title = currentMood <= 2 ? "Поддержка в трудный день" : "Новый день — новые возможности";
       plan = [
         "Избегать триггерных мест и людей",
         "Слушать успокаивающее SOS-аудио",
         "Записать свои чувства в дневник"
       ];
+      motivation = avgYesterdayMood <= 2
+        ? "Вчера было непросто, но вы справились. Сегодня — чистый лист."
+        : "Я рядом, чтобы помочь вам пройти через этот день.";
       focus = "Эмоциональная безопасность";
     }
 
