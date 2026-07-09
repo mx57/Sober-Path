@@ -7,17 +7,18 @@ export interface QuestMilestone {
   description: string;
   reward: string;
   isCompleted: boolean;
+  icon: string;
 }
 
 const QUEST_STORAGE_KEY = 'sober_path_quest_progress';
 
 export const QUEST_MILESTONES: QuestMilestone[] = [
-  { id: '1', day: 1, title: 'Первый шаг', description: 'Первый день новой жизни', reward: 'Медаль новичка', isCompleted: false },
-  { id: '3', day: 3, title: 'Установка', description: 'Три дня чистоты и ясности', reward: 'Бонус концентрации', isCompleted: false },
-  { id: '7', day: 7, title: 'Неделя!', description: 'Семь дней — это серьезная победа', reward: 'Доступ к секретному уроку', isCompleted: false },
-  { id: '14', day: 14, title: 'Две недели', description: 'Привычка начинает формироваться', reward: 'Эксклюзивная тема оформления', isCompleted: false },
-  { id: '21', day: 21, title: 'Три недели', description: 'Организм восстанавливается', reward: 'Значок мастера дисциплины', isCompleted: false },
-  { id: '30', day: 30, title: 'Месяц Свободы', description: '30 дней — фундамент заложен!', reward: 'Кубок Победителя', isCompleted: false },
+  { id: '1', day: 1, title: 'Первый шаг', description: 'Первый день новой жизни. Вы приняли важное решение.', reward: 'Медаль новичка', icon: 'flare', isCompleted: false },
+  { id: '3', day: 3, title: 'Установка', description: 'Три дня чистоты и ясности. Организм начинает детоксикацию.', reward: 'Бонус концентрации', icon: 'opacity', isCompleted: false },
+  { id: '7', day: 7, title: 'Неделя!', description: 'Семь дней — это серьезная победа над привычкой.', reward: 'Доступ к секретному уроку', icon: 'filter-hdr', isCompleted: false },
+  { id: '14', day: 14, title: 'Две недели', description: 'Привычка начинает формироваться. Вы чувствуете себя лучше.', reward: 'Эксклюзивная тема оформления', icon: 'auto-awesome', isCompleted: false },
+  { id: '21', day: 21, title: 'Три недели', description: 'Организм восстанавливается на клеточном уровне.', reward: 'Значок мастера дисциплины', icon: 'psychology', isCompleted: false },
+  { id: '30', day: 30, title: 'Месяц Свободы', description: '30 дней — фундамент новой жизни заложен!', reward: 'Кубок Победителя', icon: 'emoji-events', isCompleted: false },
 ];
 
 class QuestService {

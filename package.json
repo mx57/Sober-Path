@@ -1,7 +1,7 @@
 {
   "name": "sober-path",
   "main": "expo-router/entry",
-  "version": "1.13.0",
+  "version": "1.14.0",
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
@@ -99,6 +99,7 @@
     "lucide-react-native": "^0.475.0",
     "nativewind": "^4.1.23",
     "path-to-regexp": "^1.9.0",
+    "playwright-chromium": "^1.61.1",
     "prop-types": "^15.7.2",
     "querystring": "^0.2.0",
     "react": "19.0.0",

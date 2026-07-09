@@ -195,7 +195,7 @@ export default function CommunityPage() {
   const [posts, setPosts] = useState<SupportPost[]>([]);
   const [expertQA, setExpertQA] = useState<ExpertQA[]>([]);
   const [communityGoals, setCommunityGoals] = useState<CommunityGoal[]>([]);
-  const [groupChallenges, setGroupChallenges] = useState<GroupChallenge[]>([]);
+  const [groupChallenges, setGroupChallenges] = useState<(GroupChallenge & { isParticipating?: boolean })[]>([]);
   const [circles, setCircles] = useState<any[]>([]);
   const [selectedCircle, setSelectedCircle] = useState('all');
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -216,7 +216,8 @@ export default function CommunityPage() {
       setStories(CommunityService.getSuccessStories());
       setExpertQA(CommunityService.getExpertQA());
       setCommunityGoals(CommunityService.getCommunityGoals());
-      setGroupChallenges(CommunityService.getGroupChallenges());
+      const loadedChallenges = await CommunityService.getGroupChallenges();
+      setGroupChallenges(loadedChallenges);
 
       const loadedPosts = await CommunityService.getSupportPosts();
       const dailyThread = CommunityService.getDailyThread();
@@ -306,6 +307,21 @@ export default function CommunityPage() {
     Alert.alert('Успех', 'Ваша история опубликована!');
   };
 
+  const handleToggleChallenge = async (challengeId: string) => {
+    const joined = await CommunityService.toggleChallengeParticipation(challengeId);
+    const updatedChallenges = await CommunityService.getGroupChallenges();
+    setGroupChallenges(updatedChallenges);
+
+    Haptics.notificationAsync(
+      joined ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Warning
+    );
+
+    Alert.alert(
+      joined ? 'Вы присоединились!' : 'Вы покинули челендж',
+      joined ? 'Вместе идти к цели легче. Удачи!' : 'Вы всегда можете вернуться позже.'
+    );
+  };
+
   const filteredPosts = posts.filter(post =>
     selectedCircle === 'all' || post.category === selectedCircle
   );
@@ -329,18 +345,40 @@ export default function CommunityPage() {
           [1, 2].map(i => <Skeleton key={i} width={250} height={120} borderRadius={16} />)
         ) : (
           groupChallenges.map(challenge => (
-            <TouchableOpacity key={challenge.id} style={styles.challengeCard}>
+            <TouchableOpacity
+              key={challenge.id}
+              style={[
+                styles.challengeCard,
+                challenge.isParticipating && styles.activeChallengeCard
+              ]}
+              onPress={() => handleToggleChallenge(challenge.id)}
+            >
               <View style={styles.challengeHeader}>
-                <View style={styles.challengeBadge}>
-                  <Text style={styles.challengeBadgeText}>{challenge.category}</Text>
+                <View style={[
+                  styles.challengeBadge,
+                  challenge.isParticipating && styles.activeChallengeBadge
+                ]}>
+                  <Text style={[
+                    styles.challengeBadgeText,
+                    challenge.isParticipating && styles.activeChallengeBadgeText
+                  ]}>{challenge.category}</Text>
                 </View>
+                {challenge.isParticipating && (
+                  <View style={styles.participatingBadge}>
+                    <MaterialIcons name="check" size={12} color="white" />
+                    <Text style={styles.participatingText}>Участвую</Text>
+                  </View>
+                )}
                 <Text style={styles.challengeDays}>осталось {challenge.daysRemaining} дн.</Text>
               </View>
               <Text style={styles.challengeTitle}>{challenge.title}</Text>
               <Text style={styles.challengeDesc} numberOfLines={2}>{challenge.description}</Text>
               <View style={styles.challengeFooter}>
-                <MaterialIcons name="people" size={16} color="#666" />
-                <Text style={styles.challengeParticipants}>{challenge.participants} участников</Text>
+                <MaterialIcons name="people" size={16} color={challenge.isParticipating ? '#2E7D4A' : '#666'} />
+                <Text style={[
+                  styles.challengeParticipants,
+                  challenge.isParticipating && { color: '#2E7D4A', fontWeight: 'bold' }
+                ]}>{challenge.participants} участников</Text>
               </View>
             </TouchableOpacity>
           ))
@@ -871,6 +909,31 @@ const styles = StyleSheet.create({
   challengeParticipants: {
     fontSize: 11,
     color: '#666',
+  },
+  activeChallengeCard: {
+    borderColor: '#2E7D4A',
+    borderWidth: 2,
+    backgroundColor: '#F1F8F1',
+  },
+  activeChallengeBadge: {
+    backgroundColor: '#2E7D4A',
+  },
+  activeChallengeBadgeText: {
+    color: 'white',
+  },
+  participatingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    gap: 2,
+  },
+  participatingText: {
+    color: 'white',
+    fontSize: 9,
+    fontWeight: 'bold',
   },
   storyCard: {
     backgroundColor: 'white',

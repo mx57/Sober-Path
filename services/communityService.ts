@@ -52,6 +52,7 @@ export interface GroupChallenge {
 }
 
 const POSTS_STORAGE_KEY = 'sober_path_community_posts';
+const CHALLENGES_STORAGE_KEY = 'sober_path_community_challenges';
 
 export class CommunityService {
   private static userPosts: SupportPost[] = [];
@@ -164,8 +165,9 @@ export class CommunityService {
     ];
   }
 
-  static getGroupChallenges(): GroupChallenge[] {
-    return [
+  static async getGroupChallenges(): Promise<(GroupChallenge & { isParticipating: boolean })[]> {
+    const participatingIds = await this.getParticipatingChallenges();
+    const challenges: GroupChallenge[] = [
       {
         id: 'c1',
         title: 'Марафон "Чистый Октябрь"',
@@ -181,8 +183,47 @@ export class CommunityService {
         participants: 120,
         daysRemaining: 5,
         category: 'Привычки'
+      },
+      {
+        id: 'c3',
+        title: 'Шаги к здоровью',
+        description: 'Проходим 10 000 шагов каждый день и делимся результатами.',
+        participants: 85,
+        daysRemaining: 20,
+        category: 'Здоровье'
       }
     ];
+
+    return challenges.map(c => ({
+      ...c,
+      isParticipating: participatingIds.includes(c.id),
+      participants: participatingIds.includes(c.id) ? c.participants + 1 : c.participants
+    }));
+  }
+
+  private static async getParticipatingChallenges(): Promise<string[]> {
+    try {
+      const stored = await AsyncStorage.getItem(CHALLENGES_STORAGE_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  static async toggleChallengeParticipation(challengeId: string): Promise<boolean> {
+    const participating = await this.getParticipatingChallenges();
+    let updated: string[];
+    let joined = false;
+
+    if (participating.includes(challengeId)) {
+      updated = participating.filter(id => id !== challengeId);
+    } else {
+      updated = [...participating, challengeId];
+      joined = true;
+    }
+
+    await AsyncStorage.setItem(CHALLENGES_STORAGE_KEY, JSON.stringify(updated));
+    return joined;
   }
 
   static async getSupportPosts(): Promise<SupportPost[]> {

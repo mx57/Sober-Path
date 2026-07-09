@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ViewStyle, StyleProp } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -51,6 +52,13 @@ export const StatCard = ({ icon, number, label, primary, index = 0, animatedStyl
     transform: [{ translateY: translateY.value }]
   }));
 
+  const CardContainer = primary ? LinearGradient : View;
+  const cardProps = primary ? {
+    colors: ['#2E7D4A', '#4CAF50'],
+    start: { x: 0, y: 0 },
+    end: { x: 1, y: 1 }
+  } : {};
+
   return (
     <Animated.View style={[
       styles.statCard,
@@ -58,23 +66,25 @@ export const StatCard = ({ icon, number, label, primary, index = 0, animatedStyl
       animatedStyle,
       entranceStyle
     ]}>
-      <MaterialIcons name={icon as any} size={primary ? 40 : 28} color={primary ? 'white' : '#FF9800'} />
-      <Text style={[styles.statNumber, primary && styles.statNumberPrimary]}>{number}</Text>
-      <Text style={[styles.statLabel, primary && styles.statLabelPrimary]}>{label}</Text>
+      <CardContainer {...cardProps as any} style={styles.cardInternal}>
+        <MaterialIcons name={icon as any} size={primary ? 40 : 28} color={primary ? 'white' : '#FF9800'} />
+        <Text style={[styles.statNumber, primary && styles.statNumberPrimary]}>{number}</Text>
+        <Text style={[styles.statLabel, primary && styles.statLabelPrimary]}>{label}</Text>
 
-      {primary && (
-        <View style={styles.milestoneContainer}>
-          <View style={styles.milestoneHeader}>
-            <Text style={styles.milestoneText}>Этап: {currentMilestone.label}</Text>
-            {n < 365 && (
-              <Text style={styles.nextMilestoneText}>До {nextMilestone.label}: {nextMilestone.days - n} дн.</Text>
-            )}
+        {primary && (
+          <View style={styles.milestoneContainer}>
+            <View style={styles.milestoneHeader}>
+              <Text style={styles.milestoneText}>Этап: {currentMilestone.label}</Text>
+              {n < 365 && (
+                <Text style={styles.nextMilestoneText}>До {nextMilestone.label}: {nextMilestone.days - n} дн.</Text>
+              )}
+            </View>
+            <View style={styles.progressBarBg}>
+              <View style={[styles.progressBarFill, { width: `${progress * 100}%` }]} />
+            </View>
           </View>
-          <View style={styles.progressBarBg}>
-            <View style={[styles.progressBarFill, { width: `${progress * 100}%` }]} />
-          </View>
-        </View>
-      )}
+        )}
+      </CardContainer>
     </Animated.View>
   );
 };
@@ -83,19 +93,24 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     backgroundColor: 'white',
-    padding: 20,
     borderRadius: 15,
-    alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
+    overflow: 'hidden'
+  },
+  cardInternal: {
+    padding: 20,
+    alignItems: 'center',
+    width: '100%',
+    height: '100%'
   },
   primaryStatCard: {
     backgroundColor: '#2E7D4A',
-    alignItems: 'center',
-    padding: 25
+    shadowColor: '#2E7D4A',
+    shadowOpacity: 0.3,
   },
   statNumber: {
     fontSize: 28,
