@@ -61,7 +61,7 @@ jobs:
           text = build_gradle.read_text()
 
           text = re.sub(r'(?<![A-Za-z0-9_])url\s*\(', 'url = uri(', text)
-          text = re.sub(r'(?<![A-Za-z0-9_])url\s+("[^"']+"|\'[^"']+\')', r'url = uri(\1)', text)
+          text = re.sub(r'(?<![A-Za-z0-9_])url\s+("[^"]+"|\'[^\']+\')', r'url = uri(\1)', text)
 
           build_gradle.write_text(text)
           PATCH
@@ -109,36 +109,7 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: sober-path-release-debug-apk
+          name: sober-path-release-debug-signed-apk
           path: artifacts/sober-path-release-debug-signed.apk
           if-no-files-found: error
           retention-days: 14
-
-      - name: Prepare release tag and metadata
-        run: |
-          echo "RELEASE_TAG=apk-${GITHUB_RUN_NUMBER}" >> $GITHUB_ENV
-          echo "RELEASE_NAME=APK build ${GITHUB_RUN_NUMBER}" >> $GITHUB_ENV
-          echo "RELEASE_BODY=Automated APK build from run ${GITHUB_RUN_ID}. See ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" >> $GITHUB_ENV
-
-      - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
-        with:
-          tag_name: ${{ env.RELEASE_TAG }}
-          release_name: ${{ env.RELEASE_NAME }}
-          body: ${{ env.RELEASE_BODY }}
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload APK to Release
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: artifacts/sober-path-release-debug-signed.apk
-          asset_name: sober-path-release-debug-signed.apk
-          asset_content_type: application/vnd.android.package-archive
-
-      - name: Show release URL
-        run: echo "Release URL: ${{ steps.create_release.outputs.html_url }}"
