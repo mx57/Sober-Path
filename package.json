@@ -99,7 +99,6 @@
     "lucide-react-native": "^0.475.0",
     "nativewind": "^4.1.23",
     "path-to-regexp": "^1.9.0",
-    "playwright-chromium": "^1.61.1",
     "prop-types": "^15.7.2",
     "querystring": "^0.2.0",
     "react": "19.0.0",
@@ -155,6 +154,7 @@
     "jest": "^29.7.0",
     "jest-expo": "~53.0.14",
     "react-dev-inspector": "^2.0.1",
+    "playwright-chromium": "^1.61.1",
     "ts-jest": "^29.4.11",
     "typescript": "~5.8.3"
   },
