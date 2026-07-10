@@ -765,7 +765,7 @@ function HomePage() {
               ))}
 
               <View style={styles.motivationQuoteBox}>
-                <Text style={styles.briefingMotivation}>"{morningBriefing?.motivation}"</Text>
+                <Text style={styles.briefingMotivation}>&quot;{morningBriefing?.motivation}&quot;</Text>
               </View>
             </ScrollView>
 
