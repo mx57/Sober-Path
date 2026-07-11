@@ -546,6 +546,15 @@ function HomePage() {
             <MaterialIcons name="calendar-month" size={28} color="white" />
             <Text style={styles.quickActionText}>{t('home.calendar')}</Text>
           </TouchableOpacity>
+
+          <Link href="/journal" asChild>
+            <TouchableOpacity
+                style={[styles.quickAction, { backgroundColor: '#9C27B0' }]}
+            >
+                <MaterialIcons name="book" size={28} color="white" />
+                <Text style={styles.quickActionText}>Дневник</Text>
+            </TouchableOpacity>
+          </Link>
         </View>
       </View>
 

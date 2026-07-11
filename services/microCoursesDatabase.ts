@@ -148,5 +148,37 @@ export const microCoursesDatabase: MicroCourse[] = [
         type: 'text'
       }
     ]
+  },
+  {
+    id: 'relapse_prevention_mindful',
+    title: 'Осознанное предотвращение срывов',
+    description: 'Продвинутые техники сохранения трезвости в долгосрочной перспективе.',
+    category: 'foundation',
+    difficulty: 'intermediate',
+    icon: 'security',
+    points: 150,
+    lessons: [
+      {
+        id: 'rpm_l1',
+        title: 'Анатомия срыва',
+        content: 'Срыв начинается задолго до первого глотка. Мы изучим эмоциональные и поведенческие предвестники рецидива.',
+        duration: 8,
+        type: 'text'
+      },
+      {
+        id: 'rpm_l2',
+        title: 'Техника "Якорь"',
+        content: 'Создание мощного ментального и физического напоминания о причинах вашей трезвости, которое сработает в критический момент.',
+        duration: 12,
+        type: 'exercise'
+      },
+      {
+        id: 'rpm_l3',
+        title: 'План экстренного реагирования',
+        content: 'Составим пошаговый алгоритм действий при возникновении острой тяги, чтобы не полагаться на силу воли.',
+        duration: 15,
+        type: 'text'
+      }
+    ]
   }
 ];
