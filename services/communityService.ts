@@ -12,6 +12,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type ReactionType = 'support' | 'agree' | 'hug' | 'like';
 
+export interface PostPoll {
+  question: string;
+  options: { id: string; text: string; votes: number }[];
+  userVote?: string;
+}
+
 export interface SupportPost {
   id: string;
   author: string;
@@ -21,6 +27,8 @@ export interface SupportPost {
   timeAgo: string;
   category: 'motivation' | 'question' | 'support' | 'milestone' | 'daily_thread' | 'group_early' | 'group_work';
   reactions?: Record<ReactionType, number>;
+  poll?: PostPoll;
+  authorDays?: number;
 }
 
 export interface ExpertQA {
@@ -236,7 +244,8 @@ export class CommunityService {
         likes: 24,
         comments: 5,
         timeAgo: '2ч назад',
-        category: 'milestone'
+        category: 'milestone',
+        authorDays: 30
       },
       {
         id: 'p2',
@@ -371,7 +380,8 @@ export class CommunityService {
         likes: 210,
         comments: 34,
         timeAgo: '1нед назад',
-        category: 'milestone'
+        category: 'milestone',
+        authorDays: 425
       },
       {
         id: 'p17',
@@ -479,13 +489,30 @@ export class CommunityService {
     return {
       id: `daily_${new Date().toDateString()}`,
       author: 'Sober Path Bot',
-      content: `🗓 Ежедневный поток поддержки: ${today}\n\nКак началось ваше утро? Поделитесь своими планами на сегодня и пожелайте друг другу трезвого дня! 👇`,
+      content: `🗓 Ежедневный поток поддержки: ${today}\n\nКакая ваша главная цель на сегодня? Выберите вариант или напишите в комментариях! 👇`,
       likes: 156,
       comments: 42,
       timeAgo: 'Сегодня',
       category: 'daily_thread',
-      reactions: { support: 45, agree: 12, hug: 38, like: 61 }
+      reactions: { support: 45, agree: 12, hug: 38, like: 61 },
+      poll: {
+        question: 'Цель на сегодня:',
+        options: [
+          { id: '1', text: 'Оставаться трезвым', votes: 85 },
+          { id: '2', text: 'Сделать зарядку', votes: 34 },
+          { id: '3', text: 'Прочитать статью', votes: 27 },
+          { id: '4', text: 'Помочь другому', votes: 19 }
+        ]
+      }
     };
+  }
+
+  static getLiveRooms(): { id: string; title: string; participants: number; topic: string; color: string }[] {
+    return [
+      { id: 'l1', title: 'Утренний кофе', participants: 12, topic: 'Общение и поддержка', color: '#FF9800' },
+      { id: 'l2', title: 'Работа с тягой', participants: 8, topic: 'Обмен техниками', color: '#F44336' },
+      { id: 'l3', title: 'Вечерняя рефлексия', participants: 25, topic: 'Итоги дня', color: '#673AB7' }
+    ];
   }
 
   private static async loadUserPosts(): Promise<SupportPost[]> {
