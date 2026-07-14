@@ -15,6 +15,7 @@ export type ReactionType = 'support' | 'agree' | 'hug' | 'like';
 export interface SupportPost {
   id: string;
   author: string;
+  authorSoberDays?: number;
   content: string;
   likes: number;
   comments: number;
@@ -22,6 +23,14 @@ export interface SupportPost {
   category: 'motivation' | 'question' | 'support' | 'milestone' | 'daily_thread' | 'group_early' | 'group_work';
   reactions?: Record<ReactionType, number>;
   authorDaysSober?: number;
+}
+
+export interface PulseActivity {
+  id: string;
+  userName: string;
+  type: 'post' | 'comment' | 'reaction' | 'milestone';
+  text: string;
+  timestamp: Date;
 }
 
 export interface ExpertQA {
@@ -233,6 +242,7 @@ export class CommunityService {
       {
         id: 'p1',
         author: 'Мария',
+        authorSoberDays: 30,
         content: 'Сегодня 30 дней! Не верится, что я дошла до этого рубежа. Спасибо всем за поддержку в этом чате.',
         likes: 24,
         comments: 5,
@@ -242,6 +252,7 @@ export class CommunityService {
       {
         id: 'p2',
         author: 'Игорь',
+        authorSoberDays: 45,
         content: 'Ребята, как вы справляетесь с тягой в пятницу вечером? Поделитесь своими проверенными способами.',
         likes: 12,
         comments: 18,
@@ -251,6 +262,7 @@ export class CommunityService {
       {
         id: 'p3',
         author: 'Анна',
+        authorSoberDays: 120,
         content: 'Помните, что один плохой день не перечеркивает ваш прогресс. Просто продолжайте идти вперед.',
         likes: 45,
         comments: 2,
@@ -260,6 +272,7 @@ export class CommunityService {
       {
         id: 'p4',
         author: 'Виктор',
+        authorSoberDays: 1100,
         content: 'Заметил, что тяга стала намного меньше после того, как я начал заниматься йогой по утрам. Всем советую!',
         likes: 31,
         comments: 4,
@@ -511,6 +524,16 @@ export class CommunityService {
       category: 'daily_thread',
       reactions: { support: 45, agree: 12, hug: 38, like: 61 }
     };
+  }
+
+  static getCommunityPulse(): PulseActivity[] {
+    return [
+      { id: '1', userName: 'Александр', type: 'milestone', text: 'достиг 400 дней трезвости!', timestamp: new Date() },
+      { id: '2', userName: 'Елена', type: 'reaction', text: 'поддержала пост Марии', timestamp: new Date() },
+      { id: '3', userName: 'Дмитрий', type: 'comment', text: 'ответил в круге "Первые шаги"', timestamp: new Date() },
+      { id: '4', userName: 'Светлана', type: 'post', text: 'поделилась новой историей успеха', timestamp: new Date() },
+      { id: '5', userName: 'Игорь', type: 'reaction', text: 'поставил "Обнимаю" посту новичка', timestamp: new Date() },
+    ];
   }
 
   private static async loadUserPosts(): Promise<SupportPost[]> {

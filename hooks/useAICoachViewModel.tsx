@@ -59,7 +59,7 @@ export function useAICoachViewModel() {
     setNotifications(NotificationService.getNotifications());
     const initialChallenges = await AICoachService.getChallenges(userProfile?.id || 'default');
     setChallenges(initialChallenges);
-    setChatStarters([...AICoachService.getChatStarters({ mood: 3, soberDays }), 'План на неделю', 'Техника 5-4-3-2-1']);
+    setChatStarters([...AICoachService.getChatStarters({ mood: 3, soberDays }), 'План на неделю', 'Техника 5-4-3-2-1', 'Рефрейминг мыслей']);
 
     const weeklyPlan = await AICoachService.getWeeklyRoadmap(userProfile?.id || 'default', soberDays);
     setRoadmap(weeklyPlan);
@@ -150,7 +150,7 @@ export function useAICoachViewModel() {
     const textToSend = typeof overrideText === 'string' ? overrideText : inputText;
     if (!textToSend.trim() || isTyping) return;
 
-    if (activeExercise && (textToSend === 'Далее' || textToSend === 'Начать упражнение')) {
+    if (activeExercise && (textToSend === 'Далее' || textToSend === 'Начать упражнение' || textToSend === 'Начать рефрейминг')) {
         const userMsg: ChatMessage = {
             id: Date.now().toString(),
             text: textToSend,

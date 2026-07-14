@@ -7,7 +7,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { CommunityService, SuccessStory, SupportPost, ExpertQA, ReactionType, CommunityGoal, GroupChallenge } from '../../services/communityService';
+import { CommunityService, SuccessStory, SupportPost, ExpertQA, ReactionType, CommunityGoal, GroupChallenge, PulseActivity } from '../../services/communityService';
 import Animated, { FadeInUp, FadeInRight, useSharedValue, useAnimatedStyle, withSpring, withSequence, withTiming } from 'react-native-reanimated';
 import { Skeleton } from '../../components/Skeleton';
 
@@ -118,22 +118,16 @@ const SupportPostItem = ({
           <MaterialIcons name={getCategoryIcon(post.category)} size={20} color={getCategoryColor(post.category)} />
         </View>
         <View style={styles.authorInfo}>
-          <View style={styles.authorNameRow}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             <Text style={styles.authorName}>{post.author}</Text>
-            {isMentor && (
-              <View style={[styles.badge, styles.mentorBadge]}>
-                <Text style={styles.badgeEmoji}>🏅</Text>
-                <Text style={styles.badgeText}>Наставник</Text>
-              </View>
-            )}
-            {isRisingStar && (
-              <View style={[styles.badge, styles.starBadge]}>
-                <Text style={styles.badgeEmoji}>✨</Text>
-                <Text style={styles.badgeText}>Звезда</Text>
-              </View>
+            {post.authorSoberDays && post.authorSoberDays >= 100 && (
+                <View style={styles.mentorBadge}>
+                    <MaterialIcons name="verified" size={12} color="white" />
+                    <Text style={styles.mentorBadgeText}>Наставник</Text>
+                </View>
             )}
           </View>
-          <Text style={styles.timeAgo}>{post.timeAgo} • {post.authorDaysSober} дн. трезвости</Text>
+          <Text style={styles.timeAgo}>{post.timeAgo}</Text>
         </View>
         <View style={[styles.categoryBadge, { backgroundColor: getCategoryColor(post.category) }]}>
             <Text style={styles.categoryBadgeText}>{post.category === 'daily_thread' ? 'Дневной поток' : post.category}</Text>
@@ -233,6 +227,7 @@ export default function CommunityPage() {
   const insets = useSafeAreaInsets();
   const [stories, setStories] = useState<SuccessStory[]>([]);
   const [posts, setPosts] = useState<SupportPost[]>([]);
+  const [pulse, setPulse] = useState<PulseActivity[]>([]);
   const [expertQA, setExpertQA] = useState<ExpertQA[]>([]);
   const [communityGoals, setCommunityGoals] = useState<CommunityGoal[]>([]);
   const [groupChallenges, setGroupChallenges] = useState<(GroupChallenge & { isParticipating?: boolean })[]>([]);
@@ -270,6 +265,7 @@ export default function CommunityPage() {
       }
 
       setCircles(CommunityService.getCircles());
+      setPulse(CommunityService.getCommunityPulse());
       setIsLoading(false);
     };
     loadData();
@@ -372,6 +368,27 @@ export default function CommunityPage() {
 
     return (
     <View>
+      {!isLoading && pulse.length > 0 && (
+        <View style={styles.pulseContainer}>
+            <View style={styles.pulseHeader}>
+                <View style={styles.pulseDot} />
+                <Text style={styles.pulseTitle}>ПУЛЬС СООБЩЕСТВА</Text>
+            </View>
+            <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.pulseScroll}
+            >
+                {pulse.map((act) => (
+                    <View key={act.id} style={styles.pulseItem}>
+                        <Text style={styles.pulseUser}>{act.userName}</Text>
+                        <Text style={styles.pulseText}>{act.text}</Text>
+                    </View>
+                ))}
+            </ScrollView>
+        </View>
+      )}
+
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Групповые челленджи</Text>
       </View>
@@ -1063,6 +1080,67 @@ const styles = StyleSheet.create({
   expertTitle: {
     fontSize: 11,
     color: '#888'
+  },
+  mentorBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F57F17',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    gap: 2,
+  },
+  mentorBadgeText: {
+    color: 'white',
+    fontSize: 9,
+    fontWeight: 'bold',
+  },
+  pulseContainer: {
+    backgroundColor: '#E8F5E8',
+    paddingVertical: 12,
+    marginBottom: 10,
+  },
+  pulseHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 8,
+    gap: 6,
+  },
+  pulseDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#2E7D4A',
+  },
+  pulseTitle: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#2E7D4A',
+    letterSpacing: 1,
+  },
+  pulseScroll: {
+    paddingHorizontal: 20,
+    gap: 15,
+  },
+  pulseItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    gap: 6,
+    elevation: 1,
+  },
+  pulseUser: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  pulseText: {
+    fontSize: 12,
+    color: '#666',
   },
   mentorshipContainer: {
     paddingHorizontal: 20,

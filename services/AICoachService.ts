@@ -315,6 +315,30 @@ export class AICoachService {
           });
         }
 
+        if (lowercaseMessage.includes('рефрейминг') || lowercaseMessage.includes('негативные мысли') || lowercaseMessage.includes('автоматические мысли')) {
+          return success({
+            message: 'Я вижу, что вас беспокоят автоматические негативные мысли. Давайте проведем сессию когнитивного рефрейминга, чтобы взглянуть на ситуацию иначе. Попробуем?',
+            emotionalTone: 'educational',
+            suggestions: ['Начать рефрейминг', 'Не сейчас'],
+            followUpQuestions: [],
+            memoryUpdates: ['User requested cognitive reframing'],
+            confidenceLevel: 1.0,
+            exercise: {
+              id: 'cbt_reframing',
+              name: 'Когнитивный рефрейминг',
+              type: 'nlp',
+              currentStep: -1,
+              steps: [
+                'Запишите вашу негативную мысль прямо сейчас (например: "Я никогда не справлюсь").',
+                'Какие факты подтверждают эту мысль? Будьте объективны.',
+                'Какие факты ОПРОВЕРГАЮТ эту мысль? Вспомните свои прошлые успехи.',
+                'Если бы ваш лучший друг думал так о себе, что бы вы ему ответили?',
+                'Сформулируйте новую, более сбалансированную и реалистичную мысль.'
+              ]
+            }
+          });
+        }
+
         let response: string;
         let emotionalTone: 'empathetic' | 'motivational' | 'educational' | 'supportive';
         let suggestions: string[] = [];
