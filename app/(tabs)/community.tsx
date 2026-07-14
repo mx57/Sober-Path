@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
-  FlatList, Image, Dimensions, Modal, TextInput, Alert
+  Image, Dimensions, Modal, TextInput, Alert
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,6 +13,45 @@ import Animated, { FadeInUp, FadeInRight, useSharedValue, useAnimatedStyle, with
 import { Skeleton } from '../../components/Skeleton';
 
 const { width: screenWidth } = Dimensions.get('window');
+
+const PostPoll = ({ poll, onVote }: { poll: any, onVote: (optionId: string) => void }) => {
+  const totalVotes = poll.options.reduce((acc: number, curr: any) => acc + curr.votes, 0);
+
+  return (
+    <View style={styles.pollContainer}>
+      <Text style={styles.pollQuestion}>{poll.question}</Text>
+      {poll.options.map((option: any) => {
+        const percentage = totalVotes > 0 ? Math.round((option.votes / totalVotes) * 100) : 0;
+        const isSelected = poll.userVote === option.id;
+
+        return (
+          <TouchableOpacity
+            key={option.id}
+            style={[styles.pollOption, isSelected && styles.pollOptionSelected]}
+            onPress={() => !poll.userVote && onVote(option.id)}
+            disabled={!!poll.userVote}
+          >
+            {poll.userVote && (
+              <View style={[styles.pollProgress, { width: `${percentage}%` }]} />
+            )}
+            <View style={styles.pollOptionContent}>
+              <Text style={[styles.pollOptionText, isSelected && styles.pollOptionTextSelected]}>
+                {option.text}
+              </Text>
+              {poll.userVote && (
+                <Text style={styles.pollPercentage}>{percentage}%</Text>
+              )}
+            </View>
+            {isSelected && (
+              <MaterialIcons name="check-circle" size={16} color="#2E7D4A" style={styles.pollCheck} />
+            )}
+          </TouchableOpacity>
+        );
+      })}
+      <Text style={styles.pollTotalVotes}>{totalVotes} голосов</Text>
+    </View>
+  );
+};
 
 const SuccessStoryCard = ({ story }: { story: SuccessStory }) => (
   <View style={styles.storyCard}>
@@ -65,11 +105,13 @@ const ExpertQACard = ({ qa }: { qa: ExpertQA }) => (
 const SupportPostItem = ({
   post,
   onCommentPress,
-  onReactionPress
+  onReactionPress,
+  onVotePress
 }: {
   post: SupportPost,
   onCommentPress: (post: SupportPost) => void,
-  onReactionPress: (postId: string, reaction: ReactionType) => void
+  onReactionPress: (postId: string, reaction: ReactionType) => void,
+  onVotePress: (postId: string, optionId: string) => void
 }) => {
   const isMentor = (post.authorDaysSober || 0) >= 365;
   const isRisingStar = (post.authorDaysSober || 0) >= 30 && (post.authorDaysSober || 0) < 365;
@@ -83,6 +125,7 @@ const SupportPostItem = ({
       case 'question': return 'help-outline';
       case 'milestone': return 'emoji-events';
       case 'daily_thread': return 'today';
+      case 'poll': return 'poll';
       default: return 'favorite-border';
     }
   };
@@ -93,6 +136,7 @@ const SupportPostItem = ({
       case 'question': return '#2196F3';
       case 'milestone': return '#E91E63';
       case 'daily_thread': return '#673AB7';
+      case 'poll': return '#FF5722';
       default: return '#2E7D4A';
     }
   };
@@ -138,6 +182,10 @@ const SupportPostItem = ({
         styles.postContent,
         post.category === 'daily_thread' && styles.dailyThreadText
       ]}>{post.content}</Text>
+
+      {post.poll && (
+        <PostPoll poll={post.poll} onVote={(optionId) => onVotePress(post.id, optionId)} />
+      )}
 
       {Object.values(reactions).some(v => v > 0) && (
         <View style={styles.reactionsSummary}>
@@ -283,6 +331,20 @@ export default function CommunityPage() {
       }
       return p;
     }));
+  };
+
+  const handleVotePress = async (postId: string, optionId: string) => {
+    await CommunityService.voteInPoll(postId, optionId);
+    setPosts(currentPosts => currentPosts.map(p => {
+      if (p.id === postId && p.poll) {
+        const updatedOptions = p.poll.options.map(o =>
+          o.id === optionId ? { ...o, votes: o.votes + 1 } : o
+        );
+        return { ...p, poll: { ...p.poll, options: updatedOptions, userVote: optionId } };
+      }
+      return p;
+    }));
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   };
 
   const handleCreatePost = async () => {
@@ -608,7 +670,7 @@ export default function CommunityPage() {
           ))}
         </ScrollView>
       ) : (
-        <FlatList
+        <FlashList
           data={filteredPosts}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
@@ -619,9 +681,11 @@ export default function CommunityPage() {
                 setIsCommentModalVisible(true);
               }}
               onReactionPress={handleReactionPress}
+              onVotePress={handleVotePress}
             />
           )}
           ListHeaderComponent={renderHeader}
+          estimatedItemSize={250}
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
         />
@@ -1481,5 +1545,73 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#666',
     fontWeight: '500',
+  },
+  pollContainer: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  pollQuestion: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 12,
+  },
+  pollOption: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+    position: 'relative',
+    overflow: 'hidden',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  pollOptionSelected: {
+    borderColor: '#2E7D4A',
+    backgroundColor: '#E8F5E8',
+  },
+  pollProgress: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(46, 125, 74, 0.1)',
+  },
+  pollOptionContent: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  pollOptionText: {
+    fontSize: 13,
+    color: '#444',
+  },
+  pollOptionTextSelected: {
+    color: '#2E7D4A',
+    fontWeight: 'bold',
+  },
+  pollPercentage: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: 'bold',
+  },
+  pollCheck: {
+    marginLeft: 8,
+    zIndex: 1,
+  },
+  pollTotalVotes: {
+    fontSize: 11,
+    color: '#999',
+    textAlign: 'right',
+    marginTop: 4,
   }
 });

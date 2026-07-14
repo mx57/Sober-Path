@@ -119,6 +119,15 @@ export interface AICoachChallenge {
   icon: string;
 }
 
+export interface PsychologicalProfile {
+  resilience: number;
+  selfReflection: number;
+  awareness: number;
+  traits: string[];
+  vulnerabilities: string[];
+  strengths: string[];
+}
+
 export interface MorningBriefing {
   title: string;
   plan: string[];
@@ -315,6 +324,30 @@ export class AICoachService {
           });
         }
 
+        if (lowercaseMessage.includes('письмо в будущее') || lowercaseMessage.includes('написать себе')) {
+          return success({
+            message: 'Это мощная техника для укрепления вашей мотивации. Мы напишем письмо вам "будущему" — тому человеку, которым вы станете через год трезвости. Готовы начать?',
+            emotionalTone: 'motivational',
+            suggestions: ['Начать упражнение', 'Не сейчас'],
+            followUpQuestions: [],
+            memoryUpdates: ['User requested letter to future self exercise'],
+            confidenceLevel: 1.0,
+            exercise: {
+              id: 'letter_to_future',
+              name: 'Письмо в будущее',
+              type: 'nlp',
+              currentStep: -1,
+              steps: [
+                'Представьте себя через год. Где вы? Как вы выглядите? Что чувствуете?',
+                'Опишите вашу самую большую гордость за этот год трезвости.',
+                'Какой главный совет вы дали бы себе сегодняшнему из будущего?',
+                'Что вы больше никогда не хотите возвращать в свою жизнь?',
+                'Завершите письмо словами поддержки для самого себя.'
+              ]
+            }
+          });
+        }
+
         if (lowercaseMessage.includes('рефрейминг') || lowercaseMessage.includes('негативные мысли') || lowercaseMessage.includes('автоматические мысли')) {
           return success({
             message: 'Я вижу, что вас беспокоят автоматические негативные мысли. Давайте проведем сессию когнитивного рефрейминга, чтобы взглянуть на ситуацию иначе. Попробуем?',
@@ -469,6 +502,7 @@ export class AICoachService {
 
   static getUserInsights(userId: string) {
     const memory = this.getUserMemory(userId);
+    const profile = this.calculatePsychologicalProfile(memory);
     return {
       conversationCount: memory.conversations.length,
       averageMood: memory.emotionalPattern.averageMood,
@@ -477,8 +511,40 @@ export class AICoachService {
       achievements: memory.userPreferences.goalsSet,
       progressSummary: memory.emotionalPattern.moodTrend === 'improving'
         ? 'Ваше состояние улучшается.'
-        : 'Мы продолжаем работу.'
+        : 'Мы продолжаем работу.',
+      profile
     };
+  }
+
+  private static calculatePsychologicalProfile(memory: ConversationMemory): PsychologicalProfile {
+    const conversations = memory.conversations;
+
+    // Heuristic-based calculation
+    let resilience = 50 + (memory.userPreferences.goalsSet.length * 5);
+    let selfReflection = 40 + (conversations.filter(c => c.userMessage.length > 50).length * 8);
+    let awareness = 30 + (memory.emotionalPattern.commonEmotions.length * 6);
+
+    resilience = Math.min(100, resilience);
+    selfReflection = Math.min(100, selfReflection);
+    awareness = Math.min(100, awareness);
+
+    const traits = [];
+    if (resilience > 70) traits.push('Стойкость');
+    if (selfReflection > 70) traits.push('Аналитический склад');
+    if (awareness > 70) traits.push('Осознанность');
+    if (traits.length === 0) traits.push('В процессе познания');
+
+    const strengths = [];
+    if (memory.userPreferences.goalsSet.length > 3) strengths.push('Умение достигать целей');
+    if (memory.emotionalPattern.moodTrend === 'improving') strengths.push('Эмоциональный рост');
+    if (strengths.length === 0) strengths.push('Стремление к переменам');
+
+    const vulnerabilities = [];
+    if (memory.emotionalPattern.commonEmotions.includes('Стресс')) vulnerabilities.push('Чувствительность к стрессу');
+    if (memory.emotionalPattern.commonEmotions.includes('Тяга')) vulnerabilities.push('Риск срыва');
+    if (vulnerabilities.length === 0) vulnerabilities.push('Недостаток отдыха');
+
+    return { resilience, selfReflection, awareness, traits, vulnerabilities, strengths };
   }
 
   static detectTriggerPatterns(userId: string): TriggerPattern[] {

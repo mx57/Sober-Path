@@ -12,6 +12,18 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type ReactionType = 'support' | 'agree' | 'hug' | 'like';
 
+export interface PostPollOption {
+  id: string;
+  text: string;
+  votes: number;
+}
+
+export interface PostPoll {
+  question: string;
+  options: PostPollOption[];
+  userVote?: string;
+}
+
 export interface SupportPost {
   id: string;
   author: string;
@@ -20,9 +32,10 @@ export interface SupportPost {
   likes: number;
   comments: number;
   timeAgo: string;
-  category: 'motivation' | 'question' | 'support' | 'milestone' | 'daily_thread' | 'group_early' | 'group_work';
+  category: 'motivation' | 'question' | 'support' | 'milestone' | 'daily_thread' | 'group_early' | 'group_work' | 'poll';
   reactions?: Record<ReactionType, number>;
   authorDaysSober?: number;
+  poll?: PostPoll;
 }
 
 export interface PulseActivity {
@@ -479,6 +492,96 @@ export class CommunityService {
         timeAgo: '5ч назад',
         category: 'milestone',
         authorDaysSober: 1825
+      },
+      {
+        id: 'p27',
+        author: 'Sober Path Poll',
+        content: 'Какой главный триггер мешает вам оставаться трезвым сегодня?',
+        likes: 42,
+        comments: 89,
+        timeAgo: '1д назад',
+        category: 'poll',
+        poll: {
+          question: 'Ваш главный триггер?',
+          options: [
+            { id: 'o1', text: 'Стресс на работе', votes: 156 },
+            { id: 'o2', text: 'Одиночество', votes: 84 },
+            { id: 'o3', text: 'Праздники/Компании', votes: 122 },
+            { id: 'o4', text: 'Скука', votes: 67 }
+          ]
+        }
+      },
+      {
+        id: 'p28',
+        author: 'Sober Path Poll',
+        content: 'Какое время суток для вас самое сложное?',
+        likes: 31,
+        comments: 56,
+        timeAgo: '2д назад',
+        category: 'poll',
+        poll: {
+          question: 'Сложное время суток?',
+          options: [
+            { id: 'o1', text: 'Утро (состояние)', votes: 45 },
+            { id: 'o2', text: 'Обед (стресс)', votes: 23 },
+            { id: 'o3', text: 'Вечер (привычка)', votes: 310 },
+            { id: 'o4', text: 'Ночь (бессонница)', votes: 89 }
+          ]
+        }
+      },
+      {
+        id: 'p29',
+        author: 'Sober Path Poll',
+        content: 'Что вам больше всего помогает в моменты тяги?',
+        likes: 85,
+        comments: 112,
+        timeAgo: '3д назад',
+        category: 'poll',
+        poll: {
+          question: 'Лучшая техника помощи?',
+          options: [
+            { id: 'o1', text: 'Дыхательные практики', votes: 145 },
+            { id: 'o2', text: 'Звонок другу/наставнику', votes: 98 },
+            { id: 'o3', text: 'Чтение статей/дневник', votes: 76 },
+            { id: 'o4', text: 'Спорт/Прогулка', votes: 210 }
+          ]
+        }
+      },
+      {
+        id: 'p30',
+        author: 'Sober Path Poll',
+        content: 'Как ваша семья относится к вашей трезвости?',
+        likes: 64,
+        comments: 43,
+        timeAgo: '4д назад',
+        category: 'poll',
+        poll: {
+          question: 'Поддержка семьи?',
+          options: [
+            { id: 'o1', text: 'Активно поддерживают', votes: 189 },
+            { id: 'o2', text: 'Нейтрально', votes: 56 },
+            { id: 'o3', text: 'Не верят (пока)', votes: 72 },
+            { id: 'o4', text: 'Я не рассказывал(а)', votes: 34 }
+          ]
+        }
+      },
+      {
+        id: 'p31',
+        author: 'Sober Path Poll',
+        content: 'Планируете ли вы полностью изменить круг общения?',
+        likes: 29,
+        comments: 78,
+        timeAgo: '5д назад',
+        category: 'poll',
+        poll: {
+          question: 'Смена окружения?',
+          options: [
+            { id: 'o1', text: 'Уже изменил(а)', votes: 112 },
+            { id: 'o2', text: 'Планирую', votes: 95 },
+            { id: 'o3', text: 'Оставил(а) только верных', votes: 156 },
+            { id: 'o4', text: 'Не считаю нужным', votes: 42 }
+          ]
+        }
       }
     ];
     return [...localPosts, ...staticPosts.map(p => ({
@@ -506,6 +609,20 @@ export class CommunityService {
         const reactions = p.reactions || { support: 0, agree: 0, hug: 0, like: 0 };
         reactions[reaction] = (reactions[reaction] || 0) + 1;
         return { ...p, reactions };
+      }
+      return p;
+    });
+    await AsyncStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(updated));
+  }
+
+  static async voteInPoll(postId: string, optionId: string): Promise<void> {
+    const posts = await this.loadUserPosts();
+    const updated = posts.map(p => {
+      if (p.id === postId && p.poll && !p.poll.userVote) {
+        const updatedOptions = p.poll.options.map(o =>
+          o.id === optionId ? { ...o, votes: o.votes + 1 } : o
+        );
+        return { ...p, poll: { ...p.poll, options: updatedOptions, userVote: optionId } };
       }
       return p;
     });

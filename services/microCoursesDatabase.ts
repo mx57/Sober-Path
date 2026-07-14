@@ -180,5 +180,37 @@ export const microCoursesDatabase: MicroCourse[] = [
         type: 'text'
       }
     ]
+  },
+  {
+    id: 'relationships_rebuild',
+    title: 'Трезвость и Отношения',
+    description: 'Восстановление доверия и построение новых здоровых связей с близкими.',
+    category: 'growth',
+    difficulty: 'intermediate',
+    icon: 'favorite',
+    points: 200,
+    lessons: [
+      {
+        id: 'rel_l1',
+        title: 'Анатомия доверия',
+        content: 'Доверие разрушается быстро, а восстанавливается медленно. Мы разберем, какие конкретные шаги помогают близким снова поверить вам.',
+        duration: 10,
+        type: 'text'
+      },
+      {
+        id: 'rel_l2',
+        title: 'Честный диалог',
+        content: 'Как обсуждать свое прошлое и настоящее без чувства вины и взаимных обвинений. Практика "Я-сообщений".',
+        duration: 12,
+        type: 'exercise'
+      },
+      {
+        id: 'rel_l3',
+        title: 'Новые общие смыслы',
+        content: 'Трезвость освобождает время для качественного досуга с семьей. Создаем новые традиции, не связанные с алкоголем.',
+        duration: 8,
+        type: 'text'
+      }
+    ]
   }
 ];
