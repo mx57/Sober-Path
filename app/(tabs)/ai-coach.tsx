@@ -310,38 +310,6 @@ export default function EnhancedAICoach() {
 
         {vm.activeTab === 'insights' && vm.insights && (
             <ScrollView style={styles.scrollContent}>
-                {vm.insights.psychologicalProfile && (
-                  <View style={styles.profileCard}>
-                    <Text style={styles.cardTitle}>Психологический профиль</Text>
-                    <View style={styles.profileSections}>
-                      <View style={styles.profileSection}>
-                        <Text style={styles.profileSectionTitle}>💪 Сильные стороны</Text>
-                        <View style={styles.profileTags}>
-                          {vm.insights.psychologicalProfile.strengths.length > 0 ? (
-                            vm.insights.psychologicalProfile.strengths.map((s: string, i: number) => (
-                              <View key={i} style={[styles.profileTag, { backgroundColor: '#E8F5E8' }]}>
-                                <Text style={[styles.profileTagText, { color: '#2E7D4A' }]}>{s}</Text>
-                              </View>
-                            ))
-                          ) : <Text style={styles.emptySmallText}>Анализируем...</Text>}
-                        </View>
-                      </View>
-                      <View style={styles.profileSection}>
-                        <Text style={styles.profileSectionTitle}>🎯 Уязвимости</Text>
-                        <View style={styles.profileTags}>
-                          {vm.insights.psychologicalProfile.vulnerabilities.length > 0 ? (
-                            vm.insights.psychologicalProfile.vulnerabilities.map((v: string, i: number) => (
-                              <View key={i} style={[styles.profileTag, { backgroundColor: '#FFF3E0' }]}>
-                                <Text style={[styles.profileTagText, { color: '#E65100' }]}>{v}</Text>
-                              </View>
-                            ))
-                          ) : <Text style={styles.emptySmallText}>Анализируем...</Text>}
-                        </View>
-                      </View>
-                    </View>
-                  </View>
-                )}
-
                 <View style={styles.insightCard}>
                   <Text style={styles.cardTitle}>Прогресс</Text>
                   <Text style={styles.statusText}>{vm.insights.progressSummary}</Text>
@@ -695,41 +663,6 @@ const styles = StyleSheet.create({
     color: '#5D4037',
   },
   emptyText: { textAlign: 'center', color: '#999', marginTop: 20, fontStyle: 'italic' },
-  emptySmallText: { fontSize: 12, color: '#999', fontStyle: 'italic' },
-  profileCard: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 15,
-    elevation: 2,
-    borderTopWidth: 4,
-    borderTopColor: '#673AB7',
-  },
-  profileSections: {
-    gap: 15,
-  },
-  profileSection: {
-    gap: 8,
-  },
-  profileSectionTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  profileTags: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  profileTag: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  profileTagText: {
-    fontSize: 11,
-    fontWeight: 'bold',
-  },
   startersContainer: {
     padding: 15,
     backgroundColor: '#F0F7F0',

@@ -65,13 +65,11 @@ const ExpertQACard = ({ qa }: { qa: ExpertQA }) => (
 const SupportPostItem = ({
   post,
   onCommentPress,
-  onReactionPress,
-  onPollVote
+  onReactionPress
 }: {
   post: SupportPost,
   onCommentPress: (post: SupportPost) => void,
-  onReactionPress: (postId: string, reaction: ReactionType) => void,
-  onPollVote?: (postId: string, optionId: string) => void
+  onReactionPress: (postId: string, reaction: ReactionType) => void
 }) => {
   const isMentor = (post.authorDaysSober || 0) >= 365;
   const isRisingStar = (post.authorDaysSober || 0) >= 30 && (post.authorDaysSober || 0) < 365;
@@ -122,11 +120,11 @@ const SupportPostItem = ({
         <View style={styles.authorInfo}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             <Text style={styles.authorName}>{post.author}</Text>
-            {post.authorDays && post.authorDays >= 100 && (
-              <View style={styles.mentorBadge}>
-                <MaterialIcons name="stars" size={12} color="white" />
-                <Text style={styles.mentorBadgeText}>Наставник</Text>
-              </View>
+            {post.authorSoberDays && post.authorSoberDays >= 100 && (
+                <View style={styles.mentorBadge}>
+                    <MaterialIcons name="verified" size={12} color="white" />
+                    <Text style={styles.mentorBadgeText}>Наставник</Text>
+                </View>
             )}
           </View>
           <Text style={styles.timeAgo}>{post.timeAgo}</Text>
@@ -140,31 +138,6 @@ const SupportPostItem = ({
         styles.postContent,
         post.category === 'daily_thread' && styles.dailyThreadText
       ]}>{post.content}</Text>
-
-      {post.poll && (
-        <View style={styles.pollContainer}>
-          <Text style={styles.pollQuestion}>{post.poll.question}</Text>
-          {post.poll.options.map(option => {
-            const totalVotes = post.poll?.options.reduce((acc, curr) => acc + curr.votes, 0) || 1;
-            const percentage = Math.round((option.votes / totalVotes) * 100);
-            const isSelected = post.poll?.userVote === option.id;
-
-            return (
-              <TouchableOpacity
-                key={option.id}
-                style={[styles.pollOption, isSelected && styles.pollOptionSelected]}
-                onPress={() => onPollVote?.(post.id, option.id)}
-              >
-                <View style={[styles.pollProgress, { width: `${percentage}%` }]} />
-                <Text style={[styles.pollOptionText, isSelected && styles.pollOptionTextSelected]}>
-                  {option.text}
-                </Text>
-                <Text style={styles.pollPercentage}>{percentage}%</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      )}
 
       {Object.values(reactions).some(v => v > 0) && (
         <View style={styles.reactionsSummary}>
@@ -260,7 +233,6 @@ export default function CommunityPage() {
   const [groupChallenges, setGroupChallenges] = useState<(GroupChallenge & { isParticipating?: boolean })[]>([]);
   const [circles, setCircles] = useState<any[]>([]);
   const [selectedCircle, setSelectedCircle] = useState('all');
-  const [liveRooms, setLiveRooms] = useState<any[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isStoryModalVisible, setIsStoryModalVisible] = useState(false);
   const [isCommentModalVisible, setIsCommentModalVisible] = useState(false);
@@ -293,7 +265,7 @@ export default function CommunityPage() {
       }
 
       setCircles(CommunityService.getCircles());
-      setLiveRooms(CommunityService.getLiveRooms());
+      setPulse(CommunityService.getCommunityPulse());
       setIsLoading(false);
     };
     loadData();
@@ -371,27 +343,6 @@ export default function CommunityPage() {
     Alert.alert('Успех', 'Ваша история опубликована!');
   };
 
-  const handlePollVote = (postId: string, optionId: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setPosts(currentPosts => currentPosts.map(p => {
-      if (p.id === postId && p.poll) {
-        if (p.poll.userVote) return p; // Already voted
-
-        return {
-          ...p,
-          poll: {
-            ...p.poll,
-            userVote: optionId,
-            options: p.poll.options.map(opt =>
-              opt.id === optionId ? { ...opt, votes: opt.votes + 1 } : opt
-            )
-          }
-        };
-      }
-      return p;
-    }));
-  };
-
   const handleToggleChallenge = async (challengeId: string) => {
     const joined = await CommunityService.toggleChallengeParticipation(challengeId);
     const updatedChallenges = await CommunityService.getGroupChallenges();
@@ -437,35 +388,6 @@ export default function CommunityPage() {
             </ScrollView>
         </View>
       )}
-
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Живые комнаты</Text>
-        <View style={styles.liveIndicator}>
-          <View style={styles.liveDot} />
-          <Text style={styles.liveText}>LIVE</Text>
-        </View>
-      </View>
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.goalsContainer}
-      >
-        {isLoading ? (
-          [1, 2].map(i => <Skeleton key={i} width={200} height={100} borderRadius={16} />)
-        ) : (
-          liveRooms.map(room => (
-            <TouchableOpacity key={room.id} style={[styles.liveRoomCard, { borderLeftColor: room.color }]}>
-              <Text style={styles.liveRoomTitle}>{room.title}</Text>
-              <Text style={styles.liveRoomTopic}>{room.topic}</Text>
-              <View style={styles.liveRoomFooter}>
-                <MaterialIcons name="people" size={14} color="#666" />
-                <Text style={styles.liveRoomParticipants}>{room.participants} в сети</Text>
-              </View>
-            </TouchableOpacity>
-          ))
-        )}
-      </ScrollView>
 
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Групповые челленджи</Text>
@@ -697,7 +619,6 @@ export default function CommunityPage() {
                 setIsCommentModalVisible(true);
               }}
               onReactionPress={handleReactionPress}
-            onPollVote={handlePollVote}
             />
           )}
           ListHeaderComponent={renderHeader}
@@ -1341,26 +1262,38 @@ const styles = StyleSheet.create({
   authorNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6
+    gap: 6,
   },
   authorName: {
     fontSize: 15,
     fontWeight: '600',
     color: '#333'
   },
-  mentorBadge: {
+  badge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F57F17',
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 6,
-    gap: 2
+    borderRadius: 8,
+    gap: 2,
   },
-  mentorBadgeText: {
-    color: 'white',
+  mentorBadge: {
+    backgroundColor: '#FFF8E1',
+    borderWidth: 1,
+    borderColor: '#FFD54F',
+  },
+  starBadge: {
+    backgroundColor: '#E3F2FD',
+    borderWidth: 1,
+    borderColor: '#90CAF9',
+  },
+  badgeEmoji: {
+    fontSize: 10,
+  },
+  badgeText: {
     fontSize: 9,
-    fontWeight: 'bold'
+    fontWeight: 'bold',
+    color: '#333',
   },
   timeAgo: {
     fontSize: 11,
@@ -1509,108 +1442,44 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     lineHeight: 20
   },
-  liveIndicator: {
+  pulseContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFEBEE',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    gap: 4,
-  },
-  liveDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#F44336',
-  },
-  liveText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: '#F44336',
-  },
-  liveRoomCard: {
+    marginHorizontal: 20,
     backgroundColor: 'white',
-    width: 180,
     padding: 12,
     borderRadius: 16,
-    borderLeftWidth: 4,
-    elevation: 2,
+    marginBottom: 15,
+    elevation: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05,
     shadowRadius: 2,
   },
-  liveRoomTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 2,
-  },
-  liveRoomTopic: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 8,
-  },
-  liveRoomFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  liveRoomParticipants: {
-    fontSize: 11,
-    color: '#888',
-  },
-  pollContainer: {
-    backgroundColor: '#F8F9FA',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 15,
-  },
-  pollQuestion: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
-  },
-  pollOption: {
-    height: 36,
-    backgroundColor: 'white',
-    borderRadius: 8,
-    marginBottom: 8,
+  pulseDotContainer: {
+    width: 20,
+    height: 20,
     justifyContent: 'center',
-    paddingHorizontal: 12,
-    position: 'relative',
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
+    alignItems: 'center',
+    marginRight: 10,
   },
-  pollOptionSelected: {
-    borderColor: '#2E7D4A',
-    borderWidth: 1.5,
+  pulseDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#4CAF50',
   },
-  pollProgress: {
+  pulseDotPing: {
     position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    backgroundColor: '#E8F5E8',
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#4CAF50',
+    opacity: 0.4,
   },
-  pollOptionText: {
+  pulseText: {
     fontSize: 13,
-    color: '#444',
-    zIndex: 1,
-  },
-  pollOptionTextSelected: {
-    fontWeight: 'bold',
-    color: '#2E7D4A',
-  },
-  pollPercentage: {
-    position: 'absolute',
-    right: 12,
-    fontSize: 11,
     color: '#666',
-    fontWeight: 'bold',
-    zIndex: 1,
+    fontWeight: '500',
   }
 });
