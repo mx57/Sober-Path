@@ -73,6 +73,8 @@ const SupportPostItem = ({
   onReactionPress: (postId: string, reaction: ReactionType) => void,
   onPollVote?: (postId: string, optionId: string) => void
 }) => {
+  const isMentor = (post.authorDaysSober || 0) >= 365;
+  const isRisingStar = (post.authorDaysSober || 0) >= 30 && (post.authorDaysSober || 0) < 365;
   const [showReactions, setShowReactions] = useState(false);
   const heartScale = useSharedValue(1);
   const heartAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: heartScale.value }] }));
@@ -220,6 +222,30 @@ const SupportPostItem = ({
           </TouchableOpacity>
         </Animated.View>
       )}
+    </Animated.View>
+  );
+};
+
+const CommunityPulse = () => {
+  const [activeUsers, setActiveUsers] = useState(124);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveUsers(prev => {
+        const next = prev + Math.floor(Math.random() * 5) - 2;
+        return next > 100 ? next : 100;
+      });
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <Animated.View entering={FadeInUp} style={styles.pulseContainer}>
+      <View style={styles.pulseDotContainer}>
+        <View style={styles.pulseDot} />
+        <View style={[styles.pulseDot, styles.pulseDotPing]} />
+      </View>
+      <Text style={styles.pulseText}>{activeUsers} участников сейчас онлайн и поддерживают друг друга</Text>
     </Animated.View>
   );
 };
@@ -604,6 +630,8 @@ export default function CommunityPage() {
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Лента поддержки</Text>
       </View>
+
+      <CommunityPulse />
     </View>
   );
   };

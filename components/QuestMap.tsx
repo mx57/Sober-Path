@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Dimensions, Alert, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { QuestMilestone } from '../services/questService';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -29,8 +29,22 @@ export const QuestMap: React.FC<QuestMapProps> = ({ milestones, currentSoberDays
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <MaterialIcons name="map" size={20} color={colors.primary} />
-        <Text style={[styles.title, { color: colors.text }]}>Квест: Первые 30 дней</Text>
+        <View style={styles.headerTitleRow}>
+          <MaterialIcons name="map" size={20} color={colors.primary} />
+          <Text style={[styles.title, { color: colors.text }]}>Квест: Первые 30 дней</Text>
+        </View>
+        {currentSoberDays > 0 && (
+          <TouchableOpacity
+            style={styles.headerShareButton}
+            onPress={() => {
+              const currentMilestone = milestones.filter(m => currentSoberDays >= m.day).pop() || milestones[0];
+              setSelectedMilestone(currentMilestone);
+            }}
+          >
+            <MaterialIcons name="share" size={18} color={colors.primary} />
+            <Text style={styles.headerShareText}>Поделиться</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
@@ -120,12 +134,33 @@ export const QuestMap: React.FC<QuestMapProps> = ({ milestones, currentSoberDays
                   </View>
                 </View>
 
-                <TouchableOpacity
-                  style={styles.closeButton}
-                  onPress={() => setSelectedMilestone(null)}
-                >
-                  <Text style={styles.closeButtonText}>Понятно</Text>
-                </TouchableOpacity>
+                <View style={styles.modalFooter}>
+                  <TouchableOpacity
+                    style={[styles.modalFooterButton, styles.shareButton]}
+                    onPress={async () => {
+                      const text = `Я на ${currentSoberDays}-м дне пути к трезвости! Мой текущий этап: ${selectedMilestone.title}. Присоединяйтесь к Sober Path!`;
+                      if (Platform.OS === 'web') {
+                        Alert.alert('Поделиться', text);
+                      } else {
+                        if (await Sharing.isAvailableAsync()) {
+                          // Note: In a real app we might generate an image,
+                          // but for now we share text or simulated image link
+                          Alert.alert('Поделиться', text);
+                        }
+                      }
+                    }}
+                  >
+                    <MaterialIcons name="share" size={20} color="white" />
+                    <Text style={styles.shareButtonText}>Поделиться</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.modalFooterButton, styles.closeButton]}
+                    onPress={() => setSelectedMilestone(null)}
+                  >
+                    <Text style={styles.closeButtonText}>Закрыть</Text>
+                  </TouchableOpacity>
+                </View>
               </>
             )}
           </View>
@@ -143,8 +178,27 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
     marginBottom: 12,
+  },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerShareButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#E8F5E8',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  headerShareText: {
+    fontSize: 12,
+    color: '#2E7D4A',
+    fontWeight: 'bold',
   },
   title: {
     fontSize: 18,
@@ -264,15 +318,33 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
   },
-  closeButton: {
-    padding: 16,
-    alignItems: 'center',
+  modalFooter: {
+    flexDirection: 'row',
     borderTopWidth: 1,
     borderTopColor: '#F0F0F0',
+  },
+  modalFooterButton: {
+    flex: 1,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  shareButton: {
+    backgroundColor: '#2E7D4A',
+  },
+  shareButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  closeButton: {
+    backgroundColor: 'white',
   },
   closeButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#2E7D4A',
+    color: '#666',
   }
 });

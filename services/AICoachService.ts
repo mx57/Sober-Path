@@ -141,6 +141,15 @@ const ROADMAP_STORAGE_KEY = 'sober_path_ai_roadmap';
 
 export class AICoachService {
   private static memory: Map<string, ConversationMemory> = new Map();
+
+  private static detectSentiment(message: string): 'frustrated' | 'sad' | 'hopeful' | 'anxious' | 'neutral' {
+    const lower = message.toLowerCase();
+    if (lower.includes('устал') || lower.includes('надоело') || lower.includes('бесит') || lower.includes('тяжело')) return 'frustrated';
+    if (lower.includes('грустно') || lower.includes('одинок') || lower.includes('плачу') || lower.includes('тоска')) return 'sad';
+    if (lower.includes('верю') || lower.includes('смогу') || lower.includes('лучше') || lower.includes('радость')) return 'hopeful';
+    if (lower.includes('боюсь') || lower.includes('страх') || lower.includes('тревога') || lower.includes('вдруг')) return 'anxious';
+    return 'neutral';
+  }
   private static userChallenges: Map<string, AICoachChallenge[]> = new Map();
   private static userRoadmaps: Map<string, WeeklyRoadmap> = new Map();
   private static initialized = false;
@@ -267,6 +276,33 @@ export class AICoachService {
 
         const topics = this.extractTopics(lowercaseMessage);
         const knowledgeMatch = findRelevantKnowledge(userMessage);
+        const sentiment = this.detectSentiment(userMessage);
+
+        // Когнитивный рефрейминг при негативных мыслях
+        if (sentiment === 'frustrated' || sentiment === 'anxious' || lowercaseMessage.includes('никогда') || lowercaseMessage.includes('не смогу')) {
+          if (Math.random() > 0.6) {
+            return success({
+              message: 'Я заметил в ваших словах некоторую безнадежность. Давайте попробуем технику "Рефрейминг". Попробуйте переформулировать вашу мысль: вместо "Я никогда не смогу" скажите "Сейчас мне трудно, но я учусь справляться". Как это звучит для вас?',
+              emotionalTone: 'empathetic',
+              suggestions: ['Звучит лучше', 'Мне все еще трудно', 'Давай другое упражнение'],
+              followUpQuestions: ['Что именно вызывает наибольшее давление сейчас?'],
+              memoryUpdates: ['Detected negative thought pattern', `Sentiment: ${sentiment}`],
+              confidenceLevel: 1.0,
+              exercise: {
+                id: 'cognitive_reframing',
+                name: 'Когнитивный рефрейминг',
+                type: 'nlp',
+                currentStep: 0,
+                steps: [
+                  'Запишите негативную мысль, которая вас беспокоит.',
+                  'Найдите в ней когнитивное искажение (например, "все или ничего").',
+                  'Сформулируйте более реалистичный и мягкий вариант этой мысли.',
+                  'Почувствуйте, как изменилось ваше состояние после этого.'
+                ]
+              }
+            });
+          }
+        }
 
         // Проверка на запрос упражнения
         if (lowercaseMessage.includes('заземление') || lowercaseMessage.includes('5-4-3-2-1')) {
@@ -573,14 +609,32 @@ export class AICoachService {
       new Date(c.timestamp).toDateString() === new Date().toDateString()
     );
 
-    let message = "Добрый вечер! Давайте подведем итоги сегодняшнего дня. Как вы оцениваете свою трезвость сегодня?";
+    const templates = [
+      "Добрый вечер! Давайте подведем итоги сегодняшнего дня. Как вы оцениваете свою трезвость сегодня?",
+      "Вечер — время тишины. Как прошел ваш день в плане осознанности и трезвости?",
+      "Завершаем день вместе. Какое событие сегодня больше всего укрепило ваше желание быть трезвым?"
+    ];
+
+    const stressTemplates = [
+      "Добрый вечер. Сегодня был непростой день, мы обсуждали трудности. Я горжусь тем, что вы справились. Как ваше состояние сейчас, перед сном?",
+      "Трудные дни делают нас сильнее. Вы прошли через испытания сегодня и остались верны себе. Как вы сейчас?",
+      "Вечерняя рефлексия: сегодня вы столкнулись со стрессом. Что помогло вам не поддаться импульсу?"
+    ];
+
+    const productiveTemplates = [
+      "Добрый вечер! Сегодня был продуктивный день. Что было самым приятным в вашей трезвости сегодня?",
+      "Отличный день в копилку вашей новой жизни! О чем вы мечтаете сегодня вечером?",
+      "Ваша энергия сегодня вдохновляет. Какую маленькую победу вы заберете с собой в завтрашний день?"
+    ];
+
+    let message = templates[Math.floor(Math.random() * templates.length)];
 
     if (todayConversations.length > 0) {
       const topics = todayConversations.flatMap(c => c.topics);
       if (topics.includes('Стресс') || topics.includes('Тяга')) {
-        message = "Добрый вечер. Сегодня был непростой день, мы обсуждали трудности. Я горжусь тем, что вы справились. Как ваше состояние сейчас, перед сном?";
+        message = stressTemplates[Math.floor(Math.random() * stressTemplates.length)];
       } else {
-        message = "Добрый вечер! Сегодня был продуктивный день. Что было самым приятным в вашей трезвости сегодня?";
+        message = productiveTemplates[Math.floor(Math.random() * productiveTemplates.length)];
       }
     }
 
@@ -697,33 +751,53 @@ export class AICoachService {
       .sort(() => 0.5 - Math.random())
       .slice(0, 3);
 
-    let title = "Ваш план на сегодня";
-    let plan = [
-      "Отметить день в календаре",
-      "Прочитать одну статью о восстановлении",
-      "Сделать 5-минутную медитацию"
+    const briefingTemplates = [
+      {
+        title: "Ваш план на сегодня",
+        plan: ["Отметить день в календаре", "Прочитать одну статью о восстановлении", "Сделать 5-минутную медитацию"],
+        motivation: "Каждый день без алкоголя делает вас сильнее и свободнее.",
+        focus: "Сохранение спокойствия и осознанности"
+      },
+      {
+        title: "Настройка на день",
+        plan: ["Утренняя зарядка 10 мин", "Планирование задач без стресса", "Вечерняя благодарность"],
+        motivation: "Трезвость открывает двери, о которых вы даже не подозревали.",
+        focus: "Продуктивность и ясность"
+      },
+      {
+        title: "Энергия трезвости",
+        plan: ["Дыхательная техника утром", "Прогулка на свежем воздухе", "Связь с наставником"],
+        motivation: "Вы — архитектор своей новой жизни. Стройте её крепкой.",
+        focus: "Физическое и ментальное здоровье"
+      }
     ];
-    let motivation = "Каждый день без алкоголя делает вас сильнее и свободнее.";
-    let focus = "Сохранение спокойствия и осознанности";
+
+    const lowMoodTemplates = [
+      {
+        title: "Поддержка в трудный день",
+        plan: ["Избегать триггерных мест и людей", "Слушать успокаивающее SOS-аудио", "Записать свои чувства в дневник"],
+        motivation: "Я рядом, чтобы помочь вам пройти через этот день.",
+        focus: "Эмоциональная безопасность"
+      },
+      {
+        title: "Новый день — чистый лист",
+        plan: ["Минимальные задачи на сегодня", "Ванна с солью вечером", "Ранний отход ко сну"],
+        motivation: "Вчера было непросто, но вы справились. Сегодня — новый шанс.",
+        focus: "Забота о себе"
+      }
+    ];
+
+    let briefing = briefingTemplates[Math.floor(Math.random() * briefingTemplates.length)];
 
     if (currentMood <= 2 || avgYesterdayMood <= 2) {
-      title = currentMood <= 2 ? "Поддержка в трудный день" : "Новый день — новые возможности";
-      plan = [
-        "Избегать триггерных мест и людей",
-        "Слушать успокаивающее SOS-аудио",
-        "Записать свои чувства в дневник"
-      ];
-      motivation = avgYesterdayMood <= 2
-        ? "Вчера было непросто, но вы справились. Сегодня — чистый лист."
-        : "Я рядом, чтобы помочь вам пройти через этот день.";
-      focus = "Эмоциональная безопасность";
+      briefing = lowMoodTemplates[Math.floor(Math.random() * lowMoodTemplates.length)];
     }
 
-    if (soberDays > 30) {
-      plan.push("Поделиться опытом в сообществе");
+    if (soberDays > 30 && !briefing.plan.includes("Поделиться опытом в сообществе")) {
+      briefing.plan.push("Поделиться опытом в сообществе");
     }
 
-    return { title, plan, motivation, focus, quickTips };
+    return { ...briefing, quickTips };
   }
 
   private static extractTopics(message: string): string[] {
