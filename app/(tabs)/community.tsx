@@ -71,6 +71,8 @@ const SupportPostItem = ({
   onCommentPress: (post: SupportPost) => void,
   onReactionPress: (postId: string, reaction: ReactionType) => void
 }) => {
+  const isMentor = (post.authorDaysSober || 0) >= 365;
+  const isRisingStar = (post.authorDaysSober || 0) >= 30 && (post.authorDaysSober || 0) < 365;
   const [showReactions, setShowReactions] = useState(false);
   const heartScale = useSharedValue(1);
   const heartAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: heartScale.value }] }));
@@ -116,8 +118,22 @@ const SupportPostItem = ({
           <MaterialIcons name={getCategoryIcon(post.category)} size={20} color={getCategoryColor(post.category)} />
         </View>
         <View style={styles.authorInfo}>
-          <Text style={styles.authorName}>{post.author}</Text>
-          <Text style={styles.timeAgo}>{post.timeAgo}</Text>
+          <View style={styles.authorNameRow}>
+            <Text style={styles.authorName}>{post.author}</Text>
+            {isMentor && (
+              <View style={[styles.badge, styles.mentorBadge]}>
+                <Text style={styles.badgeEmoji}>🏅</Text>
+                <Text style={styles.badgeText}>Наставник</Text>
+              </View>
+            )}
+            {isRisingStar && (
+              <View style={[styles.badge, styles.starBadge]}>
+                <Text style={styles.badgeEmoji}>✨</Text>
+                <Text style={styles.badgeText}>Звезда</Text>
+              </View>
+            )}
+          </View>
+          <Text style={styles.timeAgo}>{post.timeAgo} • {post.authorDaysSober} дн. трезвости</Text>
         </View>
         <View style={[styles.categoryBadge, { backgroundColor: getCategoryColor(post.category) }]}>
             <Text style={styles.categoryBadgeText}>{post.category === 'daily_thread' ? 'Дневной поток' : post.category}</Text>
@@ -185,6 +201,30 @@ const SupportPostItem = ({
           </TouchableOpacity>
         </Animated.View>
       )}
+    </Animated.View>
+  );
+};
+
+const CommunityPulse = () => {
+  const [activeUsers, setActiveUsers] = useState(124);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveUsers(prev => {
+        const next = prev + Math.floor(Math.random() * 5) - 2;
+        return next > 100 ? next : 100;
+      });
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <Animated.View entering={FadeInUp} style={styles.pulseContainer}>
+      <View style={styles.pulseDotContainer}>
+        <View style={styles.pulseDot} />
+        <View style={[styles.pulseDot, styles.pulseDotPing]} />
+      </View>
+      <Text style={styles.pulseText}>{activeUsers} участников сейчас онлайн и поддерживают друг друга</Text>
     </Animated.View>
   );
 };
@@ -517,6 +557,8 @@ export default function CommunityPage() {
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Лента поддержки</Text>
       </View>
+
+      <CommunityPulse />
     </View>
   );
   };
@@ -1139,10 +1181,41 @@ const styles = StyleSheet.create({
   authorInfo: {
     flex: 1
   },
+  authorNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   authorName: {
     fontSize: 15,
     fontWeight: '600',
     color: '#333'
+  },
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    gap: 2,
+  },
+  mentorBadge: {
+    backgroundColor: '#FFF8E1',
+    borderWidth: 1,
+    borderColor: '#FFD54F',
+  },
+  starBadge: {
+    backgroundColor: '#E3F2FD',
+    borderWidth: 1,
+    borderColor: '#90CAF9',
+  },
+  badgeEmoji: {
+    fontSize: 10,
+  },
+  badgeText: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    color: '#333',
   },
   timeAgo: {
     fontSize: 11,
@@ -1290,5 +1363,45 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 15,
     lineHeight: 20
+  },
+  pulseContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 20,
+    backgroundColor: 'white',
+    padding: 12,
+    borderRadius: 16,
+    marginBottom: 15,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  pulseDotContainer: {
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  pulseDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#4CAF50',
+  },
+  pulseDotPing: {
+    position: 'absolute',
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#4CAF50',
+    opacity: 0.4,
+  },
+  pulseText: {
+    fontSize: 13,
+    color: '#666',
+    fontWeight: '500',
   }
 });

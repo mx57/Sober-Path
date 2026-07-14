@@ -22,6 +22,8 @@ interface StatCardProps {
 export const StatCard = ({ icon, number, label, primary, index = 0, animatedStyle }: StatCardProps) => {
   const n = typeof number === 'number' ? number : parseInt(number, 10) || 0;
 
+  const progressValue = useSharedValue(0);
+
   const milestones = [
     { days: 1, label: 'Первый шаг', color: '#4CAF50' },
     { days: 7, label: 'Неделя', color: '#8BC34A' },
@@ -39,6 +41,10 @@ export const StatCard = ({ icon, number, label, primary, index = 0, animatedStyl
   const prevMilestoneDays = milestones.filter(m => m.days <= n).pop()?.days || 0;
   const progress = n >= 365 ? 1 : (n - prevMilestoneDays) / (nextMilestone.days - prevMilestoneDays);
 
+  useEffect(() => {
+    progressValue.value = withTiming(progress, { duration: 1000 });
+  }, [progress]);
+
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(20);
 
@@ -50,6 +56,10 @@ export const StatCard = ({ icon, number, label, primary, index = 0, animatedStyl
   const entranceStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
     transform: [{ translateY: translateY.value }]
+  }));
+
+  const animatedProgressStyle = useAnimatedStyle(() => ({
+    width: `${progressValue.value * 100}%`
   }));
 
   const CardContainer = primary ? LinearGradient : View;
@@ -80,7 +90,7 @@ export const StatCard = ({ icon, number, label, primary, index = 0, animatedStyl
               )}
             </View>
             <View style={styles.progressBarBg}>
-              <View style={[styles.progressBarFill, { width: `${progress * 100}%` }]} />
+              <Animated.View style={[styles.progressBarFill, animatedProgressStyle]} />
             </View>
           </View>
         )}
