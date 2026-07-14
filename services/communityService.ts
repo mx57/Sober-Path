@@ -21,6 +21,7 @@ export interface PostPoll {
 export interface SupportPost {
   id: string;
   author: string;
+  authorSoberDays?: number;
   content: string;
   likes: number;
   comments: number;
@@ -29,6 +30,14 @@ export interface SupportPost {
   reactions?: Record<ReactionType, number>;
   poll?: PostPoll;
   authorDays?: number;
+}
+
+export interface PulseActivity {
+  id: string;
+  userName: string;
+  type: 'post' | 'comment' | 'reaction' | 'milestone';
+  text: string;
+  timestamp: Date;
 }
 
 export interface ExpertQA {
@@ -240,6 +249,7 @@ export class CommunityService {
       {
         id: 'p1',
         author: 'Мария',
+        authorSoberDays: 30,
         content: 'Сегодня 30 дней! Не верится, что я дошла до этого рубежа. Спасибо всем за поддержку в этом чате.',
         likes: 24,
         comments: 5,
@@ -250,6 +260,7 @@ export class CommunityService {
       {
         id: 'p2',
         author: 'Игорь',
+        authorSoberDays: 45,
         content: 'Ребята, как вы справляетесь с тягой в пятницу вечером? Поделитесь своими проверенными способами.',
         likes: 12,
         comments: 18,
@@ -259,6 +270,7 @@ export class CommunityService {
       {
         id: 'p3',
         author: 'Анна',
+        authorSoberDays: 120,
         content: 'Помните, что один плохой день не перечеркивает ваш прогресс. Просто продолжайте идти вперед.',
         likes: 45,
         comments: 2,
@@ -268,6 +280,7 @@ export class CommunityService {
       {
         id: 'p4',
         author: 'Виктор',
+        authorSoberDays: 1100,
         content: 'Заметил, что тяга стала намного меньше после того, как я начал заниматься йогой по утрам. Всем советую!',
         likes: 31,
         comments: 4,

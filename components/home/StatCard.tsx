@@ -109,7 +109,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 8,
     elevation: 4,
-    overflow: 'hidden'
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
   },
   cardInternal: {
     padding: 20,
