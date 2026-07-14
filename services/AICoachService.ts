@@ -39,6 +39,13 @@ export interface HealthMetrics {
   socialInteraction?: 1 | 2 | 3 | 4 | 5;
 }
 
+export interface PsychologicalProfile {
+  dominantTraits: string[];
+  vulnerabilities: string[];
+  strengths: string[];
+  lastUpdate: Date;
+}
+
 export interface ConversationMemory {
   userId: string;
   conversations: {
@@ -59,6 +66,7 @@ export interface ConversationMemory {
     moodTrend: 'improving' | 'stable' | 'declining';
     commonEmotions: string[];
   };
+  psychologicalProfile?: PsychologicalProfile;
 }
 
 export interface RecommendedArticle {
@@ -90,7 +98,7 @@ export interface InteractiveExercise {
   name: string;
   steps: string[];
   currentStep: number;
-  type: 'grounding' | 'breathing' | 'nlp';
+  type: 'grounding' | 'breathing' | 'nlp' | 'reflection';
 }
 
 export interface EnhancedAIResponse {
@@ -200,6 +208,12 @@ export class AICoachService {
           averageMood: 3,
           moodTrend: 'stable',
           commonEmotions: []
+        },
+        psychologicalProfile: {
+          dominantTraits: [],
+          vulnerabilities: [],
+          strengths: [],
+          lastUpdate: new Date()
         }
       });
     }
@@ -315,25 +329,25 @@ export class AICoachService {
           });
         }
 
-        if (lowercaseMessage.includes('рефрейминг') || lowercaseMessage.includes('негативные мысли') || lowercaseMessage.includes('автоматические мысли')) {
+        if (lowercaseMessage.includes('письмо') || lowercaseMessage.includes('будущему')) {
           return success({
-            message: 'Я вижу, что вас беспокоят автоматические негативные мысли. Давайте проведем сессию когнитивного рефрейминга, чтобы взглянуть на ситуацию иначе. Попробуем?',
-            emotionalTone: 'educational',
-            suggestions: ['Начать рефрейминг', 'Не сейчас'],
+            message: 'Это прекрасная идея — написать письмо себе в будущее. Оно поможет зафиксировать ваши чувства и цели. Хотите начать прямо сейчас?',
+            emotionalTone: 'motivational',
+            suggestions: ['Начать писать', 'Позже'],
             followUpQuestions: [],
-            memoryUpdates: ['User requested cognitive reframing'],
+            memoryUpdates: ['User requested letter to future self exercise'],
             confidenceLevel: 1.0,
             exercise: {
-              id: 'cbt_reframing',
-              name: 'Когнитивный рефрейминг',
-              type: 'nlp',
+              id: 'letter_to_future',
+              name: 'Письмо будущему себе',
+              type: 'reflection',
               currentStep: -1,
               steps: [
-                'Запишите вашу негативную мысль прямо сейчас (например: "Я никогда не справлюсь").',
-                'Какие факты подтверждают эту мысль? Будьте объективны.',
-                'Какие факты ОПРОВЕРГАЮТ эту мысль? Вспомните свои прошлые успехи.',
-                'Если бы ваш лучший друг думал так о себе, что бы вы ему ответили?',
-                'Сформулируйте новую, более сбалансированную и реалистичную мысль.'
+                'Опишите, почему вы решили стать трезвым сегодня. Что вы чувствуете?',
+                'Перечислите 3 вещи, которые вы хотите достичь через месяц.',
+                'Что бы вы хотели сказать себе в тот момент, когда вам будет трудно?',
+                'Какое напутствие вы дадите себе будущему?',
+                'Письмо готово. Я сохраню его и напомню вам о нем через месяц.'
               ]
             }
           });
@@ -346,7 +360,7 @@ export class AICoachService {
 
         if (knowledgeMatch) {
           response = knowledgeMatch.response;
-          emotionalTone = this.determineTone(knowledgeMatch.category);
+          emotionalTone = this.determineTone(knowledgeMatch.category, context.userMood);
           suggestions = knowledgeMatch.techniques.slice(0, 3);
           followUpQuestions = this.generateFollowUp(knowledgeMatch.category);
         } else {
@@ -361,7 +375,7 @@ export class AICoachService {
             response = "Я рядом и готов поддержать вас в самом начале пути к трезвости. Расскажите подробнее, что вы сейчас чувствуете? Первый шаг самый важный.";
           }
 
-          emotionalTone = 'supportive';
+          emotionalTone = this.determineTone('Default', context.userMood);
           suggestions = ['Дыхательное упражнение', 'Прогулка', 'HALT проверка'];
           followUpQuestions = ['Как прошел ваш день?', 'Что сейчас больше всего беспокоит?'];
         }
@@ -448,13 +462,16 @@ export class AICoachService {
     return Array.from(new Set(starters)).slice(0, 5);
   }
 
-  private static determineTone(category: string): 'empathetic' | 'motivational' | 'educational' | 'supportive' {
+  private static determineTone(category: string, userMood: number): 'empathetic' | 'motivational' | 'educational' | 'supportive' {
+    // Если настроение низкое, всегда используем эмпатичный тон
+    if (userMood <= 2) return 'empathetic';
+
     switch (category) {
       case 'Эмоциональная регуляция': return 'empathetic';
       case 'Мотивация и целеполагание': return 'motivational';
       case 'Когнитивные искажения': return 'educational';
       case 'Работа с тягой и триггерами': return 'supportive';
-      default: return 'supportive';
+      default: return userMood >= 4 ? 'motivational' : 'supportive';
     }
   }
 
@@ -475,6 +492,7 @@ export class AICoachService {
       moodTrend: memory.emotionalPattern.moodTrend,
       commonTopics: memory.emotionalPattern.commonEmotions,
       achievements: memory.userPreferences.goalsSet,
+      psychologicalProfile: memory.psychologicalProfile,
       progressSummary: memory.emotionalPattern.moodTrend === 'improving'
         ? 'Ваше состояние улучшается.'
         : 'Мы продолжаем работу.'
@@ -871,8 +889,49 @@ export class AICoachService {
     if (topics.length > 0) {
       const currentEmotions = [...memory.emotionalPattern.commonEmotions, ...topics];
       memory.emotionalPattern.commonEmotions = Array.from(new Set(currentEmotions)).slice(-10);
+
+      this.updatePsychologicalProfile(memory, topics);
     }
 
     await this.saveToStorage();
+  }
+
+  private static updatePsychologicalProfile(memory: ConversationMemory, topics: string[]): void {
+    if (!memory.psychologicalProfile) {
+      memory.psychologicalProfile = {
+        dominantTraits: [],
+        vulnerabilities: [],
+        strengths: [],
+        lastUpdate: new Date()
+      };
+    }
+
+    topics.forEach(topic => {
+      const lowerTopic = topic.toLowerCase();
+
+      // Анализ уязвимостей
+      if (['стресс', 'тревога', 'одиночество', 'депрессия', 'срыв'].some(t => lowerTopic.includes(t))) {
+        if (!memory.psychologicalProfile?.vulnerabilities.includes(topic)) {
+          memory.psychologicalProfile?.vulnerabilities.push(topic);
+        }
+      }
+
+      // Анализ сильных сторон
+      if (['цель', 'успех', 'спорт', 'семья', 'осознанность'].some(t => lowerTopic.includes(t))) {
+        if (!memory.psychologicalProfile?.strengths.includes(topic)) {
+          memory.psychologicalProfile?.strengths.push(topic);
+        }
+      }
+
+      // Доминантные черты на основе частоты
+      if (!memory.psychologicalProfile?.dominantTraits.includes(topic)) {
+        memory.psychologicalProfile?.dominantTraits.push(topic);
+      }
+    });
+
+    memory.psychologicalProfile.dominantTraits = memory.psychologicalProfile.dominantTraits.slice(-5);
+    memory.psychologicalProfile.vulnerabilities = memory.psychologicalProfile.vulnerabilities.slice(-5);
+    memory.psychologicalProfile.strengths = memory.psychologicalProfile.strengths.slice(-5);
+    memory.psychologicalProfile.lastUpdate = new Date();
   }
 }

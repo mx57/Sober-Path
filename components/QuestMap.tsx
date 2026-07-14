@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Dimensions
 import { MaterialIcons } from '@expo/vector-icons';
 import { QuestMilestone } from '../services/questService';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Sharing from 'expo-sharing';
+import Animated, { FadeInRight } from 'react-native-reanimated';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -53,7 +53,11 @@ export const QuestMap: React.FC<QuestMapProps> = ({ milestones, currentSoberDays
           const isCurrent = !isCompleted && (index === 0 || currentSoberDays >= milestones[index - 1].day);
 
           return (
-            <View key={milestone.id} style={styles.milestoneWrapper}>
+            <Animated.View
+              entering={FadeInRight.delay(index * 150)}
+              key={milestone.id}
+              style={styles.milestoneWrapper}
+            >
               <TouchableOpacity
                 activeOpacity={0.7}
                 onPress={() => setSelectedMilestone(milestone)}
@@ -80,7 +84,7 @@ export const QuestMap: React.FC<QuestMapProps> = ({ milestones, currentSoberDays
                   { backgroundColor: isCompleted ? colors.primary : colors.border }
                 ]} />
               )}
-            </View>
+            </Animated.View>
           );
         })}
       </ScrollView>
