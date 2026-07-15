@@ -22,15 +22,26 @@ import { modernTherapeuticTechniques, microTechniques } from '../../services/the
 const { width: screenWidth } = Dimensions.get('window');
 
 const CourseCard = ({ course, onPress }: { course: MicroCourse, onPress: () => void }) => (
-  <TouchableOpacity style={styles.courseCard} onPress={onPress}>
-    <LinearGradient colors={[course.color, course.color + 'CC']} style={styles.courseGradient}>
-      <MaterialIcons name={course.icon as any} size={32} color="white" />
-      <View style={styles.courseInfo}>
-        <Text style={styles.courseTitle}>{course.title}</Text>
-        <Text style={styles.courseMeta}>{course.lessons.length} уроков • {course.lessons.reduce((s, l) => s + l.duration, 0)} мин</Text>
+  <TouchableOpacity style={styles.courseCard} onPress={onPress} activeOpacity={0.9}>
+    <View style={styles.courseCardInner}>
+      <View style={[styles.courseIconBadge, { backgroundColor: course.color + '20' }]}>
+        <MaterialIcons name={course.icon as any} size={28} color={course.color} />
       </View>
-      <MaterialIcons name="chevron-right" size={24} color="white" />
-    </LinearGradient>
+      <View style={styles.courseInfo}>
+        <Text style={styles.courseTitleAlt}>{course.title}</Text>
+        <View style={styles.courseMetaRow}>
+          <MaterialIcons name="menu-book" size={14} color="#666" />
+          <Text style={styles.courseMetaAlt}>{course.lessons.length} уроков</Text>
+          <View style={styles.metaDot} />
+          <MaterialIcons name="access-time" size={14} color="#666" />
+          <Text style={styles.courseMetaAlt}>{course.lessons.reduce((s, l) => s + l.duration, 0)} мин</Text>
+        </View>
+        <View style={styles.progressBarBg}>
+          <View style={[styles.progressBarFill, { backgroundColor: course.color, width: '0%' }]} />
+        </View>
+      </View>
+      <MaterialIcons name="arrow-forward-ios" size={16} color="#CCC" />
+    </View>
   </TouchableOpacity>
 );
 
@@ -251,20 +262,27 @@ export default function CoursesPage() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F9FA' },
-  header: { padding: 20, paddingBottom: 25, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
-  headerTitle: { fontSize: 28, fontWeight: 'bold', color: 'white' },
-  headerSubtitle: { fontSize: 16, color: 'rgba(255,255,255,0.8)', marginTop: 4 },
-  tabBar: { flexDirection: 'row', backgroundColor: 'white', margin: 15, borderRadius: 12, padding: 4, elevation: 2 },
-  tab: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 10 },
-  activeTab: { backgroundColor: '#2E7D4A' },
-  tabLabel: { fontSize: 14, fontWeight: 'bold', color: '#2E7D4A' },
-  activeTabLabel: { color: 'white' },
-  scrollContent: { paddingHorizontal: 15, paddingBottom: 40 },
-  tabContent: { gap: 15 },
-  sectionTitle: { fontSize: 20, fontWeight: 'bold', color: '#333', marginBottom: 5 },
-  courseCard: { borderRadius: 16, overflow: 'hidden', elevation: 3 },
-  courseGradient: { flexDirection: 'row', alignItems: 'center', padding: 20, gap: 15 },
+  header: { padding: 25, paddingBottom: 35, borderBottomLeftRadius: 32, borderBottomRightRadius: 32 },
+  headerTitle: { fontSize: 32, fontWeight: 'bold', color: 'white', letterSpacing: -0.5 },
+  headerSubtitle: { fontSize: 16, color: 'rgba(255,255,255,0.9)', marginTop: 6, fontWeight: '500' },
+  tabBar: { flexDirection: 'row', backgroundColor: '#EEE', marginHorizontal: 20, marginTop: -20, borderRadius: 16, padding: 4, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
+  tab: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 14 },
+  activeTab: { backgroundColor: 'white', elevation: 2 },
+  tabLabel: { fontSize: 15, fontWeight: '700', color: '#666' },
+  activeTabLabel: { color: '#2E7D4A' },
+  scrollContent: { paddingHorizontal: 20, paddingBottom: 40, paddingTop: 15 },
+  tabContent: { gap: 18 },
+  sectionTitle: { fontSize: 22, fontWeight: '800', color: '#1A1C1E', marginBottom: 5, letterSpacing: -0.5 },
+  courseCard: { backgroundColor: 'white', borderRadius: 20, overflow: 'hidden', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, borderWidth: 1, borderColor: '#F0F0F0' },
+  courseCardInner: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 16 },
+  courseIconBadge: { width: 56, height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   courseInfo: { flex: 1 },
+  courseTitleAlt: { fontSize: 17, fontWeight: '700', color: '#1A1C1E', marginBottom: 4 },
+  courseMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  courseMetaAlt: { fontSize: 13, color: '#666', fontWeight: '500' },
+  metaDot: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: '#CCC', marginHorizontal: 4 },
+  progressBarBg: { height: 4, backgroundColor: '#F0F0F0', borderRadius: 2, marginTop: 10, overflow: 'hidden' },
+  progressBarFill: { height: '100%', borderRadius: 2 },
   courseTitle: { fontSize: 18, fontWeight: 'bold', color: 'white' },
   courseMeta: { fontSize: 12, color: 'rgba(255,255,255,0.9)', marginTop: 2 },
   techniqueItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'white', padding: 15, borderRadius: 16, gap: 12, elevation: 1 },

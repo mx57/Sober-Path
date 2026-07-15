@@ -2,6 +2,7 @@ import { findRelevantKnowledge, psychologyKnowledgeBase } from './psychologyKnow
 import { Result, success, failure } from './types';
 import { articlesDatabase } from './articlesDatabase';
 import { microCoursesDatabase } from './microCoursesDatabase';
+import { JournalService, JournalEntry } from './journalService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NotificationService from './notificationService';
 
@@ -126,6 +127,7 @@ export interface PsychologicalProfile {
   traits: string[];
   vulnerabilities: string[];
   strengths: string[];
+  sleepQuality: number; // 0-100
 }
 
 export interface MorningBriefing {
@@ -500,9 +502,10 @@ export class AICoachService {
     }
   }
 
-  static getUserInsights(userId: string) {
+  static async getUserInsights(userId: string) {
     const memory = this.getUserMemory(userId);
-    const profile = this.calculatePsychologicalProfile(memory);
+    const sleepData = await this.analyzeSleepPatterns();
+    const profile = this.calculatePsychologicalProfile(memory, sleepData.averageScore);
     return {
       conversationCount: memory.conversations.length,
       averageMood: memory.emotionalPattern.averageMood,
@@ -516,7 +519,7 @@ export class AICoachService {
     };
   }
 
-  private static calculatePsychologicalProfile(memory: ConversationMemory): PsychologicalProfile {
+  private static calculatePsychologicalProfile(memory: ConversationMemory, sleepQuality: number = 70): PsychologicalProfile {
     const conversations = memory.conversations;
 
     // Heuristic-based calculation
@@ -537,14 +540,57 @@ export class AICoachService {
     const strengths = [];
     if (memory.userPreferences.goalsSet.length > 3) strengths.push('Умение достигать целей');
     if (memory.emotionalPattern.moodTrend === 'improving') strengths.push('Эмоциональный рост');
+    if (sleepQuality > 80) strengths.push('Качественный отдых');
     if (strengths.length === 0) strengths.push('Стремление к переменам');
 
     const vulnerabilities = [];
     if (memory.emotionalPattern.commonEmotions.includes('Стресс')) vulnerabilities.push('Чувствительность к стрессу');
     if (memory.emotionalPattern.commonEmotions.includes('Тяга')) vulnerabilities.push('Риск срыва');
+    if (sleepQuality < 50) vulnerabilities.push('Дефицит сна');
     if (vulnerabilities.length === 0) vulnerabilities.push('Недостаток отдыха');
 
-    return { resilience, selfReflection, awareness, traits, vulnerabilities, strengths };
+    return { resilience, selfReflection, awareness, traits, vulnerabilities, strengths, sleepQuality };
+  }
+
+  static async analyzeSleepPatterns(): Promise<{ averageScore: number; insights: string[] }> {
+    const journalResult = await JournalService.getEntries();
+    if (!journalResult.success || journalResult.data.length === 0) {
+      return { averageScore: 70, insights: ['Недостаточно данных для анализа сна. Продолжайте вести дневник.'] };
+    }
+
+    const entries = journalResult.data;
+    const sleepKeywords = {
+      good: ['выспался', 'хорошо спал', 'крепкий сон', 'бодрый', 'отдохнул'],
+      bad: ['бессонница', 'плохо спал', 'не выспался', 'кошмары', 'ворочался', 'прерывистый сон']
+    };
+
+    let totalScore = 0;
+    let count = 0;
+    const insights: string[] = [];
+
+    entries.slice(0, 7).forEach(entry => {
+      const content = entry.content.toLowerCase();
+      let entryScore = 70; // base score
+
+      if (sleepKeywords.good.some(kw => content.includes(kw))) entryScore += 20;
+      if (sleepKeywords.bad.some(kw => content.includes(kw))) entryScore -= 30;
+
+      totalScore += entryScore;
+      count++;
+    });
+
+    const averageScore = Math.max(0, Math.min(100, totalScore / (count || 1)));
+
+    if (averageScore < 65) {
+      insights.push('Ваш сон в последнее время был беспокойным. Это может усиливать тягу.');
+      insights.push('Попробуйте исключить кофеин после 16:00 и гаджеты за час до сна.');
+    } else if (averageScore > 85) {
+      insights.push('Отличные показатели сна! Это фундамент вашей эмоциональной стабильности.');
+    } else {
+      insights.push('Ваш сон стабилен, но есть возможности для улучшения гигиены сна.');
+    }
+
+    return { averageScore, insights };
   }
 
   static detectTriggerPatterns(userId: string): TriggerPattern[] {
@@ -839,6 +885,12 @@ export class AICoachService {
 
     if (currentMood <= 2 || avgYesterdayMood <= 2) {
       briefing = lowMoodTemplates[Math.floor(Math.random() * lowMoodTemplates.length)];
+    }
+
+    // Интеграция анализа сна в брифинг
+    const sleepData = await this.analyzeSleepPatterns();
+    if (sleepData.averageScore < 60) {
+      briefing.quickTips.push('Уделите внимание сну: плохой сон — частый триггер срыва.');
     }
 
     if (soberDays > 30 && !briefing.plan.includes("Поделиться опытом в сообществе")) {
