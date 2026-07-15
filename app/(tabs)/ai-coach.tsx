@@ -314,6 +314,67 @@ export default function EnhancedAICoach() {
                   <Text style={styles.cardTitle}>Прогресс</Text>
                   <Text style={styles.statusText}>{vm.insights.progressSummary}</Text>
 
+                  {vm.insights.profile && (
+                    <View style={styles.profileSection}>
+                      <Text style={styles.profileSectionTitle}>Психологический профиль</Text>
+
+                      <View style={styles.profileMetrics}>
+                        <View style={styles.profileMetricItem}>
+                          <View style={styles.metricLabelRow}>
+                            <Text style={styles.profileMetricLabel}>Резильентность</Text>
+                            <Text style={styles.profileMetricValue}>{vm.insights.profile.resilience}%</Text>
+                          </View>
+                          <View style={styles.profileProgressBar}>
+                            <View style={[styles.profileProgressFill, { width: `${vm.insights.profile.resilience}%`, backgroundColor: '#4CAF50' }]} />
+                          </View>
+                        </View>
+
+                        <View style={styles.profileMetricItem}>
+                          <View style={styles.metricLabelRow}>
+                            <Text style={styles.profileMetricLabel}>Саморефлексия</Text>
+                            <Text style={styles.profileMetricValue}>{vm.insights.profile.selfReflection}%</Text>
+                          </View>
+                          <View style={styles.profileProgressBar}>
+                            <View style={[styles.profileProgressFill, { width: `${vm.insights.profile.selfReflection}%`, backgroundColor: '#2196F3' }]} />
+                          </View>
+                        </View>
+
+                        <View style={styles.profileMetricItem}>
+                          <View style={styles.metricLabelRow}>
+                            <Text style={styles.profileMetricLabel}>Осознанность</Text>
+                            <Text style={styles.profileMetricValue}>{vm.insights.profile.awareness}%</Text>
+                          </View>
+                          <View style={styles.profileProgressBar}>
+                            <View style={[styles.profileProgressFill, { width: `${vm.insights.profile.awareness}%`, backgroundColor: '#9C27B0' }]} />
+                          </View>
+                        </View>
+                      </View>
+
+                      <View style={styles.profileBadges}>
+                        {vm.insights.profile.traits.map((trait: string, idx: number) => (
+                          <View key={idx} style={[styles.profileBadge, { backgroundColor: '#E8F5E8' }]}>
+                            <Text style={[styles.profileBadgeText, { color: '#2E7D4A' }]}>{trait}</Text>
+                          </View>
+                        ))}
+                      </View>
+
+                      <View style={styles.profileLists}>
+                        <View style={styles.profileListContainer}>
+                          <Text style={styles.profileListTitle}>Сильные стороны</Text>
+                          {vm.insights.profile.strengths.map((s: string, idx: number) => (
+                            <Text key={idx} style={styles.profileListItem}>• {s}</Text>
+                          ))}
+                        </View>
+                        <View style={styles.profileListContainer}>
+                          <Text style={[styles.profileListTitle, { color: '#D32F2F' }]}>Уязвимости</Text>
+                          {vm.insights.profile.vulnerabilities.map((v: string, idx: number) => (
+                            <Text key={idx} style={styles.profileListItem}>• {v}</Text>
+                          ))}
+                        </View>
+                      </View>
+                    </View>
+                  )}
+
                   {vm.insights.achievements && vm.insights.achievements.length > 0 && (
                     <View style={styles.achievementsMemory}>
                       <Text style={styles.achievementsMemoryTitle}>Зафиксированные успехи:</Text>
@@ -541,6 +602,82 @@ const styles = StyleSheet.create({
   statItem: { alignItems: 'center' },
   statValue: { fontSize: 20, fontWeight: 'bold', color: '#2E7D4A' },
   statLabel: { fontSize: 12, color: '#666' },
+  profileSection: {
+    marginTop: 15,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+  },
+  profileSectionTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 12,
+  },
+  profileMetrics: {
+    gap: 12,
+    marginBottom: 15,
+  },
+  profileMetricItem: {
+    gap: 4,
+  },
+  metricLabelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  profileMetricLabel: {
+    fontSize: 12,
+    color: '#666',
+  },
+  profileMetricValue: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  profileProgressBar: {
+    height: 4,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  profileProgressFill: {
+    height: '100%',
+    borderRadius: 2,
+  },
+  profileBadges: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 15,
+  },
+  profileBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  profileBadgeText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  profileLists: {
+    flexDirection: 'row',
+    gap: 15,
+  },
+  profileListContainer: {
+    flex: 1,
+  },
+  profileListTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#2E7D4A',
+    marginBottom: 6,
+  },
+  profileListItem: {
+    fontSize: 11,
+    color: '#555',
+    marginBottom: 2,
+  },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 15 },
   sectionSmallTitle: { fontSize: 14, fontWeight: 'bold', color: '#2E7D4A', marginHorizontal: 15, marginTop: 10, marginBottom: 5 },
   challengesSection: { backgroundColor: '#E8F5E8', paddingVertical: 10 },
