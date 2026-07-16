@@ -375,6 +375,39 @@ export default function EnhancedAICoach() {
                     </View>
                   )}
 
+                  {vm.insights.sleepAnalysis && (
+                    <View style={styles.sleepSection}>
+                      <View style={styles.sleepTitleRow}>
+                        <MaterialIcons name="bedtime" size={20} color="#3F51B5" />
+                        <Text style={styles.sleepSectionTitle}>ИИ-Анализ Качества Сна</Text>
+                        <View style={styles.sleepScoreBadge}>
+                          <Text style={styles.sleepScoreText}>{vm.insights.sleepAnalysis.sleepQuality}/5</Text>
+                        </View>
+                      </View>
+
+                      <Text style={styles.sleepFeedbackText}>{vm.insights.sleepAnalysis.feedback}</Text>
+
+                      {vm.insights.sleepAnalysis.detectedIssues && vm.insights.sleepAnalysis.detectedIssues.length > 0 && (
+                        <View style={styles.detectedIssuesContainer}>
+                          <Text style={styles.detectedIssuesTitle}>Выявленные проблемы:</Text>
+                          {vm.insights.sleepAnalysis.detectedIssues.map((issue: string, idx: number) => (
+                            <View key={idx} style={styles.issueItem}>
+                              <MaterialIcons name="warning" size={14} color="#FF9800" />
+                              <Text style={styles.issueText}>{issue}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+
+                      <View style={styles.sleepRecommendations}>
+                        <Text style={styles.recommendationsHeader}>Рекомендации ИИ по сну:</Text>
+                        {vm.insights.sleepAnalysis.recommendations.map((rec: string, idx: number) => (
+                          <Text key={idx} style={styles.recommendationItem}>• {rec}</Text>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+
                   {vm.insights.achievements && vm.insights.achievements.length > 0 && (
                     <View style={styles.achievementsMemory}>
                       <Text style={styles.achievementsMemoryTitle}>Зафиксированные успехи:</Text>
@@ -607,6 +640,83 @@ const styles = StyleSheet.create({
     paddingTop: 15,
     borderTopWidth: 1,
     borderTopColor: '#F0F0F0',
+  },
+  sleepSection: {
+    marginTop: 20,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+  },
+  sleepTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  sleepSectionTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+    flex: 1,
+  },
+  sleepScoreBadge: {
+    backgroundColor: '#E8EAF6',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  sleepScoreText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#3F51B5',
+  },
+  sleepFeedbackText: {
+    fontSize: 13,
+    color: '#555',
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  detectedIssuesContainer: {
+    backgroundColor: '#FFF3E0',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#FF9800',
+  },
+  detectedIssuesTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#E65100',
+    marginBottom: 6,
+  },
+  issueItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  issueText: {
+    fontSize: 12,
+    color: '#E65100',
+  },
+  sleepRecommendations: {
+    backgroundColor: '#F5F5F5',
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  recommendationsHeader: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 6,
+  },
+  recommendationItem: {
+    fontSize: 12,
+    color: '#444',
+    marginBottom: 4,
+    lineHeight: 16,
   },
   profileSectionTitle: {
     fontSize: 14,

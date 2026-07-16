@@ -2,6 +2,7 @@ import { findRelevantKnowledge, psychologyKnowledgeBase } from './psychologyKnow
 import { Result, success, failure } from './types';
 import { articlesDatabase } from './articlesDatabase';
 import { microCoursesDatabase } from './microCoursesDatabase';
+import { JournalService } from './journalService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NotificationService from './notificationService';
 
@@ -128,6 +129,13 @@ export interface PsychologicalProfile {
   strengths: string[];
 }
 
+export interface SleepAnalysisResult {
+  sleepQuality: number; // 1 to 5
+  feedback: string;
+  recommendations: string[];
+  detectedIssues: string[];
+}
+
 export interface MorningBriefing {
   title: string;
   plan: string[];
@@ -142,6 +150,119 @@ const ROADMAP_STORAGE_KEY = 'sober_path_ai_roadmap';
 
 export class AICoachService {
   private static memory: Map<string, ConversationMemory> = new Map();
+
+  /**
+   * ИИ-анализ динамики качества сна на основе записей дневника пользователя.
+   * Выполняет поиск ключевых слов, рассчитывает оценку сна и формирует рекомендации.
+   */
+  static analyzeSleepFromJournal(entries: { content: string; date: string }[]): SleepAnalysisResult {
+    if (!entries || entries.length === 0) {
+      return {
+        sleepQuality: 3,
+        feedback: 'Недостаточно данных в дневнике для анализа сна. Продолжайте делать записи ежедневно.',
+        recommendations: [
+          'Старайтесь упоминать в дневнике, как вы спали ночью.',
+          'Ложитесь и вставайте в одно и то же время, даже в выходные.',
+          'Ограничьте использование смартфона за 1 час до сна.'
+        ],
+        detectedIssues: []
+      };
+    }
+
+    let totalScore = 0;
+    let countedEntries = 0;
+    const detectedIssues: string[] = [];
+
+    const positiveKeywords = ['выспался', 'выспалась', 'отличный сон', 'крепко спал', 'крепко спала', 'бодр', 'хорошо спал', 'хорошо спала', 'прекрасно выспался', 'прекрасно выспалась', 'глубокий сон', 'легко проснулся', 'легко проснулась'];
+    const negativeKeywords = ['бессонница', 'не спал', 'не спала', 'плохо спал', 'плохо спала', 'ворочался', 'ворочалась', 'просыпался', 'просыпалась', 'кошмар', 'устал с утра', 'разбит', 'разбита', 'чуткий сон', 'не выспался', 'не выспалась', 'тяжело проснулся', 'тяжело проснулась'];
+
+    entries.forEach(entry => {
+      const lower = entry.content.toLowerCase();
+      let hasSleepMention = false;
+      let entryScore = 3; // Neutral baseline
+
+      // Check positive expressions
+      const matchesPositive = positiveKeywords.filter(kw => lower.includes(kw));
+      // Check negative expressions
+      const matchesNegative = negativeKeywords.filter(kw => lower.includes(kw));
+
+      if (matchesPositive.length > 0 || matchesNegative.length > 0) {
+        hasSleepMention = true;
+        entryScore += matchesPositive.length;
+        entryScore -= matchesNegative.length;
+        // Clamp entryScore to [1, 5]
+        entryScore = Math.max(1, Math.min(5, entryScore));
+      }
+
+      if (hasSleepMention) {
+        totalScore += entryScore;
+        countedEntries++;
+
+        // Detect issues
+        if (lower.includes('бессонница') || lower.includes('не спал') || lower.includes('ворочался')) {
+          if (!detectedIssues.includes('Трудности с засыпанием (бессонница)')) {
+            detectedIssues.push('Трудности с засыпанием (бессонница)');
+          }
+        }
+        if (lower.includes('кошмар') || lower.includes('просыпался') || lower.includes('чуткий сон')) {
+          if (!detectedIssues.includes('Прерывистый сон или кошмары')) {
+            detectedIssues.push('Прерывистый сон или кошмары');
+          }
+        }
+        if (lower.includes('устал с утра') || lower.includes('разбит') || lower.includes('не выспался')) {
+          if (!detectedIssues.includes('Отсутствие чувства отдыха по утрам')) {
+            detectedIssues.push('Отсутствие чувства отдыха по утрам');
+          }
+        }
+      }
+    });
+
+    const finalQuality = countedEntries > 0 ? Math.round(totalScore / countedEntries) : 3;
+    let feedback = '';
+    const recommendations: string[] = [];
+
+    // Base recommendations on computed final sleep quality
+    if (finalQuality >= 4) {
+      feedback = `У вас отличная динамика сна (оценка: ${finalQuality}/5) на основе анализа дневника. Трезвость благотворно влияет на вашу нервную систему.`;
+      recommendations.push(
+        'Продолжайте соблюдать текущий режим дня.',
+        'Закрепите успех утренней легкой растяжкой.',
+        'Проветривайте спальню перед сном для поддержания высокого качества сна.'
+      );
+    } else if (finalQuality === 3) {
+      feedback = 'Качество вашего сна находится на среднем уровне. Организм продолжает адаптироваться к трезвому образу жизни.';
+      recommendations.push(
+        'Старайтесь не употреблять тяжелую пищу за 3 часа до сна.',
+        'Попробуйте вечером травяной чай (ромашка, мелисса) для расслабления.',
+        'Используйте встроенный SOS-аудио гид по медитации перед сном.'
+      );
+    } else {
+      feedback = `Обнаружены выраженные проблемы со сном (оценка: ${finalQuality}/5). В период восстановления от зависимости сон часто нарушается, это временный этап.`;
+      recommendations.push(
+        'Исключите кофеин и энергетики во второй половине дня.',
+        'При бессоннице сделайте дыхательное упражнение 4-7-8 прямо в постели.',
+        'Если не удается заснуть более 20 минут, встаньте и займитесь спокойным делом при тусклом свете.'
+      );
+    }
+
+    // Add specific tips for detected issues
+    if (detectedIssues.includes('Трудности с засыпанием (бессонница)')) {
+      recommendations.unshift('Попробуйте ложиться в постель только при появлении сонливости, не заставляйте себя спать.');
+    }
+    if (detectedIssues.includes('Прерывистый сон или кошмары')) {
+      recommendations.unshift('Практикуйте медитацию "Сканирование тела" перед сном для снятия мышечного панциря.');
+    }
+    if (detectedIssues.includes('Отсутствие чувства отдыха по утрам')) {
+      recommendations.unshift('Обеспечьте полную темноту в спальне (используйте маску или блэкаут-шторы).');
+    }
+
+    return {
+      sleepQuality: finalQuality,
+      feedback,
+      recommendations: Array.from(new Set(recommendations)).slice(0, 4),
+      detectedIssues
+    };
+  }
 
   private static detectSentiment(message: string): 'frustrated' | 'sad' | 'hopeful' | 'anxious' | 'neutral' {
     const lower = message.toLowerCase();
@@ -500,9 +621,18 @@ export class AICoachService {
     }
   }
 
-  static getUserInsights(userId: string) {
+  static async getUserInsights(userId: string) {
     const memory = this.getUserMemory(userId);
     const profile = this.calculatePsychologicalProfile(memory);
+
+    // Получаем записи из дневника для анализа сна
+    const journalResult = await JournalService.getEntries();
+    const journalEntries = journalResult.success ? journalResult.data : [];
+    const sleepAnalysis = this.analyzeSleepFromJournal(journalEntries.map(e => ({
+      content: e.content,
+      date: e.date
+    })));
+
     return {
       conversationCount: memory.conversations.length,
       averageMood: memory.emotionalPattern.averageMood,
@@ -512,7 +642,8 @@ export class AICoachService {
       progressSummary: memory.emotionalPattern.moodTrend === 'improving'
         ? 'Ваше состояние улучшается.'
         : 'Мы продолжаем работу.',
-      profile
+      profile,
+      sleepAnalysis
     };
   }
 
