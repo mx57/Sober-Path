@@ -53,8 +53,7 @@ export function useAICoachViewModel() {
     };
     setMessages([welcome]);
 
-    const aiInsights = await AICoachService.getUserInsights(userProfile?.id || 'default');
-    setInsights(aiInsights);
+    AICoachService.getUserInsights(userProfile?.id || 'default').then(setInsights);
     setTriggers(AICoachService.detectTriggerPatterns(userProfile?.id || 'default'));
     setNotifications(NotificationService.getNotifications());
     const initialChallenges = await AICoachService.getChallenges(userProfile?.id || 'default');

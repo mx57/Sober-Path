@@ -693,15 +693,53 @@ export class CommunityService {
 
   static async addReaction(postId: string, reaction: ReactionType): Promise<void> {
     const posts = await this.loadUserPosts();
+    let targetAuthor = '';
+
     const updated = posts.map(p => {
       if (p.id === postId) {
+        targetAuthor = p.author;
         const reactions = p.reactions || { support: 0, agree: 0, hug: 0, like: 0 };
         reactions[reaction] = (reactions[reaction] || 0) + 1;
         return { ...p, reactions };
       }
       return p;
     });
+
     await AsyncStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(updated));
+
+    // Начисление кармы (только если автор не бот)
+    if (targetAuthor && targetAuthor !== 'Sober Path Bot') {
+        await this.updateUserKarma(targetAuthor, 1);
+    }
+  }
+
+  static async getUserKarma(userName: string): Promise<number> {
+    try {
+      const stored = await AsyncStorage.getItem(KARMA_STORAGE_KEY);
+      const karmaMap = stored ? JSON.parse(stored) : {};
+      return karmaMap[userName] || 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  private static async updateUserKarma(userName: string, points: number): Promise<void> {
+    try {
+      const stored = await AsyncStorage.getItem(KARMA_STORAGE_KEY);
+      const karmaMap = stored ? JSON.parse(stored) : {};
+      karmaMap[userName] = (karmaMap[userName] || 0) + points;
+      await AsyncStorage.setItem(KARMA_STORAGE_KEY, JSON.stringify(karmaMap));
+    } catch (e) {
+      console.error('Failed to update karma', e);
+    }
+  }
+
+  static getKarmaLevel(points: number): { title: string; color: string; icon: string } {
+    if (points >= 1000) return { title: 'Легенда сообщества', color: '#FFD700', icon: 'auto-awesome' };
+    if (points >= 500) return { title: 'Мастер поддержки', color: '#9C27B0', icon: 'stars' };
+    if (points >= 200) return { title: 'Активный помощник', color: '#2196F3', icon: 'verified' };
+    if (points >= 50) return { title: 'Друг сообщества', color: '#4CAF50', icon: 'mood' };
+    return { title: 'Новичок', color: '#666', icon: 'person_outline' };
   }
 
   static async voteInPoll(postId: string, optionId: string): Promise<void> {
@@ -750,6 +788,43 @@ export class CommunityService {
       console.error('Failed to load user posts', e);
       return [];
     }
+  }
+
+  static validatePost(content: string): { isValid: boolean; reason?: string } {
+    const lowerContent = content.toLowerCase();
+
+    // 1. Список запрещенных слов (токсичность, оскорбления, призывы к насилию)
+    // Мы НЕ блокируем названия напитков, так как это часть процесса выздоровления
+    const forbiddenKeywords = [
+      'урод', 'тупой', 'дебил', 'идиот', 'сука', 'тварь',
+      'сдохни', 'убей', 'ненавижу', 'мразь', 'чмо', 'пидор', 'гандон'
+    ];
+
+    if (forbiddenKeywords.some(kw => lowerContent.includes(kw))) {
+      return {
+        isValid: false,
+        reason: 'Ваш пост содержит оскорбительные выражения. Мы поддерживаем атмосферу взаимопомощи и уважения.'
+      };
+    }
+
+    // 2. Проверка на экстремально короткие посты
+    if (content.trim().length < 5) {
+      return {
+        isValid: false,
+        reason: 'Пост слишком короткий. Поделитесь чем-то более содержательным.'
+      };
+    }
+
+    // 3. Простая проверка на капс (агрессия)
+    const upperCount = content.split('').filter(c => c === c.toUpperCase() && c !== c.toLowerCase()).length;
+    if (upperCount > content.length * 0.7 && content.length > 10) {
+      return {
+        isValid: false,
+        reason: 'Пожалуйста, не используйте слишком много заглавных букв.'
+      };
+    }
+
+    return { isValid: true };
   }
 
   static getCircles(): { id: string; name: string; icon: string; color: string; description: string }[] {
