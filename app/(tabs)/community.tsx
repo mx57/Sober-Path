@@ -309,10 +309,15 @@ export default function CommunityPage() {
   const [newStoryContent, setNewStoryContent] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<'motivation' | 'question' | 'support' | 'milestone'>('support');
   const [isLoading, setIsLoading] = useState(true);
+  const [userKarma, setUserKarma] = useState(0);
 
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
+      // Load Karma
+      const karma = await CommunityService.getUserKarma();
+      setUserKarma(karma);
+
       // Simulate network delay
       await new Promise(resolve => setTimeout(resolve, 1500));
       setStories(CommunityService.getSuccessStories());
@@ -340,6 +345,9 @@ export default function CommunityPage() {
 
   const handleReactionPress = async (postId: string, reaction: ReactionType) => {
     await CommunityService.addReaction(postId, reaction);
+    const updatedKarma = await CommunityService.addKarmaPoints(5);
+    setUserKarma(updatedKarma);
+
     setPosts(currentPosts => currentPosts.map(p => {
       if (p.id === postId) {
         const reactions = p.reactions || { support: 0, agree: 0, hug: 0, like: 0 };
@@ -350,10 +358,14 @@ export default function CommunityPage() {
       }
       return p;
     }));
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
   const handleVotePress = async (postId: string, optionId: string) => {
     await CommunityService.voteInPoll(postId, optionId);
+    const updatedKarma = await CommunityService.addKarmaPoints(10);
+    setUserKarma(updatedKarma);
+
     setPosts(currentPosts => currentPosts.map(p => {
       if (p.id === postId && p.poll) {
         const updatedOptions = p.poll.options.map(o =>
@@ -372,6 +384,13 @@ export default function CommunityPage() {
       return;
     }
 
+    // ИИ-модерация на токсичность
+    const modResult = CommunityService.moderatePostContent(newPostContent);
+    if (!modResult.isApproved) {
+      Alert.alert('ИИ-Модерация', modResult.reason);
+      return;
+    }
+
     const newPost: SupportPost = {
       id: `p${Date.now()}`,
       author: 'Вы',
@@ -383,16 +402,22 @@ export default function CommunityPage() {
     };
 
     await CommunityService.saveUserPost(newPost);
+    const updatedKarma = await CommunityService.addKarmaPoints(15);
+    setUserKarma(updatedKarma);
+
     setPosts([newPost, ...posts]);
     setNewPostContent('');
     setIsModalVisible(false);
-    Alert.alert('Успех', 'Ваш пост опубликован!');
+    Alert.alert('Успех', 'Ваш пост успешно прошёл ИИ-модерацию и был опубликован!\n\nВы получили +15 очков Кармы 🌟 за вклад в сообщество.');
   };
 
   const handleAddComment = async () => {
     if (!newCommentText.trim() || !selectedPostForComment) return;
 
     await CommunityService.addComment(selectedPostForComment.id);
+    const updatedKarma = await CommunityService.addKarmaPoints(10);
+    setUserKarma(updatedKarma);
+
     setPosts(posts.map(p =>
       p.id === selectedPostForComment.id
         ? { ...p, comments: p.comments + 1 }
@@ -401,7 +426,7 @@ export default function CommunityPage() {
 
     setNewCommentText('');
     setIsCommentModalVisible(false);
-    Alert.alert('Комментарий добавлен', 'Ваше мнение важно для сообщества!');
+    Alert.alert('Комментарий опубликован', 'Ваше сообщение добавлено!\n\nВы получили +10 очков Кармы 🌟.');
   };
 
   const handleCreateStory = () => {
@@ -664,8 +689,16 @@ export default function CommunityPage() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <LinearGradient colors={['#2E7D4A', '#4CAF50']} style={styles.header}>
-        <Text style={styles.title}>Сообщество</Text>
-        <Text style={styles.subtitle}>Вместе мы сильнее</Text>
+        <View style={styles.headerTopRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.title}>Сообщество</Text>
+            <Text style={styles.subtitle}>Вместе мы сильнее</Text>
+          </View>
+          <View style={styles.karmaBadgeContainer}>
+            <MaterialIcons name="stars" size={16} color="#FFD700" />
+            <Text style={styles.karmaBadgeText}>Карма: {userKarma} 🌟</Text>
+          </View>
+        </View>
       </LinearGradient>
 
       {isLoading ? (
@@ -974,6 +1007,25 @@ const styles = StyleSheet.create({
     paddingBottom: 25,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  karmaBadgeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    gap: 4,
+  },
+  karmaBadgeText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   title: {
     fontSize: 28,
