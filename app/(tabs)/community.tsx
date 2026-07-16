@@ -14,6 +14,25 @@ import { Skeleton } from '../../components/Skeleton';
 
 const { width: screenWidth } = Dimensions.get('window');
 
+const KarmaBadge = ({ userName }: { userName: string }) => {
+  const [karma, setKarma] = useState(0);
+
+  useEffect(() => {
+    CommunityService.getUserKarma(userName).then(setKarma);
+  }, [userName]);
+
+  if (userName === 'Вы' || userName === 'Sober Path Bot') return null;
+
+  const level = CommunityService.getKarmaLevel(karma);
+
+  return (
+    <View style={[styles.karmaBadge, { backgroundColor: level.color + '20' }]}>
+      <MaterialIcons name={level.icon as any} size={12} color={level.color} />
+      <Text style={[styles.karmaText, { color: level.color }]}>{karma}</Text>
+    </View>
+  );
+};
+
 const PostPoll = ({ poll, onVote }: { poll: any, onVote: (optionId: string) => void }) => {
   const totalVotes = poll.options.reduce((acc: number, curr: any) => acc + curr.votes, 0);
 
@@ -840,6 +859,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8F9FA'
+  },
+  karmaBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    gap: 2,
+  },
+  karmaText: {
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   circlesContainer: {
     paddingHorizontal: 20,

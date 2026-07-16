@@ -370,13 +370,15 @@ function HomePage() {
           </View>
         )}
 
-        <StatCard
-          icon="timeline"
-          number={soberDays}
-          label={t('home.daysInJourney')}
-          primary
-          animatedStyle={pulseAnimatedStyle}
-        />
+        <View style={styles.mainStatWrapper}>
+          <StatCard
+            icon="timeline"
+            number={soberDays}
+            label={t('home.daysInJourney')}
+            primary
+            animatedStyle={pulseAnimatedStyle}
+          />
+        </View>
         
         <View style={styles.secondaryStats}>
           <StatCard icon="local-fire-department" number={streakDays} label={t('home.streak')} />
@@ -1000,9 +1002,13 @@ const styles = StyleSheet.create({
     color: '#555',
     lineHeight: 20,
   },
+  mainStatWrapper: {
+    height: 220,
+  },
   secondaryStats: {
     flexDirection: 'row',
-    gap: 15
+    gap: 15,
+    height: 120
   },
   healthContainer: {
     margin: 20,
