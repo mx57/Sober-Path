@@ -2,7 +2,7 @@
 
 # 🌿 Sober-Path
 
-### Путь к осознанной трезвости
+### Путь к осознанной трезвости | Your Path to Conscious Sobriety
 
 [![Version](https://img.shields.io/badge/Version-v1.18.0-4CAF50?style=for-the-badge)](https://github.com/mx57/Sober-Path/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](https://opensource.org/licenses/MIT)
@@ -11,18 +11,63 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=for-the-badge)](https://www.typescriptlang.org/)
 [![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20iOS%20%7C%20Web-brightgreen?style=for-the-badge)]()
 [![Status](https://img.shields.io/badge/Status-Active-FF9800?style=for-the-badge)]()
+[![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-brightgreen?style=for-the-badge)](https://github.com/mx57/Sober-Path/pulls)
+[![Downloads](https://img.shields.io/github/downloads/mx57/Sober-Path/total?style=for-the-badge&color=blue)](https://github.com/mx57/Sober-Path/releases)
 
 </div>
 
 ---
 
+<!-- SEO Meta Description -->
+<!--
+  Sober-Path: бесплатное open-source мобильное приложение для трезвости и выздоровления от алкогольной зависимости.
+  AI-коуч, КПТ, DBT, NLP техники, дневник, сообщество, микро-курсы.
+  Android, iOS, Web. React Native + Expo.
+-->
+
+<!-- Keywords for SEO -->
+<!-- sober path, трезвость, выздоровление, алкогольная зависимость, реабилитация, recovery, sobriety,
+     alcohol addiction, AI коуч, cognitive behavioral therapy, CBT, DBT, NLP, mindfulness,
+     mental health app, addiction recovery app, sober tracker, clean and sober,
+     терапия зависимости, психотерапия, медитация, дневник трезвости, сообщество трезвости,
+     open source, react native, expo, android app, free mental health app,
+     addiction support, recovery coach, sober living, substance abuse treatment,
+     алкоголь-free, трезвый образ жизни, ЗОЖ, самопомощь, peer support,
+     mindfulness app, meditation for addiction, stress relief, anxiety management,
+     кризисная помощь, SOS, emergency mental health, crisis intervention -->
+
+<!-- Open Graph / Social Media Meta -->
+<!-- meta property="og:title" content="Sober-Path — Бесплатное приложение для трезвости с AI-коучем" -->
+<!-- meta property="og:description" content="Open-source приложение для трезвости: AI-коуч, КПТ/DBT/NLP техники, дневник с анализом, микро-курсы, сообщество поддержки. Android, iOS, Web." -->
+<!-- meta property="og:type" content="website" -->
+<!-- meta property="og:url" content="https://github.com/mx57/Sober-Path" -->
+<!-- meta property="og:image" content="https://raw.githubusercontent.com/mx57/Sober-Path/main/assets/screenshots/og-banner.png" -->
+<!-- meta name="description" content="Sober-Path — бесплатное open-source приложение для трезвости с AI-коучем, терапевтическими техниками, дневником и сообществом поддержки." -->
+<!-- meta name="keywords" content="трезвость, выздоровление, алкогольная зависимость, AI коуч, КПТ, DBT, NLP, медитация, дневник, сообщество, React Native, Expo, Android" -->
+
 ## 📋 О проекте
 
-**Sober-Path** — это комплексное мобильное приложение для поддержки трезвости и выздоровления от алкогольной зависимости. Приложение разработано на базе современных технологий React Native + Expo и объединяет evidence-based методы психотерапии (КПТ, DBT, ACT, EMDR, НЛП), искусственный интеллект и силу сообщества для создания персонализированной системы поддержки на каждом этапе пути к трезвости.
+**Sober-Path** — это бесплатное open-source мобильное приложение для поддержки трезвости и выздоровления от алкогольной зависимости. Приложение разработано на базе современных технологий React Native + Expo и объединяет evidence-based методы психотерапии (КПТ, DBT, ACT, EMDR, НЛП), искусственный интеллект и силу сообщества для создания персонализированной системы поддержки на каждом этапе пути к трезвости.
 
-Ядро приложения — **AI-Коуч**, который отслеживает настроение и состояние пользователя, формирует персонализированные рекомендации и проактивно предлагает техники снятия стресса в моменты повышенной тяги. Система обладает памятью достижений и историей взаимодействий, что позволяет коучу адаптироваться к индивидуальным потребностям каждого пользователя и предлагать именно те инструменты, которые работают в конкретной ситуации.
+> **🔍 Ключевые слова:** трезвость, выздоровление, алкогольная зависимость, реабилитация, AI коуч, когнитивно-поведенческая терапия, КПТ, DBT, NLP, медитация, mindfulness, дневник, сообщество поддержки, sober tracker, addiction recovery, mental health, open source, React Native, Expo, Android
 
-Помимо AI-поддержки, Sober-Path предлагает обширную экосистему инструментов: интерактивные упражнения с гидируемым режимом, микро-курсы по психологии зависимости, мини-игры для когнитивного тренинга, дневник с AI-анализом, терапевтические звуки и бинауральные ритмы, gamification-систему с достижениями и квестами, а также живое сообщество с «Кругами поддержки». Всё это доступно на русском и английском языках и работает на Android, iOS и Web.
+### 🎯 Для кого это приложение
+
+- 🧑‍🍼 Люди, которые хотят бросить пить или уже в процессе выздоровления
+- 👨‍👩‍👧‍👦 Родственники и близкие людей с алкогольной зависимостью
+- 🩺 Психологи, терапевты и наркологи, ищущие цифровые инструменты для клиентов
+- 🤝 Сообщества трезвости, ищущие бесплатный open-source инструмент
+
+### 💡 Почему Sober-Path
+
+| Особенность | Описание |
+|:---|:---|
+| 🤖 **AI-коуч** | Персонализированный ИИ-ассистент, который отслеживает настроение и предлагает техники снятия стресса |
+| 🧪 **Evidence-based** | Методы КПТ, DBT, ACT, EMDR, НЛП — научно обоснованные подходы |
+| 📱 **Кроссплатформенность** | Android, iOS и Web — работает везде |
+| 🔓 **Бесплатно и open-source** | Полностью бесплатное, никакой рекламы, приватность защищена |
+| 🌍 **Мультиязычность** | Русский и английский интерфейс |
+| 🔒 **Приватность** | Данные хранятся на устройстве, никаких серверов |
 
 ---
 
@@ -32,11 +77,11 @@
 
 | Домашний экран | AI-Коуч | Курсы | Сообщество |
 |:---:|:---:|:---:|:---:|
-| <img src="assets/screenshots/cycle17_1_home.png" width="180" alt="Домашний экран" /> | <img src="assets/screenshots/cycle17_2_ai_coach.png" width="180" alt="AI-Коуч" /> | <img src="assets/screenshots/cycle17_3_courses.png" width="180" alt="Курсы" /> | <img src="assets/screenshots/cycle17_4_community.png" width="180" alt="Сообщество" /> |
+| <img src="assets/screenshots/cycle17_1_home.png" width="180" alt="Домашний экран — трекер трезвости, план недели, быстрые действия" /> | <img src="assets/screenshots/cycle17_2_ai_coach.png" width="180" alt="AI-коуч — персонализированные рекомендации" /> | <img src="assets/screenshots/cycle17_3_courses.png" width="180" alt="Микро-курсы по психологии зависимости" /> | <img src="assets/screenshots/cycle17_4_community.png" width="180" alt="Сообщество поддержки и круги помощи" /> |
 
 | Тренажёр | AI-Аналитика | Упражнения | Настройки |
 |:---:|:---:|:---:|:---:|
-| <img src="assets/screenshots/courses_v1.15.0.png" width="180" alt="Тренажёр" /> | <img src="assets/screenshots/ai_coach_insights.png" width="180" alt="AI-Аналитика" /> | <img src="assets/screenshots/v1.9.0/ai_coach_chat.png" width="180" alt="AI-Чат" /> | <img src="assets/screenshots/v1.9.0/8_settings.png" width="180" alt="Настройки" /> |
+| <img src="assets/screenshots/courses_v1.15.0.png" width="180" alt="Тренажёр — структурированные программы обучения" /> | <img src="assets/screenshots/ai_coach_insights.png" width="180" alt="AI-аналитика — глубокая статистика прогресса" /> | <img src="assets/screenshots/v1.9.0/ai_coach_chat.png" width="180" alt="AI-чат — свободный диалог с ассистентом" /> | <img src="assets/screenshots/v1.9.0/8_settings.png" width="180" alt="Настройки — персонализация и темы" /> |
 
 </div>
 
@@ -137,60 +182,27 @@
 
 ---
 
-## 🛠 Технологический стек
+## 📥 Установка
 
-| Категория | Технологии |
-|---|---|
-| **Язык** | TypeScript 5.x |
-| **Фреймворк** | React Native 0.79 |
-| **Платформа** | Expo SDK 53 (Expo Router, Expo CLI) |
-| **Навигация** | Expo Router (файловая маршрутизация), React Navigation |
-| **Состояние** | Zustand 5.x, React Context, Redux |
-| **Анимации** | React Native Reanimated 3.x, Lottie |
-| **UI-компоненты** | React Native Paper, NativeWind, Lucide Icons, Expo Vector Icons |
-| **Графики** | React Native Chart Kit, React Native Skia |
-| **Аудио** | Expo Audio, Expo Speech (TTS) |
-| **Хранение** | AsyncStorage, Expo Secure Store, Expo SQLite |
-| **Уведомления** | Expo Notifications, Expo Task Manager |
-| **Локализация** | i18next, react-i18next |
-| **Тестирование** | Jest, Jest-Expo, Testing Library |
-| **Платформы** | Android, iOS, Web |
+### Скачать готовый APK (рекомендуется)
 
----
+Перейдите на страницу [Releases](https://github.com/mx57/Sober-Path/releases) и скачайте последний APK:
 
-## 🏗 Архитектура
+| Архитектура | Ссылка | Для кого |
+|:---:|:---|:---|
+| **Universal** | `Sober-Path-v*-universal.apk` | **Рекомендуется** — подходит для большинства устройств |
+| **ARM 64-bit** | `Sober-Path-v*-arm64.apk` | Современные телефоны (2019+) |
+| **ARM 32-bit** | `Sober-Path-v*-arm32.apk` | Старые и бюджетные устройства |
+| **x86_64** | `Sober-Path-v*-x86_64.apk` | Эмуляторы и Chromebook |
 
-Приложение построено по паттерну **MVVM (View → ViewModel → Service)**, обеспечивающему разделение ответственности, тестируемость и масштибируемость кодовой базы.
+> 💡 **Не уверены какая архитектура?** Скачивайте `universal` — он работает на всех устройствах.
 
-```
-┌─────────────┐     ┌──────────────┐     ┌─────────────┐
-│     View     │────▶│  ViewModel   │────▶│   Service   │
-│  (Screens/  │◀────│   (Hooks)    │◀────│ (Business   │
-│  Components)│     │              │     │    Logic)   │
-└─────────────┘     └──────────────┘     └─────────────┘
-```
+### Системные требования
+- **OS:** Android 7.0 (API 24) и выше
+- **Память:** ~50 МБ
+- **RAM:** Рекомендуется 2+ ГБ
 
-### Слой View
-- **Экраны** (`app/(tabs)/`) — файловая маршрутизация Expo Router
-- **Компоненты** (`components/`) — переиспользуемые UI-элементы
-
-### Слой ViewModel
-- **Хуки** (`hooks/`) — вью-модели, связывающие представление с логикой
-- **Контексты** (`contexts/`) — глобальное состояние приложения
-
-### Слой Service
-- **Сервисы** (`services/`) — бизнес-логика, AI-модули, базы данных
-
----
-
-## 🚀 Начало работы
-
-### Предварительные требования
-- [Node.js](https://nodejs.org/) 18+
-- [Expo CLI](https://docs.expo.dev/get-started/installation/)
-- Смартфон с [Expo Go](https://expo.dev/go) или эмулятор
-
-### Установка
+### Из исходников
 
 ```bash
 # 1. Клонируйте репозиторий
@@ -225,6 +237,52 @@ npm test
 
 ---
 
+## 🛠 Технологический стек
+
+| Категория | Технологии |
+|---|---|
+| **Язык** | TypeScript 5.x |
+| **Фреймворк** | React Native 0.79 |
+| **Платформа** | Expo SDK 53 (Expo Router, Expo CLI) |
+| **Навигация** | Expo Router (файловая маршрутизация), React Navigation |
+| **Состояние** | Zustand 5.x, React Context, Redux |
+| **Анимации** | React Native Reanimated 3.x, Lottie |
+| **UI-компоненты** | React Native Paper, NativeWind, Lucide Icons, Expo Vector Icons |
+| **Графики** | React Native Chart Kit, React Native Skia |
+| **Аудио** | Expo Audio, Expo Speech (TTS) |
+| **Хранение** | AsyncStorage, Expo Secure Store, Expo SQLite |
+| **Уведомления** | Expo Notifications, Expo Task Manager |
+| **Локализация** | i18next, react-i18next |
+| **Тестирование** | Jest, Jest-Expo, Testing Library |
+| **Платформы** | Android, iOS, Web |
+
+---
+
+## 🏗 Архитектура
+
+Приложение построено по паттерну **MVVM (View → ViewModel → Service)**, обеспечивающему разделение ответственности, тестируемость и масштабируемость кодовой базы.
+
+```
+┌─────────────┐     ┌──────────────┐     ┌─────────────┐
+│     View     │────▶│  ViewModel   │────▶│   Service   │
+│  (Screens/  │◀────│   (Hooks)    │◀────│ (Business   │
+│  Components)│     │              │     │    Logic)   │
+└─────────────┘     └──────────────┘     └─────────────┘
+```
+
+### Слой View
+- **Экраны** (`app/(tabs)/`) — файловая маршрутизация Expo Router
+- **Компоненты** (`components/`) — переиспользуемые UI-элементы
+
+### Слой ViewModel
+- **Хуки** (`hooks/`) — вью-модели, связывающие представление с логикой
+- **Контексты** (`contexts/`) — глобальное состояние приложения
+
+### Слой Service
+- **Сервисы** (`services/`) — бизнес-логика, AI-модули, базы данных
+
+---
+
 ## 📁 Структура проекта
 
 ```
@@ -237,75 +295,34 @@ Sober-Path/
 │   │   ├── community.tsx         # Сообщество
 │   │   ├── articles.tsx          # База знаний
 │   │   ├── courses.tsx           # Тренировки
-│   │   ├── micro-courses.tsx     # Микро-курсы
 │   │   ├── exercises.tsx         # Упражнения (единый раздел)
 │   │   ├── analytics.tsx         # Аналитика
-│   │   ├── advanced-analytics.tsx # Продвинутая аналитика
 │   │   ├── journal.tsx           # Дневник
 │   │   ├── sounds.tsx            # Звуки
-│   │   ├── gamification.tsx      # Gamification
 │   │   ├── mini-games.tsx        # Мини-игры
-│   │   ├── therapy.tsx           # Терапия
-│   │   ├── advanced-therapy.tsx  # Продвинутая терапия
-│   │   ├── psychology.tsx        # Психология
-│   │   ├── personalized-recommendations.tsx
-│   │   ├── profile.tsx           # Профиль
 │   │   └── enhanced-settings.tsx # Настройки
-│   └── i18n/                     # Локализация
 ├── services/                     # Бизнес-логика
 │   ├── AICoachService.ts         # AI-Коуч
 │   ├── communityService.ts       # Сообщество
 │   ├── articlesDatabase.ts       # База статей
-│   ├── microCoursesService.ts    # Микро-курсы
 │   ├── enhancedNLPService.ts     # NLP-техники
 │   ├── therapeuticTechniques.ts  # Терапевтические техники
-│   ├── traumaTherapyService.ts   # Травмо-ориентированная терапия
-│   ├── integrativeTherapyService.ts
-│   ├── interactiveMeditationService.ts
-│   ├── miniGamesService.ts       # Мини-игры
 │   ├── journalService.ts         # Дневник
 │   ├── audioService.ts           # Аудио-плеер
 │   ├── recoveryService.ts        # Трекер трезвости
-│   ├── advancedInsightsService.ts
-│   ├── advancedMoodTracker.ts
-│   ├── smartRecommendationEngine.ts
-│   ├── smartNotificationService.ts
 │   ├── sosService.ts             # Экстренная помощь
-│   ├── personalizationService.ts
-│   ├── dailyMotivationService.ts
-│   ├── psychologyKnowledgeBase.ts
-│   ├── questService.ts           # Квесты
-│   └── ...
+│   └── questService.ts           # Квесты
 ├── components/                   # Переиспользуемые UI-компоненты
 │   ├── AchievementSystem.tsx     # Система достижений
-│   ├── AdvancedAudioPlayer.tsx   # Продвинутый аудио-плеер
-│   ├── AdvancedTherapyPlayer.tsx
-│   ├── ArticleQuiz.tsx           # Квизы
-│   ├── CrisisIntervention.tsx    # Кризисное вмешательство
-│   ├── ProgressAnalytics.tsx     # Визуализация прогресса
 │   ├── QuestMap.tsx              # Карта квестов
-│   ├── TherapeuticSoundPlayer.tsx
 │   └── home/                     # Компоненты главного экрана
 ├── hooks/                        # Кастомные хуки (ViewModel)
-│   ├── useAICoachViewModel.tsx
-│   ├── useAnalytics.tsx
-│   ├── useAnalyticsViewModel.tsx
-│   ├── useRecovery.tsx
-│   └── useThemeColor.ts
 ├── contexts/                     # React Context (глобальное состояние)
-│   ├── RecoveryContext.tsx
-│   └── AnalyticsContext.tsx
-├── constants/                    # Константы приложения
+├── services/                     # Сервисы (Business Logic)
 ├── assets/                       # Статические ресурсы
-│   ├── images/                   # Изображения и иконки
-│   ├── fonts/                    # Шрифты
-│   └── screenshots/              # Скриншоты для README
-├── __tests__/                    # Тесты
+├── .github/workflows/            # CI/CD (GitHub Actions)
 ├── app.json                      # Конфигурация Expo
-├── package.json                  # Зависимости
-├── tsconfig.json                 # Конфигурация TypeScript
-├── babel.config.js               # Конфигурация Babel
-└── jest.config.js                # Конфигурация Jest
+└── package.json                  # Зависимости
 ```
 
 ---
@@ -328,6 +345,13 @@ Sober-Path/
 - Используйте **TypeScript** строго, избегайте `any`
 - Добавляйте локализацию для нового контента (`i18n/`)
 - Соблюдайте стиль кода (ESLint конфигурация в проекте)
+
+### CI/CD
+
+При слиянии Pull Request в `main` автоматически:
+- 🔨 Собираются APK для 4 архитектур (universal, arm64, arm32, x86_64)
+- 📦 Создаётся GitHub Release с описанием изменений из PR
+- 📋 Артефакты доступны для скачивания на странице Releases
 
 ---
 
@@ -361,6 +385,33 @@ SOFTWARE.
 
 ---
 
+## 🔗 Полезные ссылки
+
+| Ресурс | Ссылка |
+|:---|:---|
+| 📥 Скачать APK | [Releases](https://github.com/mx57/Sober-Path/releases) |
+| 🐛 Сообщить об ошибке | [Issues](https://github.com/mx57/Sober-Path/issues) |
+| 💡 Предложить улучшение | [Feature Requests](https://github.com/mx57/Sober-Path/issues/new?template=feature_request.md) |
+| 📖 Документация Expo | [docs.expo.dev](https://docs.expo.dev/) |
+| 🧠 React Native | [reactnative.dev](https://reactnative.dev/) |
+
+---
+
+## 🆘 Кризисная помощь
+
+Если вы или кто-то из ваших близких нуждается в помощи:
+
+| Страна | Телефон | Описание |
+|:---:|:---:|:---|
+| 🇷🇺 Россия | **8-800-2000-122** | Телефон доверия (бесплатно) |
+| 🇺🇦 Україна | **0-800-501-892** | Національна гаряча лінія |
+| 🇺🇸 USA | **988** | Suicide & Crisis Lifeline |
+| 🌍 Международно | [findahelpline.com](https://findahelpline.com/) | Поиск линий помощи по странам |
+
+> **Помните:** Вы не одиноки. Помощь доступна. Каждый трезвый день — это победа. 💚
+
+---
+
 <div align="center">
 
 ### 🌿 Каждый трезвый день — это победа.
@@ -372,5 +423,7 @@ SOFTWARE.
 ---
 
 *Сделано с ❤️ для тех, кто выбирает жизнь без зависимости.*
+
+[![Star History Chart](https://api.star-history.com/svg?repos=mx57/Sober-Path&type=Date)](https://star-history.com/#mx57/Sober-Path&Date)
 
 </div>

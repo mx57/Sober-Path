@@ -1,25 +1,178 @@
-name: Build & Release APK
+name: 🚀 Auto Release on PR Merge
 
 on:
-  workflow_dispatch:
-  push:
-    tags:
-      - 'v*'
+  pull_request:
+    types: [closed]
+    branches: [main, master]
 
 permissions:
   contents: write
+  packages: write
+
+env:
+  CI: true
+  EXPO_NO_TELEMETRY: 1
+  NODE_OPTIONS: --max_old_space_size=4096
+  GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx4096m -XX:MaxMetaspaceSize=1024m -Dfile.encoding=UTF-8"
 
 jobs:
-  build-and-release:
-    name: Build APK and create GitHub Release
+  # ──────────────────────────────────────────────────────────────────
+  # Gate: only run when PR was actually merged (not just closed)
+  # ──────────────────────────────────────────────────────────────────
+  check-merge:
+    name: Check if PR was merged
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true
+    steps:
+      - run: echo "✅ PR #${{ github.event.pull_request.number }} was merged"
+
+  # ──────────────────────────────────────────────────────────────────
+  # Extract version from app.json and prepare release metadata
+  # ──────────────────────────────────────────────────────────────────
+  prepare-release:
+    name: Prepare release metadata
+    needs: check-merge
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      tag: ${{ steps.meta.outputs.tag }}
+      body: ${{ steps.meta.outputs.body }}
+      is_new_version: ${{ steps.meta.outputs.is_new_version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version and prepare metadata
+        id: meta
+        run: |
+          # Read version from app.json
+          VERSION=$(node -p "require('./app.json').expo.version")
+          TAG="v${VERSION}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+
+          # Check if this tag already exists
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "is_new_version=false" >> $GITHUB_OUTPUT
+            echo "📌 Tag ${TAG} already exists — will update existing release"
+          else
+            echo "is_new_version=true" >> $GITHUB_OUTPUT
+            echo "🆕 New version ${VERSION} — creating fresh release"
+          fi
+
+          # Auto-generate release body from PR info
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          PR_BODY="${{ github.event.pull_request.body }}"
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          PR_URL="${{ github.event.pull_request.html_url }}"
+          MERGE_COMMIT="${{ github.sha }}"
+          SHORT_SHA=$(echo "$MERGE_COMMIT" | cut -c1-7)
+          PR_AUTHOR="${{ github.event.pull_request.user.login }}"
+          BASE_BRANCH="${{ github.event.pull_request.base.ref }}"
+          CREATED_AT="${{ github.event.pull_request.created_at }}"
+
+          cat > /tmp/release_body.md << 'RELEASE_BODY_EOF'
+          ## 🌿 Sober Path ${TAG}
+
+          ### 📋 Что нового
+
+          PR_BODY_EOF
+
+          # Append PR body if it exists
+          if [ -n "$PR_BODY" ]; then
+            echo "$PR_BODY" >> /tmp/release_body.md
+          else
+            echo "- Обновления и исправления" >> /tmp/release_body.md
+          fi
+
+          cat >> /tmp/release_body.md << RELEASE_BODY_EOF
+
+          ---
+
+          ### 📦 Что включено в релиз
+
+          | Архитектура | Описание | Для кого |
+          |:---:|:---|:---|
+          | \`universal\` | Universal APK (все архитектуры) | **Рекомендуется** — подходит для большинства устройств |
+          | \`arm64-v8a\` | ARM 64-bit | Современные телефоны (2019+) |
+          | \`armeabi-v7a\` | ARM 32-bit | Старые устройства и бюджетные модели |
+          | \`x86_64\` | x86 64-bit | Эмуляторы и Chromebook |
+
+          > 💡 **Совет:** Если не уверены, скачайте \`universal\` — он работает на всех устройствах.
+
+          ### 🔧 Системные требования
+          - Android 7.0 (API 24) и выше
+          - ~50 МБ свободного места
+          - Рекомендуется 2+ ГБ RAM
+
+          ### 📥 Установка
+          1. Скачайте APK-файл для вашей архитектуры
+          2. Откройте файл на устройстве Android
+          3. Разрешите установку из неизвестных источников (если потребуется)
+          4. Следуйте инструкциям на экране
+
+          ### 🔗 Ссылки
+          - 📂 [Исходный код](https://github.com/mx57/Sober-Path/tree/$BASE_BRANCH)
+          - 🐛 [Сообщить об ошибке](https://github.com/mx57/Sober-Path/issues/new?template=bug_report.md)
+          - 💡 [Предложить улучшение](https://github.com/mx57/Sober-Path/issues/new?template=feature_request.md)
+
+          ---
+          <details>
+          <summary>📊 Техническая информация</summary>
+
+          | Параметр | Значение |
+          |---|---|
+          | Версия | \`$VERSION\` |
+          | PR | [#${PR_NUMBER}]($PR_URL) |
+          | Автор | @${PR_AUTHOR} |
+          | Коммит | \`${SHORT_SHA}\` |
+          | Дата создания PR | $CREATED_AT |
+
+          </details>
+
+          ---
+          *Автоматически создано при слиянии PR #${PR_NUMBER} в ветку \`${BASE_BRANCH}\`*
+          RELEASE_BODY_EOF
+
+          # Replace placeholders in the body
+          BODY=$(cat /tmp/release_body.md | sed "s/\${TAG}/${TAG}/g" | sed "s/\${VERSION}/${VERSION}/g" | sed "s/\${PR_NUMBER}/${PR_NUMBER}/g" | sed "s/\${PR_URL}/${PR_URL}/g" | sed "s/\${SHORT_SHA}/${SHORT_SHA}/g" | sed "s/\${PR_AUTHOR}/${PR_AUTHOR}/g" | sed "s/\${BASE_BRANCH}/${BASE_BRANCH}/g" | sed "s|\${CREATED_AT}|${CREATED_AT}|g")
+
+          # Write multiline output
+          {
+            echo "body<<RELEASE_BODY_EOF"
+            echo "$BODY"
+            echo "RELEASE_BODY_EOF"
+          } >> $GITHUB_OUTPUT
+
+          echo "📦 Version: ${VERSION}"
+          echo "🏷️ Tag: ${TAG}"
+
+  # ──────────────────────────────────────────────────────────────────
+  # Build matrix: 4 architecture variants
+  # ──────────────────────────────────────────────────────────────────
+  build-apk:
+    name: Build APK (${{ matrix.abi }})
+    needs: prepare-release
     runs-on: ubuntu-latest
     timeout-minutes: 60
-
-    env:
-      CI: true
-      EXPO_NO_TELEMETRY: 1
-      NODE_OPTIONS: --max_old_space_size=4096
-      GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx4096m -XX:MaxMetaspaceSize=1024m -Dfile.encoding=UTF-8"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - abi: universal
+            ndk_filter: ""
+            artifact_suffix: "universal"
+          - abi: arm64-v8a
+            ndk_filter: "arm64-v8a"
+            artifact_suffix: "arm64"
+          - abi: armeabi-v7a
+            ndk_filter: "armeabi-v7a"
+            artifact_suffix: "arm32"
+          - abi: x86_64
+            ndk_filter: "x86_64"
+            artifact_suffix: "x86_64"
 
     steps:
       - name: Checkout repository
@@ -46,9 +199,8 @@ jobs:
       - name: Prebuild Android project
         run: npx expo prebuild --platform android --clean --no-install
 
-      - name: Remove removed Android Gradle options
-        run: |
-          sed -i '/android.useNewApkCreator/d' android/gradle.properties || true
+      - name: Remove deprecated Gradle options
+        run: sed -i '/android.useNewApkCreator/d' android/gradle.properties || true
 
       - name: Patch Gradle repository URL syntax
         run: |
@@ -81,6 +233,12 @@ jobs:
             -keypass android \
             -dname "CN=Android Debug,O=Android,C=US"
 
+      - name: Configure NDK ABI filter
+        if: matrix.ndk_filter != ''
+        run: |
+          # Filter native libraries to specific ABI for smaller APK
+          sed -i "/ndk {/!b;n;c\\            abiFilters '${{ matrix.ndk_filter }}'" android/app/build.gradle || true
+
       - name: Ensure Gradle settings
         run: |
           chmod +x android/gradlew
@@ -94,45 +252,67 @@ jobs:
         working-directory: android
         run: ./gradlew assembleRelease --no-daemon --stacktrace --warning-mode all
 
-      - name: Collect APK artifact
+      - name: Collect and rename APK
         run: |
           mkdir -p artifacts
+          VERSION="${{ needs.prepare-release.outputs.version }}"
           APK_PATH=$(find android/app/build/outputs/apk/release -type f -name "*.apk" | head -n 1)
           if [ -z "$APK_PATH" ]; then
-            echo "Release APK was not found"
+            echo "❌ Release APK was not found for ABI: ${{ matrix.abi }}"
             exit 1
           fi
-          cp "$APK_PATH" artifacts/sober-path-v${GITHUB_REF_NAME#v}.apk
-          ls -lh artifacts/
+          DEST="artifacts/Sober-Path-v${VERSION}-${{ matrix.artifact_suffix }}.apk"
+          cp "$APK_PATH" "$DEST"
+          echo "📦 Built: $DEST"
+          ls -lh "$DEST"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: sober-path-release-apk
+          name: apk-${{ matrix.artifact_suffix }}
           path: artifacts/*.apk
           if-no-files-found: error
           retention-days: 30
 
+  # ──────────────────────────────────────────────────────────────────
+  # Create / update GitHub Release with all APKs
+  # ──────────────────────────────────────────────────────────────────
+  create-release:
+    name: Create GitHub Release
+    needs: [prepare-release, build-apk]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all APK artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+          pattern: apk-*
+          merge-multiple: true
+
+      - name: List release artifacts
+        run: |
+          echo "📦 Release artifacts:"
+          ls -lh artifacts/
+
+      - name: Delete existing release (if tag exists)
+        if: needs.prepare-release.outputs.is_new_version == 'false'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete "${{ needs.prepare-release.outputs.tag }}" --yes --cleanup-tag || true
+
       - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          name: "Sober Path ${{ github.ref_name }}"
-          body: |
-            ## 🌿 Sober Path ${{ github.ref_name }}
-
-            ### Что нового
-            - Объединены базовые и расширенные упражнения в единый раздел с подразделами
-            - Интерактивные упражнения с таймерами, анимацией дыхания и обратной связью
-            - Обновлена документация (README)
-            - Исправлены ошибки и опечатки
-
-            ### Установка
-            Скачайте APK-файл из артефактов ниже и установите на устройство Android.
-
-            ### Поддержка
-            - GitHub: [mx57/Sober-Path](https://github.com/mx57/Sober-Path)
-            - Issues: [Открыть задачу](https://github.com/mx57/Sober-Path/issues)
+          name: "🌿 Sober Path ${{ needs.prepare-release.outputs.tag }}"
+          tag_name: ${{ needs.prepare-release.outputs.tag }}
+          body: ${{ needs.prepare-release.outputs.body }}
           files: artifacts/*.apk
           draft: false
           prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
