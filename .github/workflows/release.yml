@@ -176,18 +176,9 @@ jobs:
       - name: Remove deprecated Gradle options
         run: sed -i '/android.useNewApkCreator/d' android/gradle.properties || true
 
-      - name: Patch Gradle repository URL syntax
-        run: |
-          python3 - <<'PATCH'
-          from pathlib import Path
-          import re
-          build_gradle = Path('android/build.gradle')
-          text = build_gradle.read_text()
-          text = re.sub(r'(?<![A-Za-z0-9_])url\s*\(', 'url = uri(', text)
-          text = re.sub(r'(?<![A-Za-z0-9_])url\s+("[^"]+"|\'[^\']+\'')', r'url = uri(\1)', text)
-          build_gradle.write_text(text)
-          PATCH
 
+      - name: Patch Gradle repository URL syntax
+        run: sed -i 's/url(/url = uri(/g' android/build.gradle && echo "Patched build.gradle"
       - name: Generate debug keystore for release signing
         run: |
           mkdir -p android/app
