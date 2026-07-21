@@ -1,6 +1,8 @@
 name: "Auto Release on PR Merge"
 
 on:
+  push:
+    branches: [main, master]
   pull_request:
     types: [closed]
     branches: [main, master]
@@ -22,12 +24,18 @@ jobs:
   check-merge:
     name: Check if PR was merged
     runs-on: ubuntu-latest
-    if: github.event.pull_request.merged == true
+    if: >
+      github.event_name == 'push' ||
+      (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
     steps:
       - name: Confirm merge
         run: |
-          echo "PR merged successfully"
-          echo "PR number: ${{ github.event.pull_request.number }}"
+          echo "Trigger event: ${{ github.event_name }}"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "PR #${{ github.event.pull_request.number }} was merged"
+          else
+            echo "Push to ${{ github.ref_name }} - checking for release"
+          fi
 
   # ---------------------------------------------------------------
   # Extract version from app.json and prepare release body
@@ -63,14 +71,9 @@ jobs:
             echo "is_new_version=true" >> "$GITHUB_OUTPUT"
           fi
 
-          PR_TITLE="${{ github.event.pull_request.title }}"
-          PR_NUMBER="${{ github.event.pull_request.number }}"
-          PR_URL="${{ github.event.pull_request.html_url }}"
           MERGE_COMMIT="${{ github.sha }}"
           SHORT_SHA=$(echo "$MERGE_COMMIT" | cut -c1-7)
-          PR_AUTHOR="${{ github.event.pull_request.user.login }}"
-          BASE_BRANCH="${{ github.event.pull_request.base.ref }}"
-          CREATED_AT="${{ github.event.pull_request.created_at }}"
+          COMMIT_MSG=$(git log -1 --pretty=format:"%s" "$MERGE_COMMIT")
 
           # Build release body using a heredoc to avoid shell quoting issues
           cat > /tmp/release_body.md << END_OF_BODY
@@ -78,10 +81,8 @@ jobs:
 
           ### Changes
 
-          **${PR_TITLE}**
+          **${COMMIT_MSG}**
 
-          PR: #${PR_NUMBER} by @${PR_AUTHOR}
-          Merged into: \`${BASE_BRANCH}\`
           Commit: \`${SHORT_SHA}\`
 
           ---
@@ -109,7 +110,7 @@ jobs:
 
           ---
 
-          Auto-generated on merge of PR #${PR_NUMBER} into \`${BASE_BRANCH}\`
+          Auto-generated release for version ${VERSION}
           END_OF_BODY
 
           # Store as multiline output
