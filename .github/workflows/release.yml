@@ -109,7 +109,6 @@ jobs:
           - Suggest improvement: https://github.com/mx57/Sober-Path/issues/new?template=feature_request.md
 
           ---
-
           Auto-generated release for version ${VERSION}
           END_OF_BODY
 
@@ -176,9 +175,9 @@ jobs:
       - name: Remove deprecated Gradle options
         run: sed -i '/android.useNewApkCreator/d' android/gradle.properties || true
 
-
       - name: Patch Gradle repository URL syntax
         run: sed -i 's/url(/url = uri(/g' android/build.gradle && echo "Patched build.gradle"
+
       - name: Generate debug keystore for release signing
         run: |
           mkdir -p android/app
@@ -195,10 +194,57 @@ jobs:
             -keypass android \
             -dname "CN=Android Debug,O=Android,C=US"
 
-      - name: Configure NDK ABI filter
+      - name: Inject ABI filter into build.gradle
         if: matrix.ndk_filter != ''
         run: |
-          sed -i "/ndk {/!b;n;c\\            abiFilters '${{ matrix.ndk_filter }}'" android/app/build.gradle || true
+          python3 << 'PYEOF'
+          import re, sys
+
+          path = "android/app/build.gradle"
+          abi = "${{ matrix.ndk_filter }}"
+
+          with open(path, "r") as f:
+              content = f.read()
+
+          # Find the defaultConfig block and inject ndk { abiFilters inside it
+          # Strategy: find "defaultConfig {" and then find the matching closing brace,
+          # then insert ndk { abiFilters "..."; } before the closing brace
+
+          # Match defaultConfig { ... } — handles nested braces
+          pattern = r'(defaultConfig\s*\{)'
+          match = re.search(pattern, content)
+          if not match:
+              print("WARNING: defaultConfig block not found, ABI filter not applied")
+              sys.exit(0)
+
+          start = match.end()
+          # Count braces to find the closing } of defaultConfig
+          depth = 1
+          pos = start
+          while pos < len(content) and depth > 0:
+              if content[pos] == '{':
+                  depth += 1
+              elif content[pos] == '}':
+                  depth -= 1
+              pos += 1
+
+          # pos is now right after the closing } of defaultConfig
+          closing_brace_pos = pos - 1
+
+          # Check if ndk block already exists
+          default_config_text = content[match.start():pos]
+          if 'ndk' in default_config_text and 'abiFilters' in default_config_text:
+              print("ABI filter already present, skipping injection")
+              sys.exit(0)
+
+          ndk_block = f"\n            ndk {{\n                abiFilters \"{abi}\"\n            }}\n"
+          content = content[:closing_brace_pos] + ndk_block + "        " + content[closing_brace_pos:]
+
+          with open(path, "w") as f:
+              f.write(content)
+
+          print(f"Injected ABI filter: {abi}")
+          PYEOF
 
       - name: Ensure Gradle settings
         run: |
@@ -224,6 +270,7 @@ jobs:
           fi
           DEST="artifacts/Sober-Path-v${VERSION}-${{ matrix.artifact_suffix }}.apk"
           cp "$APK_PATH" "$DEST"
+          echo "Built: $DEST"
           ls -lh "$DEST"
 
       - name: Upload APK artifact

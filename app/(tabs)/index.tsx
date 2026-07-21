@@ -1020,12 +1020,12 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   mainStatWrapper: {
-    minHeight: 200,
+    height: 220,
   },
   secondaryStats: {
     flexDirection: 'row',
     gap: 15,
-    minHeight: 110,
+    height: 110,
   },
   healthContainer: {
     margin: 20,
