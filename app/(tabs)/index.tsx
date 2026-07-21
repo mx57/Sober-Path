@@ -205,7 +205,7 @@ function HomePage() {
     loadRoadmap();
     loadQuest();
     checkBriefing();
-  }, [pulseValue, userProfile?.id, soberDays, mood]);
+  }, [userProfile?.id, soberDays]);
 
   const showWebAlert = useCallback((title: string, message: string, onOk?: () => void) => {
     if (Platform.OS === 'web') {
@@ -387,7 +387,7 @@ function HomePage() {
 
         <QuestMap milestones={questMilestones} currentSoberDays={soberDays} />
 
-        {weeklyRoadmap && (
+        {weeklyRoadmap ? (
           <Link href="/ai-coach" asChild>
             <TouchableOpacity style={styles.roadmapWidget}>
               <LinearGradient colors={['#F0F7F0', '#FFFFFF']} style={styles.roadmapWidgetGradient}>
@@ -396,13 +396,19 @@ function HomePage() {
                   <Text style={styles.roadmapWidgetTitle}>План на неделю {weeklyRoadmap.weekNumber}</Text>
                   <MaterialIcons name="chevron-right" size={20} color="#2E7D4A" />
                 </View>
+                {weeklyRoadmap.focus ? (
+                  <View style={styles.roadmapFocusBadge}>
+                    <MaterialIcons name="emoji_objects" size={14} color="#2E7D4A" />
+                    <Text style={styles.roadmapFocusText} numberOfLines={1}>{weeklyRoadmap.focus}</Text>
+                  </View>
+                ) : null}
                 <View style={styles.roadmapWidgetProgress}>
                   <View style={styles.roadmapProgressBar}>
                     <View
                       style={[
                         styles.roadmapProgressFill,
                         {
-                          width: `${(weeklyRoadmap.tasks.filter(t => t.completed).length / weeklyRoadmap.tasks.length) * 100}%`
+                          width: `${weeklyRoadmap.tasks.length > 0 ? (weeklyRoadmap.tasks.filter(t => t.completed).length / weeklyRoadmap.tasks.length) * 100 : 0}%`
                         }
                       ]}
                     />
@@ -423,15 +429,15 @@ function HomePage() {
                     >
                       <MaterialIcons
                         name={task.completed ? "check-circle" : "radio-button-unchecked"}
-                        size={18}
-                        color={task.completed ? "#2E7D4A" : "#CCC"}
+                        size={20}
+                        color={task.completed ? "#2E7D4A" : "#9E9E9E"}
                       />
                       <Text
                         style={[
                           styles.roadmapTaskPreviewText,
                           task.completed && styles.roadmapTaskPreviewCompleted
                         ]}
-                        numberOfLines={1}
+                        numberOfLines={2}
                       >
                         {task.text}
                       </Text>
@@ -441,6 +447,17 @@ function HomePage() {
               </LinearGradient>
             </TouchableOpacity>
           </Link>
+        ) : (
+          <View style={styles.roadmapWidget}>
+            <View style={styles.roadmapWidgetGradient}>
+              <View style={styles.roadmapWidgetHeader}>
+                <MaterialIcons name="event-note" size={20} color="#2E7D4A" />
+                <Text style={styles.roadmapWidgetTitle}>План на неделю</Text>
+                <ActivityIndicator size="small" color="#2E7D4A" />
+              </View>
+              <Text style={styles.roadmapLoadingText}>Загрузка плана...</Text>
+            </View>
+          </View>
         )}
 
         {moodChartData && (
@@ -1003,12 +1020,12 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   mainStatWrapper: {
-    height: 220,
+    minHeight: 200,
   },
   secondaryStats: {
     flexDirection: 'row',
     gap: 15,
-    height: 120
+    minHeight: 110,
   },
   healthContainer: {
     margin: 20,
@@ -1041,9 +1058,11 @@ const styles = StyleSheet.create({
   },
   quickActionsGrid: {
     flexDirection: 'row',
-    gap: 12
+    flexWrap: 'wrap',
+    gap: 12,
   },
   quickAction: {
+    minWidth: '45%',
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1117,7 +1136,7 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   roadmapWidgetGradient: {
-    padding: 15,
+    padding: 18,
   },
   roadmapWidgetHeader: {
     flexDirection: 'row',
@@ -1135,19 +1154,21 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   roadmapProgressBar: {
-    height: 6,
+    height: 8,
     backgroundColor: '#E0E0E0',
-    borderRadius: 3,
+    borderRadius: 4,
     overflow: 'hidden',
   },
   roadmapProgressFill: {
     height: '100%',
     backgroundColor: '#2E7D4A',
+    borderRadius: 4,
   },
   roadmapProgressText: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#666',
-    fontWeight: '500',
+    fontWeight: '600',
+    marginTop: 4,
   },
   roadmapTasksPreview: {
     marginTop: 10,
@@ -1156,16 +1177,39 @@ const styles = StyleSheet.create({
   roadmapTaskPreviewItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
+    paddingVertical: 4,
   },
   roadmapTaskPreviewText: {
-    fontSize: 13,
-    color: '#444',
+    fontSize: 14,
+    color: '#333',
     flex: 1,
+    lineHeight: 20,
   },
   roadmapTaskPreviewCompleted: {
     color: '#AAA',
     textDecorationLine: 'line-through',
+  },
+  roadmapFocusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(46, 125, 74, 0.08)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  roadmapFocusText: {
+    fontSize: 13,
+    color: '#2E7D4A',
+    fontWeight: '600',
+    flex: 1,
+  },
+  roadmapLoadingText: {
+    fontSize: 14,
+    color: '#999',
+    marginTop: 4,
   },
   modalContainer: {
     flex: 1,
