@@ -636,7 +636,7 @@ export class AICoachService {
         ? 'Ваше состояние улучшается.'
         : 'Мы продолжаем работу.',
       profile,
-      sleepAnalysis
+      sleepAnalysis: sleepData
     };
   }
 
@@ -1011,7 +1011,7 @@ export class AICoachService {
     // Интеграция анализа сна в брифинг
     const sleepData = await this.analyzeSleepPatterns();
     if (sleepData.averageScore < 60) {
-      briefing.quickTips.push('Уделите внимание сну: плохой сон — частый триггер срыва.');
+      quickTips.push('Уделите внимание сну: плохой сон — частый триггер срыва.');
     }
 
     if (soberDays > 30 && !briefing.plan.includes("Поделиться опытом в сообществе")) {
