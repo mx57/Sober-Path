@@ -27,19 +27,7 @@ import { useRecovery } from '../../hooks/useRecovery';
 
 const { width: screenWidth } = Dimensions.get('window');
 
-interface Article {
-  id: string;
-  title: string;
-  category: string;
-  readTime: number;
-  preview: string;
-  content: string;
-  tags: string[];
-  icon: string;
-  color: string;
-}
-
-import { articlesDatabase } from '../../services/articlesDatabase';
+import { articlesDatabase, Article } from '../../services/articlesDatabase';
 import { ArticleQuiz } from '../../components/ArticleQuiz';
 
 const articles: Article[] = articlesDatabase;

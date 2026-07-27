@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   Image, Dimensions, Modal, TextInput, Alert
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FlashList } from '@shopify/flash-list';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -280,15 +281,22 @@ const CommunityPulse = () => {
   }, []);
 
   return (
-    <Animated.View entering={FadeInUp} style={styles.pulseContainer}>
-      <View style={styles.pulseDotContainer}>
-        <View style={styles.pulseDot} />
-        <View style={[styles.pulseDot, styles.pulseDotPing]} />
+    <Animated.View entering={FadeInUp} style={styles.onlinePulseContainer}>
+      <View style={styles.onlinePulseDotContainer}>
+        <View style={styles.onlinePulseDot} />
+        <View style={[styles.onlinePulseDot, styles.onlinePulseDotPing]} />
       </View>
-      <Text style={styles.pulseText}>{activeUsers} участников сейчас онлайн и поддерживают друг друга</Text>
+      <Text style={styles.onlinePulseText}>{activeUsers} участников сейчас онлайн и поддерживают друг друга</Text>
     </Animated.View>
   );
 };
+
+const BUDDY_CANDIDATES = [
+  { name: 'Александр', soberDays: 45, avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80', lastStatus: 'Сегодня пробежал 5 км, полет нормальный!', statusIcon: 'directions-run' },
+  { name: 'Екатерина', soberDays: 21, avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80', lastStatus: 'Читаю книгу по психологии и пью мятный чай ☕', statusIcon: 'menu-book' },
+  { name: 'Максим', soberDays: 90, avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=100&q=80', lastStatus: 'Помог другу остаться трезвым на дне рождения!', statusIcon: 'sentiment-very-satisfied' },
+  { name: 'Анна', soberDays: 8, avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=100&q=80', lastStatus: 'Тяжело, но держусь благодаря поддержке сообщества!', statusIcon: 'favorite' }
+];
 
 export default function CommunityPage() {
   const insets = useSafeAreaInsets();
@@ -311,12 +319,34 @@ export default function CommunityPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [userKarma, setUserKarma] = useState(0);
 
+  // States for Sober Buddy feature
+  const [buddy, setBuddy] = useState<any | null>(null);
+  const [isSearchingBuddy, setIsSearchingBuddy] = useState(false);
+  const [sentSupportToday, setSentSupportToday] = useState(false);
+
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
       // Load Karma
       const karma = await CommunityService.getUserKarma();
       setUserKarma(karma);
+
+      // Load Buddy
+      try {
+        const storedBuddy = await AsyncStorage.getItem('sober_path_sober_buddy');
+        if (storedBuddy) {
+          setBuddy(JSON.parse(storedBuddy));
+        }
+        const storedSupport = await AsyncStorage.getItem('sober_path_support_today');
+        if (storedSupport) {
+          const dateStr = new Date().toDateString();
+          if (storedSupport === dateStr) {
+            setSentSupportToday(true);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to load buddy state', e);
+      }
 
       // Simulate network delay
       await new Promise(resolve => setTimeout(resolve, 1500));
@@ -461,6 +491,71 @@ export default function CommunityPage() {
     Alert.alert(
       joined ? 'Вы присоединились!' : 'Вы покинули челендж',
       joined ? 'Вместе идти к цели легче. Удачи!' : 'Вы всегда можете вернуться позже.'
+    );
+  };
+
+  const handleFindBuddy = async () => {
+    setIsSearchingBuddy(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    setTimeout(async () => {
+      const randomIndex = Math.floor(Math.random() * BUDDY_CANDIDATES.length);
+      const selectedBuddy = BUDDY_CANDIDATES[randomIndex];
+
+      try {
+        await AsyncStorage.setItem('sober_path_sober_buddy', JSON.stringify(selectedBuddy));
+        setBuddy(selectedBuddy);
+        setIsSearchingBuddy(false);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Alert.alert('Ура!', `Мы подобрали вам напарника. Знакомьтесь, это ${selectedBuddy.name}!`);
+      } catch (e) {
+        console.error(e);
+        setIsSearchingBuddy(false);
+      }
+    }, 1500);
+  };
+
+  const handleSendBuddySupport = async () => {
+    if (!buddy) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    const dateStr = new Date().toDateString();
+
+    try {
+      await AsyncStorage.setItem('sober_path_support_today', dateStr);
+      setSentSupportToday(true);
+      const updatedKarma = await CommunityService.addKarmaPoints(15);
+      setUserKarma(updatedKarma);
+      Alert.alert(
+        'Импульс отправлен!',
+        `Вы отправили поддержку напарнику ${buddy.name}. Ваша карма выросла: +15 очков (всего: ${updatedKarma})!`
+      );
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleUnpairBuddy = () => {
+    Alert.alert(
+      'Расторгнуть связь?',
+      'Вы уверены, что хотите прекратить связь с этим напарником? Вы сможете найти нового в любое время.',
+      [
+        { text: 'Отмена', style: 'cancel' },
+        {
+          text: 'Да, расторгнуть',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await AsyncStorage.removeItem('sober_path_sober_buddy');
+              await AsyncStorage.removeItem('sober_path_support_today');
+              setBuddy(null);
+              setSentSupportToday(false);
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+            } catch (e) {
+              console.error(e);
+            }
+          }
+        }
+      ]
     );
   };
 
@@ -674,6 +769,61 @@ export default function CommunityPage() {
               <Text style={styles.mentorshipText}>«{advice.text}»</Text>
             </Animated.View>
           ))
+        )}
+      </View>
+
+      {/* Секция: Трезвый напарник */}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Трезвый напарник 🤝</Text>
+      </View>
+      <View style={styles.buddySectionContainer}>
+        {isSearchingBuddy ? (
+          <View style={styles.buddyLoadingContainer}>
+            <Skeleton width="100%" height={100} borderRadius={16} />
+            <Text style={styles.buddyLoadingText}>Анализируем прогресс сообщества и подбираем напарника...</Text>
+          </View>
+        ) : buddy ? (
+          <Animated.View entering={FadeInRight} style={styles.buddyCard}>
+            <View style={styles.buddyHeader}>
+              <Image source={{ uri: buddy.avatar }} style={styles.buddyAvatar} />
+              <View style={styles.buddyInfo}>
+                <View style={styles.buddyNameRow}>
+                  <Text style={styles.buddyName}>{buddy.name}</Text>
+                  <View style={styles.buddyDaysBadge}>
+                    <Text style={styles.buddyDaysText}>{buddy.soberDays} дней трезвости</Text>
+                  </View>
+                </View>
+                <View style={styles.buddyStatusRow}>
+                  <MaterialIcons name={buddy.statusIcon as any} size={14} color="#2E7D4A" style={{ marginRight: 4 }} />
+                  <Text style={styles.buddyStatus} numberOfLines={2}>«{buddy.lastStatus}»</Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={handleUnpairBuddy} style={styles.unpairButton}>
+                <MaterialIcons name="link-off" size={20} color="#FF6B6B" />
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.supportButton, sentSupportToday && styles.supportButtonSent]}
+              onPress={handleSendBuddySupport}
+              disabled={sentSupportToday}
+            >
+              <MaterialIcons name={sentSupportToday ? "check" : "favorite"} size={18} color="white" style={{ marginRight: 6 }} />
+              <Text style={styles.supportButtonText}>
+                {sentSupportToday ? "Импульс поддержки отправлен" : "Отправить импульс поддержки (+15 Кармы)"}
+              </Text>
+            </TouchableOpacity>
+          </Animated.View>
+        ) : (
+          <Animated.View entering={FadeInUp} style={styles.buddyEmptyCard}>
+            <Text style={styles.buddyEmptyText}>
+              Проходить путь трезвости с напарником легче и эффективнее! Делитесь опытом, поддерживайте друг друга в сложные моменты и увеличивайте Карму.
+            </Text>
+            <TouchableOpacity onPress={handleFindBuddy} style={styles.findBuddyButton}>
+              <MaterialIcons name="person-add" size={18} color="white" style={{ marginRight: 6 }} />
+              <Text style={styles.findBuddyButtonText}>Найти трезвого напарника</Text>
+            </TouchableOpacity>
+          </Animated.View>
         )}
       </View>
 
@@ -1424,7 +1574,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     gap: 2,
   },
-  mentorBadge: {
+  authorMentorBadge: {
     backgroundColor: '#FFF8E1',
     borderWidth: 1,
     borderColor: '#FFD54F',
@@ -1589,7 +1739,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     lineHeight: 20
   },
-  pulseContainer: {
+  onlinePulseContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     marginHorizontal: 20,
@@ -1603,20 +1753,20 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 2,
   },
-  pulseDotContainer: {
+  onlinePulseDotContainer: {
     width: 20,
     height: 20,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 10,
   },
-  pulseDot: {
+  onlinePulseDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: '#4CAF50',
   },
-  pulseDotPing: {
+  onlinePulseDotPing: {
     position: 'absolute',
     width: 12,
     height: 12,
@@ -1624,7 +1774,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#4CAF50',
     opacity: 0.4,
   },
-  pulseText: {
+  onlinePulseText: {
     fontSize: 13,
     color: '#666',
     fontWeight: '500',
@@ -1696,5 +1846,131 @@ const styles = StyleSheet.create({
     color: '#999',
     textAlign: 'right',
     marginTop: 4,
+  },
+  buddySectionContainer: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+  },
+  buddyLoadingContainer: {
+    backgroundColor: '#F8F9FA',
+    padding: 15,
+    borderRadius: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  buddyLoadingText: {
+    marginTop: 10,
+    fontSize: 13,
+    color: '#666',
+    textAlign: 'center',
+  },
+  buddyCard: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 15,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: '#E5F6ED',
+  },
+  buddyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  buddyAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 12,
+    backgroundColor: '#E5F6ED',
+  },
+  buddyInfo: {
+    flex: 1,
+  },
+  buddyNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 4,
+  },
+  buddyName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  buddyDaysBadge: {
+    backgroundColor: '#E5F6ED',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+  },
+  buddyDaysText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#2E7D4A',
+  },
+  buddyStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  buddyStatus: {
+    fontSize: 12,
+    color: '#666',
+    fontStyle: 'italic',
+    flex: 1,
+  },
+  unpairButton: {
+    padding: 6,
+  },
+  supportButton: {
+    backgroundColor: '#2E7D4A',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 12,
+    gap: 4,
+  },
+  supportButtonSent: {
+    backgroundColor: '#A5D6A7',
+  },
+  supportButtonText: {
+    color: 'white',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  buddyEmptyCard: {
+    backgroundColor: '#F1F8F4',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#C8E6C9',
+  },
+  buddyEmptyText: {
+    fontSize: 13,
+    color: '#2E7D4A',
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 15,
+  },
+  findBuddyButton: {
+    backgroundColor: '#2E7D4A',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  findBuddyButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
   }
 });

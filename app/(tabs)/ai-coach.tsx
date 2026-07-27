@@ -308,8 +308,65 @@ export default function EnhancedAICoach() {
           </KeyboardAvoidingView>
         )}
 
-        {vm.activeTab === 'insights' && vm.insights && (
+        {vm.activeTab === 'insights' && vm.insights && (() => {
+          const resilience = vm.insights?.profile?.resilience || 70;
+          const sleepQualityVal = vm.insights?.profile?.sleepQuality || 70;
+          const avgMood = vm.insights?.averageMood || 3;
+          const energyScore = Math.round((resilience * 0.3) + (sleepQualityVal * 0.4) + (avgMood * 20 * 0.3));
+
+          let physicalResilience = 'Средняя';
+          if (energyScore > 80) physicalResilience = 'Высокая';
+          else if (energyScore < 50) physicalResilience = 'Сниженная';
+
+          let mentalClarity = 'Стабильная';
+          if (energyScore > 85) mentalClarity = 'Превосходная';
+          else if (energyScore < 50) mentalClarity = 'Затуманенная (требуется отдых)';
+
+          let advice = 'Соблюдайте баланс активности и отдыха. Хороший день для плавного движения вперед.';
+          if (energyScore > 80) advice = 'Идеальный момент для изучения сложных уроков, тренировок или активного участия в жизни сообщества!';
+          else if (energyScore < 50) advice = 'Ваш ресурс сегодня ограничен. Рекомендуется снизить нагрузку, послушать SOS-медитации и дать телу восстановиться.';
+
+          return (
             <ScrollView style={styles.scrollContent}>
+                {/* Энергия дня */}
+                <Animated.View entering={FadeInUp} style={styles.forecastCard}>
+                  <View style={styles.forecastHeader}>
+                    <MaterialIcons name="bolt" size={26} color="#FFD700" />
+                    <Text style={styles.forecastTitle}>ИИ-Прогноз: Энергия дня ⚡</Text>
+                  </View>
+
+                  <View style={styles.forecastBody}>
+                    <View style={styles.forecastGaugeContainer}>
+                      <View style={styles.forecastGaugeBg}>
+                        <View style={[styles.forecastGaugeFill, { width: `${energyScore}%` }]} />
+                      </View>
+                      <Text style={styles.forecastGaugeText}>Уровень энергии: {energyScore}%</Text>
+                    </View>
+
+                    <View style={styles.forecastGrid}>
+                      <View style={styles.forecastGridItem}>
+                        <MaterialIcons name="fitness-center" size={16} color="#4CAF50" />
+                        <View>
+                          <Text style={styles.forecastGridLabel}>Физ. стойкость</Text>
+                          <Text style={styles.forecastGridValue}>{physicalResilience}</Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.forecastGridItem}>
+                        <MaterialIcons name="wb-incandescent" size={16} color="#2196F3" />
+                        <View>
+                          <Text style={styles.forecastGridLabel}>Ясность мысли</Text>
+                          <Text style={styles.forecastGridValue}>{mentalClarity}</Text>
+                        </View>
+                      </View>
+                    </View>
+
+                    <View style={styles.forecastAdviceBox}>
+                      <Text style={styles.forecastAdviceText}>«{advice}»</Text>
+                    </View>
+                  </View>
+                </Animated.View>
+
                 <View style={styles.insightCard}>
                   <Text style={styles.cardTitle}>Прогресс</Text>
                   <Text style={styles.statusText}>{vm.insights.progressSummary}</Text>
@@ -493,7 +550,8 @@ export default function EnhancedAICoach() {
                   <Text style={styles.emptyText}>Триггеры пока не выявлены. Продолжайте общение.</Text>
                 )}
             </ScrollView>
-        )}
+          );
+        })()}
       </View>
     </View>
   );
@@ -950,5 +1008,90 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     fontStyle: 'italic',
+  },
+  forecastCard: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 15,
+    marginHorizontal: 15,
+    marginTop: 15,
+    marginBottom: 10,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: '#FFF9C4',
+  },
+  forecastHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
+  },
+  forecastTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  forecastBody: {
+    gap: 12,
+  },
+  forecastGaugeContainer: {
+    gap: 6,
+  },
+  forecastGaugeBg: {
+    height: 8,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  forecastGaugeFill: {
+    height: '100%',
+    backgroundColor: '#FFD700',
+    borderRadius: 4,
+  },
+  forecastGaugeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#555',
+  },
+  forecastGrid: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  forecastGridItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    padding: 10,
+    borderRadius: 12,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+  },
+  forecastGridLabel: {
+    fontSize: 10,
+    color: '#888',
+  },
+  forecastGridValue: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  forecastAdviceBox: {
+    backgroundColor: '#FFFDE7',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FFF59D',
+  },
+  forecastAdviceText: {
+    fontSize: 12,
+    color: '#F57F17',
+    fontStyle: 'italic',
+    lineHeight: 18,
   }
 });

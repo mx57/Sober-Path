@@ -1407,6 +1407,48 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     fontSize: 16
+  },
+  briefingFocus: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2E7D4A',
+    marginBottom: 15,
+    textAlign: 'center'
+  },
+  briefingSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginTop: 15,
+    marginBottom: 10
+  },
+  briefingItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 8,
+    paddingHorizontal: 5
+  },
+  briefingText: {
+    fontSize: 14,
+    color: '#555',
+    flex: 1,
+    lineHeight: 20
+  },
+  motivationQuoteBox: {
+    backgroundColor: '#F1F8F4',
+    padding: 15,
+    borderRadius: 10,
+    marginTop: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: '#2E7D4A',
+  },
+  briefingMotivation: {
+    fontSize: 14,
+    color: '#2E7D4A',
+    fontStyle: 'italic',
+    lineHeight: 20,
+    textAlign: 'center'
   }
 });
 
