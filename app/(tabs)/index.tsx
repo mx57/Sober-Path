@@ -135,6 +135,13 @@ function HomePage() {
   const [dailyQuote, setDailyQuote] = useState<MotivationQuote | null>(null);
   const [dailyTip, setDailyTip] = useState<RecoveryTip | null>(null);
   const [weeklyRoadmap, setWeeklyRoadmap] = useState<WeeklyRoadmap | null>(null);
+  const [energyForecast, setEnergyForecast] = useState<{
+    physicalResilience: number;
+    moodWellness: number;
+    mentalClarity: number;
+    energyLevel: number;
+    recommendations: string[];
+  } | null>(null);
   const [isUpdatingRoadmap, setIsUpdatingRoadmap] = useState(false);
   const [questMilestones, setQuestMilestones] = useState<QuestMilestone[]>([]);
   const [showBriefing, setShowBriefing] = useState(false);
@@ -199,6 +206,13 @@ function HomePage() {
         setMorningBriefing(briefing);
         setShowBriefing(true);
         await AsyncStorage.setItem(`last_briefing_${userProfile.id}`, today);
+      }
+    };
+
+    const loadEnergyForecast = async () => {
+      if (userProfile?.id) {
+        const forecast = await AICoachService.getDailyEnergyForecast(userProfile.id);
+        setEnergyForecast(forecast);
       }
     };
 
@@ -366,6 +380,71 @@ function HomePage() {
               </View>
               <Text style={styles.tipSubtitle}>{dailyTip.title}</Text>
               <Text style={styles.tipContent}>{dailyTip.content}</Text>
+            </LinearGradient>
+          </View>
+        )}
+
+        {energyForecast && (
+          <View style={styles.energyCard}>
+            <LinearGradient colors={['#E8F5E9', '#FFFFFF']} style={styles.energyGradient}>
+              <View style={styles.energyHeader}>
+                <View style={styles.energyHeaderLeft}>
+                  <MaterialIcons name="bolt" size={24} color="#2E7D4A" />
+                  <Text style={styles.energyTitle}>Энергия дня</Text>
+                </View>
+                <View style={styles.energyBadge}>
+                  <Text style={styles.energyBadgeText}>{energyForecast.energyLevel}%</Text>
+                </View>
+              </View>
+
+              <Text style={styles.energySubtitle}>Прогноз самочувствия от ИИ-Коуча</Text>
+
+              <View style={styles.energyMetricsContainer}>
+                {/* Physical Resilience */}
+                <View style={styles.energyMetricRow}>
+                  <View style={styles.energyMetricLabelCol}>
+                    <MaterialIcons name="fitness-center" size={16} color="#4CAF50" />
+                    <Text style={styles.energyMetricLabel}>Физический тонус</Text>
+                  </View>
+                  <View style={styles.energyProgressBarBg}>
+                    <View style={[styles.energyProgressBarFill, { width: `${energyForecast.physicalResilience}%`, backgroundColor: '#4CAF50' }]} />
+                  </View>
+                  <Text style={styles.energyMetricValue}>{energyForecast.physicalResilience}%</Text>
+                </View>
+
+                {/* Mood Wellness */}
+                <View style={styles.energyMetricRow}>
+                  <View style={styles.energyMetricLabelCol}>
+                    <MaterialIcons name="mood" size={16} color="#FF9800" />
+                    <Text style={styles.energyMetricLabel}>Эмоции</Text>
+                  </View>
+                  <View style={styles.energyProgressBarBg}>
+                    <View style={[styles.energyProgressBarFill, { width: `${energyForecast.moodWellness}%`, backgroundColor: '#FF9800' }]} />
+                  </View>
+                  <Text style={styles.energyMetricValue}>{energyForecast.moodWellness}%</Text>
+                </View>
+
+                {/* Mental Clarity */}
+                <View style={styles.energyMetricRow}>
+                  <View style={styles.energyMetricLabelCol}>
+                    <MaterialIcons name="lens-blur" size={16} color="#2196F3" />
+                    <Text style={styles.energyMetricLabel}>Ясность разума</Text>
+                  </View>
+                  <View style={styles.energyProgressBarBg}>
+                    <View style={[styles.energyProgressBarFill, { width: `${energyForecast.mentalClarity}%`, backgroundColor: '#2196F3' }]} />
+                  </View>
+                  <Text style={styles.energyMetricValue}>{energyForecast.mentalClarity}%</Text>
+                </View>
+              </View>
+
+              {energyForecast.recommendations.length > 0 && (
+                <View style={styles.energyRecsBox}>
+                  <Text style={styles.energyRecsTitle}>Рекомендация ИИ:</Text>
+                  {energyForecast.recommendations.map((rec, idx) => (
+                    <Text key={idx} style={styles.energyRecText}>• {rec}</Text>
+                  ))}
+                </View>
+              )}
             </LinearGradient>
           </View>
         )}
@@ -1451,6 +1530,156 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     fontSize: 16
+  },
+  energyCard: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 15,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: '#E8F5E9',
+  },
+  energyGradient: {
+    padding: 18,
+  },
+  energyHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  energyHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  energyTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2E7D4A',
+  },
+  energyBadge: {
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#C8E6C9',
+  },
+  energyBadgeText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#2E7D4A',
+  },
+  energySubtitle: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
+    marginBottom: 14,
+  },
+  energyMetricsContainer: {
+    gap: 10,
+    marginBottom: 14,
+  },
+  energyMetricRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  energyMetricLabelCol: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    width: 140,
+  },
+  energyMetricLabel: {
+    fontSize: 13,
+    color: '#444',
+    fontWeight: '500',
+  },
+  energyProgressBarBg: {
+    flex: 1,
+    height: 6,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginHorizontal: 10,
+  },
+  energyProgressBarFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  energyMetricValue: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#444',
+    width: 35,
+    textAlign: 'right',
+  },
+  energyRecsBox: {
+    backgroundColor: '#F9FBF9',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E8F5E9',
+  },
+  energyRecsTitle: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#2E7D4A',
+    marginBottom: 4,
+  },
+  energyRecText: {
+    fontSize: 12.5,
+    color: '#444',
+    lineHeight: 18,
+    marginTop: 2,
+  },
+  briefingFocus: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#2E7D4A',
+    textAlign: 'center',
+    marginBottom: 15,
+    backgroundColor: '#E8F5E9',
+    padding: 10,
+    borderRadius: 8,
+  },
+  briefingSectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 15,
+    marginBottom: 8,
+  },
+  briefingItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
+  briefingText: {
+    fontSize: 14,
+    color: '#555',
+    flex: 1,
+  },
+  motivationQuoteBox: {
+    marginTop: 20,
+    padding: 15,
+    backgroundColor: '#FFFDE7',
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FBC02D',
+  },
+  briefingMotivation: {
+    fontSize: 14,
+    fontStyle: 'italic',
+    color: '#5D4037',
+    textAlign: 'center',
+    lineHeight: 20,
   }
 });
 

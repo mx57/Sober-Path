@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
@@ -14,6 +13,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInUp, FadeInRight, useSharedValue, useAnimatedStyle, withSpring, withTiming, withSequence } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 
 import { MicroCoursesService, MicroCourse, Lesson } from '../../services/microCoursesService';
 import { allExpandedTechniques } from '../../services/expandedNLPTechniques';
@@ -65,6 +65,14 @@ export default function CoursesPage() {
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [selectedTechnique, setSelectedTechnique] = useState<any | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
+
+  // Quiz States
+  const [activeQuizCourse, setActiveQuizCourse] = useState<MicroCourse | null>(null);
+  const [currentQuizQuestionIdx, setCurrentQuizQuestionIdx] = useState(0);
+  const [selectedQuizOptionIdx, setSelectedQuizOptionIdx] = useState<number | null>(null);
+  const [quizScore, setQuizScore] = useState(0);
+  const [showQuizResult, setShowQuizResult] = useState(false);
+
   const confettiOpacity = useSharedValue(0);
   const confettiScale = useSharedValue(0);
 
@@ -79,11 +87,81 @@ export default function CoursesPage() {
     ...modernTherapeuticTechniques.slice(0, 5)
   ], []);
 
+  const handleStartQuiz = (course: MicroCourse) => {
+    setActiveQuizCourse(course);
+    setCurrentQuizQuestionIdx(0);
+    setSelectedQuizOptionIdx(null);
+    setQuizScore(0);
+    setShowQuizResult(false);
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } catch {}
+  };
+
+  const handleQuizOptionPress = (optionIdx: number) => {
+    if (selectedQuizOptionIdx !== null || !activeQuizCourse?.quiz) return;
+    setSelectedQuizOptionIdx(optionIdx);
+
+    const question = activeQuizCourse.quiz[currentQuizQuestionIdx];
+    const isCorrect = optionIdx === question.correctAnswerIndex;
+
+    if (isCorrect) {
+      setQuizScore(prev => prev + 1);
+      try {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch {}
+    } else {
+      try {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      } catch {}
+    }
+
+    setTimeout(() => {
+      if (currentQuizQuestionIdx < activeQuizCourse.quiz!.length - 1) {
+        setCurrentQuizQuestionIdx(prev => prev + 1);
+        setSelectedQuizOptionIdx(null);
+      } else {
+        setShowQuizResult(true);
+      }
+    }, 2000);
+  };
+
+  const handleFinishQuiz = async () => {
+    if (activeQuizCourse) {
+      try {
+        const { CommunityService } = require('../../services/communityService');
+        await CommunityService.addKarmaPoints(50);
+      } catch (err) {
+        console.warn('Failed to award karma', err);
+      }
+
+      setShowConfetti(true);
+      confettiOpacity.value = withTiming(1, { duration: 200 });
+      confettiScale.value = withSequence(
+        withSpring(1.2),
+        withTiming(1, { duration: 300 })
+      );
+
+      setTimeout(() => {
+        confettiOpacity.value = withTiming(0, { duration: 500 });
+        confettiScale.value = withTiming(0, { duration: 500 });
+        setTimeout(() => {
+          setShowConfetti(false);
+          setActiveQuizCourse(null);
+          setSelectedCourse(null);
+        }, 600);
+      }, 2500);
+    }
+  };
+
   const renderCourses = () => (
     <Animated.View entering={FadeInUp.duration(400)} style={styles.tabContent}>
       <Text style={styles.sectionTitle}>Обучающие программы</Text>
       {courses.map(course => (
-        <CourseCard key={course.id} course={course} onPress={() => setSelectedCourse(course)} />
+        <CourseCard key={course.id} course={course} onPress={() => {
+          setSelectedCourse(course);
+          setActiveQuizCourse(null); // Reset quiz
+        }} />
       ))}
 
       <View style={styles.infoBox}>
@@ -150,19 +228,114 @@ export default function CoursesPage() {
               </View>
             )}
 
-            <Text style={styles.lessonsTitle}>Уроки:</Text>
-            {selectedCourse?.lessons.map((lesson, idx) => (
-              <TouchableOpacity key={lesson.id} style={styles.lessonItem} onPress={() => setSelectedLesson(lesson)}>
-                <View style={styles.lessonNumber}>
-                  <Text style={styles.lessonNumberText}>{idx + 1}</Text>
-                </View>
-                <View style={styles.lessonInfo}>
-                  <Text style={styles.lessonTitle}>{lesson.title}</Text>
-                  <Text style={styles.lessonDuration}>{lesson.duration} минут</Text>
-                </View>
-                <MaterialIcons name="play-circle-fill" size={32} color="#2E7D4A" />
-              </TouchableOpacity>
-            ))}
+            {activeQuizCourse ? (
+              <View style={styles.quizContainer}>
+                {showQuizResult ? (
+                  <View style={styles.quizResultBox}>
+                    <MaterialIcons name="emoji-events" size={64} color="#2E7D4A" />
+                    <Text style={styles.quizResultTitle}>Тест пройден!</Text>
+                    <Text style={styles.quizResultScore}>
+                      Ваш результат: {quizScore} из {activeQuizCourse.quiz?.length}
+                    </Text>
+                    <Text style={styles.quizResultBonus}>+50 очков Кармы начислено!</Text>
+                    <TouchableOpacity style={styles.quizFinishButton} onPress={handleFinishQuiz}>
+                      <Text style={styles.quizFinishButtonText}>Завершить и забрать награду</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View>
+                    <View style={styles.quizHeader}>
+                      <Text style={styles.quizProgressText}>
+                        Вопрос {currentQuizQuestionIdx + 1} из {activeQuizCourse.quiz?.length}
+                      </Text>
+                      <View style={styles.quizProgressBar}>
+                        <View
+                          style={[
+                            styles.quizProgressFill,
+                            { width: `${((currentQuizQuestionIdx + 1) / (activeQuizCourse.quiz?.length || 1)) * 100}%` }
+                          ]}
+                        />
+                      </View>
+                    </View>
+
+                    {activeQuizCourse.quiz && (
+                      <View>
+                        <Text style={styles.quizQuestionText}>
+                          {activeQuizCourse.quiz[currentQuizQuestionIdx].question}
+                        </Text>
+                        <View style={styles.quizOptionsList}>
+                          {activeQuizCourse.quiz[currentQuizQuestionIdx].options.map((option, idx) => {
+                            const isSelected = selectedQuizOptionIdx === idx;
+                            const isCorrect = idx === activeQuizCourse.quiz![currentQuizQuestionIdx].correctAnswerIndex;
+                            const showCorrect = selectedQuizOptionIdx !== null && isCorrect;
+                            const showWrong = isSelected && !isCorrect;
+
+                            return (
+                              <TouchableOpacity
+                                key={idx}
+                                style={[
+                                  styles.quizOptionButton,
+                                  showCorrect && styles.quizCorrectOption,
+                                  showWrong && styles.quizWrongOption
+                                ]}
+                                onPress={() => handleQuizOptionPress(idx)}
+                                disabled={selectedQuizOptionIdx !== null}
+                              >
+                                <Text
+                                  style={[
+                                    styles.quizOptionText,
+                                    (showCorrect || showWrong) && styles.selectedQuizOptionText
+                                  ]}
+                                >
+                                  {option}
+                                </Text>
+                                {showCorrect && <MaterialIcons name="check" size={20} color="white" />}
+                                {showWrong && <MaterialIcons name="close" size={20} color="white" />}
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </View>
+
+                        {selectedQuizOptionIdx !== null && (
+                          <View style={styles.quizExplanationBox}>
+                            <Text style={styles.quizExplanationTitle}>Пояснение:</Text>
+                            <Text style={styles.quizExplanationText}>
+                              {activeQuizCourse.quiz[currentQuizQuestionIdx].explanation}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    )}
+                  </View>
+                )}
+              </View>
+            ) : (
+              <View>
+                <Text style={styles.lessonsTitle}>Уроки:</Text>
+                {selectedCourse?.lessons.map((lesson, idx) => (
+                  <TouchableOpacity key={lesson.id} style={styles.lessonItem} onPress={() => setSelectedLesson(lesson)}>
+                    <View style={styles.lessonNumber}>
+                      <Text style={styles.lessonNumberText}>{idx + 1}</Text>
+                    </View>
+                    <View style={styles.lessonInfo}>
+                      <Text style={styles.lessonTitle}>{lesson.title}</Text>
+                      <Text style={styles.lessonDuration}>{lesson.duration} минут</Text>
+                    </View>
+                    <MaterialIcons name="play-circle-fill" size={32} color="#2E7D4A" />
+                  </TouchableOpacity>
+                ))}
+
+                {selectedCourse?.quiz && selectedCourse.quiz.length > 0 && (
+                  <TouchableOpacity
+                    style={[styles.startQuizButton, { backgroundColor: selectedCourse.color }]}
+                    onPress={() => handleStartQuiz(selectedCourse)}
+                  >
+                    <MaterialIcons name="assignment-turned-in" size={20} color="white" />
+                    <Text style={styles.startQuizButtonText}>Пройти интерактивный тест</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
           </ScrollView>
         </View>
       </Modal>
@@ -349,5 +522,136 @@ const styles = StyleSheet.create({
   celebrationSub: {
     fontSize: 16,
     color: '#666',
+  },
+  startQuizButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginTop: 20,
+    gap: 8,
+  },
+  startQuizButtonText: {
+    color: 'white',
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
+  quizContainer: {
+    paddingVertical: 10,
+  },
+  quizResultBox: {
+    alignItems: 'center',
+    paddingVertical: 30,
+    backgroundColor: '#F9FBF9',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#C8E6C9',
+  },
+  quizResultTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#2E7D4A',
+    marginTop: 15,
+    marginBottom: 6,
+  },
+  quizResultScore: {
+    fontSize: 16,
+    color: '#444',
+    marginBottom: 8,
+  },
+  quizResultBonus: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FF9800',
+    marginBottom: 20,
+  },
+  quizFinishButton: {
+    backgroundColor: '#2E7D4A',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  quizFinishButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  quizHeader: {
+    marginBottom: 16,
+  },
+  quizProgressText: {
+    fontSize: 13,
+    color: '#666',
+    fontWeight: 'bold',
+    marginBottom: 6,
+  },
+  quizProgressBar: {
+    height: 6,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  quizProgressFill: {
+    height: '100%',
+    backgroundColor: '#2E7D4A',
+  },
+  quizQuestionText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    lineHeight: 24,
+    marginBottom: 16,
+  },
+  quizOptionsList: {
+    gap: 10,
+    marginBottom: 16,
+  },
+  quizOptionButton: {
+    backgroundColor: 'white',
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    elevation: 1,
+  },
+  quizOptionText: {
+    fontSize: 15,
+    color: '#444',
+    flex: 1,
+    marginRight: 10,
+  },
+  quizCorrectOption: {
+    backgroundColor: '#4CAF50',
+    borderColor: '#4CAF50',
+  },
+  quizWrongOption: {
+    backgroundColor: '#F44336',
+    borderColor: '#F44336',
+  },
+  selectedQuizOptionText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  quizExplanationBox: {
+    backgroundColor: '#FFFDE7',
+    padding: 14,
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FBC02D',
+  },
+  quizExplanationTitle: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#5D4037',
+    marginBottom: 4,
+  },
+  quizExplanationText: {
+    fontSize: 13,
+    color: '#5D4037',
+    lineHeight: 18,
   }
 });

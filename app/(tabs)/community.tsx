@@ -280,12 +280,12 @@ const CommunityPulse = () => {
   }, []);
 
   return (
-    <Animated.View entering={FadeInUp} style={styles.pulseContainer}>
+    <Animated.View entering={FadeInUp} style={styles.userCountPulseContainer}>
       <View style={styles.pulseDotContainer}>
-        <View style={styles.pulseDot} />
-        <View style={[styles.pulseDot, styles.pulseDotPing]} />
+        <View style={styles.userCountPulseDot} />
+        <View style={[styles.userCountPulseDot, styles.pulseDotPing]} />
       </View>
-      <Text style={styles.pulseText}>{activeUsers} участников сейчас онлайн и поддерживают друг друга</Text>
+      <Text style={styles.userCountPulseText}>{activeUsers} участников сейчас онлайн и поддерживают друг друга</Text>
     </Animated.View>
   );
 };
@@ -1424,7 +1424,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     gap: 2,
   },
-  mentorBadge: {
+  mentorBadgeGold: {
     backgroundColor: '#FFF8E1',
     borderWidth: 1,
     borderColor: '#FFD54F',
@@ -1589,7 +1589,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     lineHeight: 20
   },
-  pulseContainer: {
+  userCountPulseContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     marginHorizontal: 20,
@@ -1610,7 +1610,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 10,
   },
-  pulseDot: {
+  userCountPulseDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
@@ -1624,7 +1624,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#4CAF50',
     opacity: 0.4,
   },
-  pulseText: {
+  userCountPulseText: {
     fontSize: 13,
     color: '#666',
     fontWeight: '500',
