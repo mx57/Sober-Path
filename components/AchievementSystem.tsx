@@ -81,7 +81,7 @@ export default function AchievementSystem() {
 
   useEffect(() => {
     checkAchievements();
-  }, [soberDays, getStreakDays()]);
+  }, [soberDays]);
 
   const checkAchievements = () => {
     const streakDays = getStreakDays();
