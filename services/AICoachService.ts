@@ -622,63 +622,6 @@ export class AICoachService {
     }
   }
 
-  static async getDailyEnergyForecast(userId: string): Promise<{ physical: number; mood: number; mental: number; feedback: string }> {
-    const journalResult = await JournalService.getEntries();
-    let physical = 75;
-    let mood = 70;
-    let mental = 80;
-
-    if (journalResult.success && journalResult.data.length > 0) {
-      const entries = journalResult.data;
-      const recentEntries = entries.slice(0, 3);
-
-      let physicalBonus = 0;
-      let mentalBonus = 0;
-      let moodSum = 0;
-
-      const keywords = {
-        physPos: ['бодр', 'энергичен', 'заряд', 'сила', 'активен', 'здоров', 'спорт', 'выспался', 'выспалась', 'зарядка'],
-        physNeg: ['устал', 'слабость', 'болит', 'вялый', 'разбит', 'нет сил', 'бессонница', 'плохо спал', 'плохо спала'],
-        mentPos: ['ясность', 'фокус', 'концентрация', 'спокоен', 'спокойна', 'осознанность', 'цель', 'уверен', 'уверена'],
-        mentNeg: ['туман', 'путаница', 'тревога', 'стресс', 'тяга', 'сорваться', 'сомнения', 'паника']
-      };
-
-      recentEntries.forEach(entry => {
-        const content = entry.content.toLowerCase();
-        moodSum += (entry.mood * 20); // Mood 1-5 to 20-100
-
-        keywords.physPos.forEach(kw => { if (content.includes(kw)) physicalBonus += 10; });
-        keywords.physNeg.forEach(kw => { if (content.includes(kw)) physicalBonus -= 15; });
-        keywords.mentPos.forEach(kw => { if (content.includes(kw)) mentalBonus += 10; });
-        keywords.mentNeg.forEach(kw => { if (content.includes(kw)) mentalBonus -= 15; });
-      });
-
-      physical = Math.max(20, Math.min(100, physical + physicalBonus));
-      mental = Math.max(20, Math.min(100, mental + mentalBonus));
-      mood = Math.max(20, Math.min(100, Math.round(moodSum / recentEntries.length)));
-    } else {
-      physical = 70;
-      mood = 65;
-      mental = 75;
-    }
-
-    let feedback = 'Ваш энергетический баланс в норме. Отличный день для закрепления полезных привычек!';
-    const minVal = Math.min(physical, mood, mental);
-    if (minVal < 50) {
-      if (minVal === physical) {
-        feedback = 'Физический ресурс снижен. Рекомендуется уделить время качественному отдыху, исключить кофеин и сделать легкую разминку.';
-      } else if (minVal === mood) {
-        feedback = 'Эмоциональный тонус требует поддержки. Попробуйте написать в сообщество или послушать успокаивающее SOS-аудио.';
-      } else {
-        feedback = 'Ясность ума под давлением мыслей. Сделайте дыхательную технику заземления 5-4-3-2-1 прямо сейчас.';
-      }
-    } else if (minVal > 85) {
-      feedback = 'Высокий уровень энергии во всех сферах! Прекрасное время для помощи другим в сообществе или прохождения новых уроков.';
-    }
-
-    return { physical, mood, mental, feedback };
-  }
-
   static async getUserInsights(userId: string) {
     const memory = this.getUserMemory(userId);
     const sleepData = await this.analyzeSleepPatterns();
@@ -694,7 +637,8 @@ export class AICoachService {
         ? 'Ваше состояние улучшается.'
         : 'Мы продолжаем работу.',
       profile,
-      sleepAnalysis: sleepData
+      sleepAnalysis: sleepData,
+      dailyEnergy
     };
   }
 
