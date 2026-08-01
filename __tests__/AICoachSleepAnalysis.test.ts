@@ -1,6 +1,9 @@
 import { AICoachService } from '../services/AICoachService';
+import { JournalService } from '../services/journalService';
 
-describe('AICoachService Sleep Quality Analysis', () => {
+jest.mock('../services/journalService');
+
+describe('AICoachService Sleep Quality Analysis (Direct)', () => {
   it('should handle empty or missing entries gracefully', () => {
     const result = AICoachService.analyzeSleepFromJournal([]);
     expect(result.sleepQuality).toBe(3);
@@ -42,9 +45,8 @@ describe('AICoachService Sleep Quality Analysis', () => {
     const result = AICoachService.analyzeSleepFromJournal(entries);
     expect(result.sleepQuality).toBe(3); // (5 + 1) / 2 = 3
     expect(result.feedback).toContain('на среднем уровне');
-import { JournalService } from '../services/journalService';
-
-jest.mock('../services/journalService');
+  });
+});
 
 describe('AICoachService Sleep Analysis', () => {
   beforeEach(() => {

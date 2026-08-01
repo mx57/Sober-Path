@@ -37,6 +37,7 @@ interface Article {
   tags: string[];
   icon: string;
   color: string;
+  quiz?: any[];
 }
 
 import { articlesDatabase } from '../../services/articlesDatabase';
