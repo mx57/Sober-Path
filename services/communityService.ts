@@ -87,7 +87,7 @@ export class CommunityService {
    */
   static async getUserKarma(userName?: string): Promise<number> {
     try {
-      const stored = await AsyncStorage.getItem(KARMA_STORAGE_KEY);
+      const stored = await AsyncStorage.getItem(USER_KARMA_KEY);
       if (!stored) return 0;
 
       try {
@@ -117,7 +117,7 @@ export class CommunityService {
    */
   static async addKarmaPoints(points: number): Promise<number> {
     try {
-      const stored = await AsyncStorage.getItem(KARMA_STORAGE_KEY);
+      const stored = await AsyncStorage.getItem(USER_KARMA_KEY);
       let karmaMap: Record<string, number> = {};
       try {
         if (stored) {
@@ -136,7 +136,7 @@ export class CommunityService {
       const current = karmaMap['current_user'] || 0;
       const updated = current + points;
       karmaMap['current_user'] = updated;
-      await AsyncStorage.setItem(KARMA_STORAGE_KEY, JSON.stringify(karmaMap));
+      await AsyncStorage.setItem(USER_KARMA_KEY, JSON.stringify(karmaMap));
       return updated;
     } catch (e) {
       return 0;

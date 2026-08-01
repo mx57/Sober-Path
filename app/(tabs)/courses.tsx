@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInUp, FadeInRight, useSharedValue, useAnimatedStyle, withSpring, withTiming, withSequence } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Import databases and services
 import { MicroCoursesService, MicroCourse, Lesson } from '../../services/microCoursesService';
@@ -238,15 +239,10 @@ export default function CoursesPage() {
     }
   };
 
-  const renderCourses = () => (
-    <Animated.View entering={FadeInUp.duration(400)} style={styles.tabContent}>
-      <Text style={styles.sectionTitle}>Обучающие программы</Text>
-      {courses.map(course => (
-        <CourseCard key={course.id} course={course} onPress={() => {
-          setSelectedCourse(course);
-          setActiveQuizCourse(null); // Reset quiz
-        }} />
-      ))}
+  const deepTherapies = useMemo(() => {
+    const res = PsychologyService.getTherapies();
+    return res.success ? res.data : [];
+  }, []);
 
   const sounds = useMemo(() => {
     const res = PsychologyService.getSounds();
