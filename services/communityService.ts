@@ -87,14 +87,26 @@ export class CommunityService {
    */
   static async getUserKarma(userName?: string): Promise<number> {
     try {
-      if (userName && userName !== 'Вы') {
-        const stored = await AsyncStorage.getItem(COMMUNITY_KARMA_MAP_KEY);
-        const karmaMap = stored ? JSON.parse(stored) : {};
-        return karmaMap[userName] || 0;
-      } else {
-        const stored = await AsyncStorage.getItem(USER_KARMA_KEY);
-        return stored ? parseInt(stored, 10) : 0;
+      const stored = await AsyncStorage.getItem(KARMA_STORAGE_KEY);
+      if (!stored) return 0;
+
+      try {
+        const parsed = JSON.parse(stored);
+        if (typeof parsed === 'object' && parsed !== null) {
+          if (userName) {
+            return parsed[userName] || 0;
+          } else {
+            return parsed['current_user'] || 0;
+          }
+        } else if (typeof parsed === 'number') {
+          return userName ? 0 : parsed;
+        }
+      } catch (e) {
+        if (!userName) {
+          return parseInt(stored, 10) || 0;
+        }
       }
+      return 0;
     } catch (e) {
       return 0;
     }
@@ -105,9 +117,26 @@ export class CommunityService {
    */
   static async addKarmaPoints(points: number): Promise<number> {
     try {
-      const current = await this.getUserKarma();
+      const stored = await AsyncStorage.getItem(KARMA_STORAGE_KEY);
+      let karmaMap: Record<string, number> = {};
+      try {
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (typeof parsed === 'object' && parsed !== null) {
+            karmaMap = parsed;
+          } else if (typeof parsed === 'number') {
+            karmaMap['current_user'] = parsed;
+          }
+        }
+      } catch (e) {
+        if (stored) {
+          karmaMap['current_user'] = parseInt(stored, 10) || 0;
+        }
+      }
+      const current = karmaMap['current_user'] || 0;
       const updated = current + points;
-      await AsyncStorage.setItem(USER_KARMA_KEY, updated.toString());
+      karmaMap['current_user'] = updated;
+      await AsyncStorage.setItem(KARMA_STORAGE_KEY, JSON.stringify(karmaMap));
       return updated;
     } catch (e) {
       return 0;
@@ -719,6 +748,8 @@ export class CommunityService {
         await this.updateUserKarma(targetAuthor, 1);
     }
   }
+
+
 
   private static async updateUserKarma(userName: string, points: number): Promise<void> {
     try {

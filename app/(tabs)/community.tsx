@@ -281,12 +281,12 @@ const CommunityPulse = () => {
   }, []);
 
   return (
-    <Animated.View entering={FadeInUp} style={styles.pulseContainer}>
+    <Animated.View entering={FadeInUp} style={styles.userCountPulseContainer}>
       <View style={styles.pulseDotContainer}>
-        <View style={styles.pulseDot} />
-        <View style={[styles.pulseDot, styles.pulseDotPing]} />
+        <View style={styles.userCountPulseDot} />
+        <View style={[styles.userCountPulseDot, styles.pulseDotPing]} />
       </View>
-      <Text style={styles.pulseText}>{activeUsers} участников сейчас онлайн и поддерживают друг друга</Text>
+      <Text style={styles.userCountPulseText}>{activeUsers} участников сейчас онлайн и поддерживают друг друга</Text>
     </Animated.View>
   );
 };
@@ -1551,6 +1551,16 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     gap: 2,
   },
+  mentorBadgeGold: {
+    backgroundColor: '#FFF8E1',
+    borderWidth: 1,
+    borderColor: '#FFD54F',
+  },
+  starBadge: {
+    backgroundColor: '#E3F2FD',
+    borderWidth: 1,
+    borderColor: '#90CAF9',
+  },
   badgeEmoji: {
     fontSize: 10,
   },
@@ -1705,6 +1715,46 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 15,
     lineHeight: 20
+  },
+  userCountPulseContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 20,
+    backgroundColor: 'white',
+    padding: 12,
+    borderRadius: 16,
+    marginBottom: 15,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  pulseDotContainer: {
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  userCountPulseDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#4CAF50',
+  },
+  pulseDotPing: {
+    position: 'absolute',
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#4CAF50',
+    opacity: 0.4,
+  },
+  userCountPulseText: {
+    fontSize: 13,
+    color: '#666',
+    fontWeight: '500',
   },
   pollContainer: {
     backgroundColor: '#F8F9FA',

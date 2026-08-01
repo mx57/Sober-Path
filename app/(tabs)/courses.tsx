@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,17 +15,8 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import Animated, { FadeInUp, FadeInRight, useSharedValue, useAnimatedStyle, withSpring, withTiming, withSequence } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import Animated, {
-  FadeInUp,
-  FadeInRight,
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withTiming,
-  withSequence
-} from 'react-native-reanimated';
 
 // Import databases and services
 import { MicroCoursesService, MicroCourse, Lesson } from '../../services/microCoursesService';
@@ -68,6 +59,14 @@ export default function CoursesPage() {
 
   // Confetti / Celebration animation
   const [showConfetti, setShowConfetti] = useState(false);
+
+  // Quiz States
+  const [activeQuizCourse, setActiveQuizCourse] = useState<MicroCourse | null>(null);
+  const [currentQuizQuestionIdx, setCurrentQuizQuestionIdx] = useState(0);
+  const [selectedQuizOptionIdx, setSelectedQuizOptionIdx] = useState<number | null>(null);
+  const [quizScore, setQuizScore] = useState(0);
+  const [showQuizResult, setShowQuizResult] = useState(false);
+
   const confettiOpacity = useSharedValue(0);
   const confettiScale = useSharedValue(0);
 
@@ -172,10 +171,82 @@ export default function CoursesPage() {
     ...allExpandedTechniques.filter(t => t.difficulty === 'beginner' || t.difficulty === 'intermediate').slice(0, 5)
   ], []);
 
-  const deepTherapies = useMemo(() => {
-    const res = PsychologyService.getTherapies();
-    return res.success ? res.data : [];
-  }, []);
+  const handleStartQuiz = (course: MicroCourse) => {
+    setActiveQuizCourse(course);
+    setCurrentQuizQuestionIdx(0);
+    setSelectedQuizOptionIdx(null);
+    setQuizScore(0);
+    setShowQuizResult(false);
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } catch {}
+  };
+
+  const handleQuizOptionPress = (optionIdx: number) => {
+    if (selectedQuizOptionIdx !== null || !activeQuizCourse?.quiz) return;
+    setSelectedQuizOptionIdx(optionIdx);
+
+    const question = activeQuizCourse.quiz[currentQuizQuestionIdx];
+    const isCorrect = optionIdx === question.correctAnswerIndex;
+
+    if (isCorrect) {
+      setQuizScore(prev => prev + 1);
+      try {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch {}
+    } else {
+      try {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      } catch {}
+    }
+
+    setTimeout(() => {
+      if (currentQuizQuestionIdx < activeQuizCourse.quiz!.length - 1) {
+        setCurrentQuizQuestionIdx(prev => prev + 1);
+        setSelectedQuizOptionIdx(null);
+      } else {
+        setShowQuizResult(true);
+      }
+    }, 2000);
+  };
+
+  const handleFinishQuiz = async () => {
+    if (activeQuizCourse) {
+      try {
+        const { CommunityService } = require('../../services/communityService');
+        await CommunityService.addKarmaPoints(50);
+      } catch (err) {
+        console.warn('Failed to award karma', err);
+      }
+
+      setShowConfetti(true);
+      confettiOpacity.value = withTiming(1, { duration: 200 });
+      confettiScale.value = withSequence(
+        withSpring(1.2),
+        withTiming(1, { duration: 300 })
+      );
+
+      setTimeout(() => {
+        confettiOpacity.value = withTiming(0, { duration: 500 });
+        confettiScale.value = withTiming(0, { duration: 500 });
+        setTimeout(() => {
+          setShowConfetti(false);
+          setActiveQuizCourse(null);
+          setSelectedCourse(null);
+        }, 600);
+      }, 2500);
+    }
+  };
+
+  const renderCourses = () => (
+    <Animated.View entering={FadeInUp.duration(400)} style={styles.tabContent}>
+      <Text style={styles.sectionTitle}>Обучающие программы</Text>
+      {courses.map(course => (
+        <CourseCard key={course.id} course={course} onPress={() => {
+          setSelectedCourse(course);
+          setActiveQuizCourse(null); // Reset quiz
+        }} />
+      ))}
 
   const sounds = useMemo(() => {
     const res = PsychologyService.getSounds();
@@ -442,19 +513,115 @@ export default function CoursesPage() {
                 <Text style={styles.courseDetailDesc}>{selectedCourse.description}</Text>
               </View>
             )}
-            <Text style={styles.lessonsTitle}>Содержимое уроков:</Text>
-            {selectedCourse?.lessons.map((lesson, idx) => (
-              <TouchableOpacity key={lesson.id} style={styles.lessonItem} onPress={() => startLesson(lesson)}>
-                <View style={styles.lessonNumber}>
-                  <Text style={styles.lessonNumberText}>{idx + 1}</Text>
-                </View>
-                <View style={styles.lessonInfo}>
-                  <Text style={styles.lessonTitle}>{lesson.title}</Text>
-                  <Text style={styles.lessonDuration}>{lesson.duration} минут</Text>
-                </View>
-                <MaterialIcons name="play-circle-fill" size={32} color="#2E7D4A" />
-              </TouchableOpacity>
-            ))}
+
+            {activeQuizCourse ? (
+              <View style={styles.quizContainer}>
+                {showQuizResult ? (
+                  <View style={styles.quizResultBox}>
+                    <MaterialIcons name="emoji-events" size={64} color="#2E7D4A" />
+                    <Text style={styles.quizResultTitle}>Тест пройден!</Text>
+                    <Text style={styles.quizResultScore}>
+                      Ваш результат: {quizScore} из {activeQuizCourse.quiz?.length}
+                    </Text>
+                    <Text style={styles.quizResultBonus}>+50 очков Кармы начислено!</Text>
+                    <TouchableOpacity style={styles.quizFinishButton} onPress={handleFinishQuiz}>
+                      <Text style={styles.quizFinishButtonText}>Завершить и забрать награду</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View>
+                    <View style={styles.quizHeader}>
+                      <Text style={styles.quizProgressText}>
+                        Вопрос {currentQuizQuestionIdx + 1} из {activeQuizCourse.quiz?.length}
+                      </Text>
+                      <View style={styles.quizProgressBar}>
+                        <View
+                          style={[
+                            styles.quizProgressFill,
+                            { width: `${((currentQuizQuestionIdx + 1) / (activeQuizCourse.quiz?.length || 1)) * 100}%` }
+                          ]}
+                        />
+                      </View>
+                    </View>
+
+                    {activeQuizCourse.quiz && (
+                      <View>
+                        <Text style={styles.quizQuestionText}>
+                          {activeQuizCourse.quiz[currentQuizQuestionIdx].question}
+                        </Text>
+                        <View style={styles.quizOptionsList}>
+                          {activeQuizCourse.quiz[currentQuizQuestionIdx].options.map((option, idx) => {
+                            const isSelected = selectedQuizOptionIdx === idx;
+                            const isCorrect = idx === activeQuizCourse.quiz![currentQuizQuestionIdx].correctAnswerIndex;
+                            const showCorrect = selectedQuizOptionIdx !== null && isCorrect;
+                            const showWrong = isSelected && !isCorrect;
+
+                            return (
+                              <TouchableOpacity
+                                key={idx}
+                                style={[
+                                  styles.quizOptionButton,
+                                  showCorrect && styles.quizCorrectOption,
+                                  showWrong && styles.quizWrongOption
+                                ]}
+                                onPress={() => handleQuizOptionPress(idx)}
+                                disabled={selectedQuizOptionIdx !== null}
+                              >
+                                <Text
+                                  style={[
+                                    styles.quizOptionText,
+                                    (showCorrect || showWrong) && styles.selectedQuizOptionText
+                                  ]}
+                                >
+                                  {option}
+                                </Text>
+                                {showCorrect && <MaterialIcons name="check" size={20} color="white" />}
+                                {showWrong && <MaterialIcons name="close" size={20} color="white" />}
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </View>
+
+                        {selectedQuizOptionIdx !== null && (
+                          <View style={styles.quizExplanationBox}>
+                            <Text style={styles.quizExplanationTitle}>Пояснение:</Text>
+                            <Text style={styles.quizExplanationText}>
+                              {activeQuizCourse.quiz[currentQuizQuestionIdx].explanation}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    )}
+                  </View>
+                )}
+              </View>
+            ) : (
+              <View>
+                <Text style={styles.lessonsTitle}>Уроки:</Text>
+                {selectedCourse?.lessons.map((lesson, idx) => (
+                  <TouchableOpacity key={lesson.id} style={styles.lessonItem} onPress={() => setSelectedLesson(lesson)}>
+                    <View style={styles.lessonNumber}>
+                      <Text style={styles.lessonNumberText}>{idx + 1}</Text>
+                    </View>
+                    <View style={styles.lessonInfo}>
+                      <Text style={styles.lessonTitle}>{lesson.title}</Text>
+                      <Text style={styles.lessonDuration}>{lesson.duration} минут</Text>
+                    </View>
+                    <MaterialIcons name="play-circle-fill" size={32} color="#2E7D4A" />
+                  </TouchableOpacity>
+                ))}
+
+                {selectedCourse?.quiz && selectedCourse.quiz.length > 0 && (
+                  <TouchableOpacity
+                    style={[styles.startQuizButton, { backgroundColor: selectedCourse.color }]}
+                    onPress={() => handleStartQuiz(selectedCourse)}
+                  >
+                    <MaterialIcons name="assignment-turned-in" size={20} color="white" />
+                    <Text style={styles.startQuizButtonText}>Пройти интерактивный тест</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
           </ScrollView>
         </View>
       </Modal>
@@ -779,47 +946,169 @@ const styles = StyleSheet.create({
   lessonFooter: { padding: 20, backgroundColor: 'white', borderTopWidth: 1, borderTopColor: '#F0F0F0' },
   completeLessonButton: { backgroundColor: '#2E7D4A', padding: 16, borderRadius: 16, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 },
   completeLessonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
-  stepProgressBar: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginBottom: 20 },
-  stepProgressDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#E0E0E0' },
-  stepCard: { backgroundColor: 'white', padding: 20, borderRadius: 20, borderWidth: 1, borderColor: '#F0F0F0', marginBottom: 20 },
-  stepTitle: { fontSize: 18, fontWeight: 'bold', color: '#2E7D4A', marginBottom: 10 },
-  stepInstructionText: { fontSize: 16, lineHeight: 24, color: '#444' },
-  intensitySection: { backgroundColor: 'white', padding: 16, borderRadius: 20, borderWidth: 1, borderColor: '#F0F0F0', marginBottom: 20 },
-  intensityLabel: { fontSize: 15, fontWeight: '600', color: '#333', marginBottom: 12 },
-  intensityRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 4, flexWrap: 'wrap' },
-  intensityBtn: { width: 32, height: 32, borderRadius: 16, borderWidth: 1, borderColor: '#CCC', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F9F9F9' },
-  intensityBtnActive: { backgroundColor: '#2E7D4A', borderColor: '#2E7D4A' },
-  intensityBtnText: { fontSize: 13, color: '#333', fontWeight: 'bold' },
-  timerSection: { backgroundColor: 'white', padding: 16, borderRadius: 20, borderWidth: 1, borderColor: '#F0F0F0', marginBottom: 20 },
-  timerTitleText: { fontSize: 14, color: '#666', marginBottom: 8 },
-  timerContainerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  timerCountdown: { fontSize: 28, fontWeight: 'bold', color: '#333' },
-  timerToggleBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#2E7D4A', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 14, gap: 4 },
-  timerToggleBtnText: { color: 'white', fontSize: 14, fontWeight: '700' },
-  emdrBilateralAnimation: { height: 60, backgroundColor: '#F3E5F5', borderRadius: 12, marginTop: 15, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 12 },
-  emdrBall: { width: 20, height: 20, borderRadius: 10, backgroundColor: '#9C27B0' },
-  emdrHelpText: { fontSize: 12, color: '#9C27B0', fontWeight: '500', marginTop: 6, textAlign: 'center' },
-  soundPlayerContent: { alignItems: 'center', paddingVertical: 30 },
-  soundDiscContainer: { width: 180, height: 180, borderRadius: 90, backgroundColor: '#282C34', justifyContent: 'center', alignItems: 'center', marginBottom: 30, elevation: 5 },
-  soundPlayerTitle: { fontSize: 24, fontWeight: 'bold', color: 'white', textAlign: 'center' },
-  soundPlayerDesc: { fontSize: 16, color: '#CCC', textAlign: 'center', marginTop: 10, paddingHorizontal: 20 },
-  soundPlayerFreqTag: { backgroundColor: '#3F51B5', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, marginTop: 15 },
-  soundPlayerFreqText: { color: 'white', fontWeight: 'bold' },
-  playerControlsRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginVertical: 30 },
-  playerPlayBtn: { padding: 5 },
-  sleepTimerSection: { width: '100%', backgroundColor: '#252830', padding: 16, borderRadius: 20, marginBottom: 20 },
-  sleepTimerTitle: { fontSize: 14, color: '#FFF', fontWeight: 'bold', marginBottom: 12 },
-  sleepTimerRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  sleepTimerBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: '#444' },
-  sleepTimerBtnActive: { backgroundColor: '#3F51B5', borderColor: '#3F51B5' },
-  sleepTimerBtnText: { color: '#CCC', fontSize: 13, fontWeight: '600' },
-  sleepTimerCountdown: { color: '#FF8A80', marginTop: 10, fontSize: 13, fontWeight: '500' },
-  soundInstructionsCard: { width: '100%', backgroundColor: '#252830', padding: 16, borderRadius: 20 },
-  soundInstructionsTitle: { fontSize: 14, color: '#FFF', fontWeight: 'bold', marginBottom: 8 },
-  soundInstructionsText: { color: '#CCC', fontSize: 13, lineHeight: 20 },
-  confettiContainer: { ...StyleSheet.absoluteFillObject, zIndex: 9999, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.4)' },
-  celebrationCard: { backgroundColor: 'white', borderRadius: 24, padding: 30, alignItems: 'center', elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 },
-  celebrationEmoji: { fontSize: 64, marginBottom: 16 },
-  celebrationText: { fontSize: 24, fontWeight: 'bold', color: '#2E7D4A', marginBottom: 8 },
-  celebrationSub: { fontSize: 16, color: '#666', textAlign: 'center' }
+  stepItem: { marginBottom: 10 },
+  stepText: { fontSize: 15, color: '#555', lineHeight: 20 },
+  confettiContainer: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 9999,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  celebrationCard: {
+    backgroundColor: 'white',
+    borderRadius: 24,
+    padding: 40,
+    alignItems: 'center',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  celebrationEmoji: {
+    fontSize: 64,
+    marginBottom: 16,
+  },
+  celebrationText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#2E7D4A',
+    marginBottom: 8,
+  },
+  celebrationSub: {
+    fontSize: 16,
+    color: '#666',
+  },
+  startQuizButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginTop: 20,
+    gap: 8,
+  },
+  startQuizButtonText: {
+    color: 'white',
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
+  quizContainer: {
+    paddingVertical: 10,
+  },
+  quizResultBox: {
+    alignItems: 'center',
+    paddingVertical: 30,
+    backgroundColor: '#F9FBF9',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#C8E6C9',
+  },
+  quizResultTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#2E7D4A',
+    marginTop: 15,
+    marginBottom: 6,
+  },
+  quizResultScore: {
+    fontSize: 16,
+    color: '#444',
+    marginBottom: 8,
+  },
+  quizResultBonus: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FF9800',
+    marginBottom: 20,
+  },
+  quizFinishButton: {
+    backgroundColor: '#2E7D4A',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  quizFinishButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  quizHeader: {
+    marginBottom: 16,
+  },
+  quizProgressText: {
+    fontSize: 13,
+    color: '#666',
+    fontWeight: 'bold',
+    marginBottom: 6,
+  },
+  quizProgressBar: {
+    height: 6,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  quizProgressFill: {
+    height: '100%',
+    backgroundColor: '#2E7D4A',
+  },
+  quizQuestionText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    lineHeight: 24,
+    marginBottom: 16,
+  },
+  quizOptionsList: {
+    gap: 10,
+    marginBottom: 16,
+  },
+  quizOptionButton: {
+    backgroundColor: 'white',
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    elevation: 1,
+  },
+  quizOptionText: {
+    fontSize: 15,
+    color: '#444',
+    flex: 1,
+    marginRight: 10,
+  },
+  quizCorrectOption: {
+    backgroundColor: '#4CAF50',
+    borderColor: '#4CAF50',
+  },
+  quizWrongOption: {
+    backgroundColor: '#F44336',
+    borderColor: '#F44336',
+  },
+  selectedQuizOptionText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  quizExplanationBox: {
+    backgroundColor: '#FFFDE7',
+    padding: 14,
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FBC02D',
+  },
+  quizExplanationTitle: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#5D4037',
+    marginBottom: 4,
+  },
+  quizExplanationText: {
+    fontSize: 13,
+    color: '#5D4037',
+    lineHeight: 18,
+  }
 });
