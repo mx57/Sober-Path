@@ -1,9 +1,9 @@
 
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useRef, useState, useEffect } from 'react';
 import { 
   View, Text, StyleSheet, ScrollView, TouchableOpacity, 
   TextInput, KeyboardAvoidingView, Platform, Modal,
-  Dimensions, ActivityIndicator, ViewStyle
+  Dimensions, ActivityIndicator, ViewStyle, Alert
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -176,6 +176,43 @@ export default function EnhancedAICoach() {
   const scrollViewRef = useRef<ScrollView>(null);
   const router = useRouter();
 
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordSecs, setRecordSecs] = useState(0);
+
+  useEffect(() => {
+    let interval: any;
+    if (isRecording) {
+      setRecordSecs(0);
+      interval = setInterval(() => {
+        setRecordSecs(s => s + 1);
+      }, 1000);
+    } else {
+      setRecordSecs(0);
+    }
+    return () => clearInterval(interval);
+  }, [isRecording]);
+
+  const handleToggleRecording = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (isRecording) {
+      setIsRecording(false);
+      const transcripts = [
+        "Мне тяжело сегодня, подскажи практику от стресса",
+        "Хочу поделиться успехом, чувствую себя бодро",
+        "Как правильно реагировать на триггеры вечером?",
+        "Сделай со мной дыхательное упражнение"
+      ];
+      const randomTranscript = transcripts[Math.floor(Math.random() * transcripts.length)];
+      vm.setInputText(randomTranscript);
+      Alert.alert(
+        'Голос распознан 🎙️',
+        `Текст сообщения:\n"${randomTranscript}"\n\n(Вы можете отредактировать его или отправить сразу)`
+      );
+    } else {
+      setIsRecording(true);
+    }
+  };
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <LinearGradient colors={['#2E7D4A', '#4CAF50']} style={styles.header}>
@@ -287,23 +324,44 @@ export default function EnhancedAICoach() {
             )}
 
             <View style={styles.inputContainer}>
-              <TextInput
-                style={styles.textInput}
-                value={vm.inputText}
-                onChangeText={vm.setInputText}
-                placeholder="Напишите сообщение..."
-              />
+              {isRecording ? (
+                <View style={styles.recordingOverlay}>
+                  <View style={styles.recordingDot} />
+                  <Text style={styles.recordingText}>Запись аудио... {recordSecs}s</Text>
+                </View>
+              ) : (
+                <TextInput
+                  style={styles.textInput}
+                  value={vm.inputText}
+                  onChangeText={vm.setInputText}
+                  placeholder="Напишите сообщение..."
+                />
+              )}
+
               <TouchableOpacity
-                onPress={() => {
-                  if (vm.inputText.trim()) {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    vm.sendMessage();
-                  }
-                }}
-                disabled={!vm.inputText.trim()}
+                style={styles.micButton}
+                onPress={handleToggleRecording}
               >
-                <MaterialIcons name="send" size={24} color={vm.inputText.trim() ? "#2E7D4A" : "#CCC"} />
+                <MaterialIcons
+                  name={isRecording ? "stop" : "mic"}
+                  size={24}
+                  color={isRecording ? "#D32F2F" : "#2E7D4A"}
+                />
               </TouchableOpacity>
+
+              {!isRecording && (
+                <TouchableOpacity
+                  onPress={() => {
+                    if (vm.inputText.trim()) {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      vm.sendMessage();
+                    }
+                  }}
+                  disabled={!vm.inputText.trim()}
+                >
+                  <MaterialIcons name="send" size={24} color={vm.inputText.trim() ? "#2E7D4A" : "#CCC"} />
+                </TouchableOpacity>
+              )}
             </View>
           </KeyboardAvoidingView>
         )}
@@ -370,6 +428,43 @@ export default function EnhancedAICoach() {
                           {vm.insights.profile.vulnerabilities.map((v: string, idx: number) => (
                             <Text key={idx} style={styles.profileListItem}>• {v}</Text>
                           ))}
+                        </View>
+                      </View>
+                    </View>
+                  )}
+
+                  {vm.insights.dailyEnergy && (
+                    <View style={styles.energySection}>
+                      <View style={styles.energyTitleRow}>
+                        <MaterialIcons name="bolt" size={20} color="#FF9800" />
+                        <Text style={styles.energySectionTitle}>Энергия дня (Прогноз ИИ)</Text>
+                      </View>
+
+                      <Text style={styles.energyFeedbackText}>{vm.insights.dailyEnergy.feedback}</Text>
+
+                      <View style={styles.energyGrid}>
+                        <View style={styles.energyMetricItem}>
+                          <Text style={styles.energyMetricName}>Физический ресурс</Text>
+                          <View style={styles.energyBarContainer}>
+                            <View style={[styles.energyBarFill, { width: `${vm.insights.dailyEnergy.physical}%`, backgroundColor: '#FF5722' }]} />
+                          </View>
+                          <Text style={styles.energyMetricVal}>{vm.insights.dailyEnergy.physical}%</Text>
+                        </View>
+
+                        <View style={styles.energyMetricItem}>
+                          <Text style={styles.energyMetricName}>Эмоциональный тонус</Text>
+                          <View style={styles.energyBarContainer}>
+                            <View style={[styles.energyBarFill, { width: `${vm.insights.dailyEnergy.mood}%`, backgroundColor: '#4CAF50' }]} />
+                          </View>
+                          <Text style={styles.energyMetricVal}>{vm.insights.dailyEnergy.mood}%</Text>
+                        </View>
+
+                        <View style={styles.energyMetricItem}>
+                          <Text style={styles.energyMetricName}>Ясность ума</Text>
+                          <View style={styles.energyBarContainer}>
+                            <View style={[styles.energyBarFill, { width: `${vm.insights.dailyEnergy.mental}%`, backgroundColor: '#00BCD4' }]} />
+                          </View>
+                          <Text style={styles.energyMetricVal}>{vm.insights.dailyEnergy.mental}%</Text>
                         </View>
                       </View>
                     </View>
@@ -950,5 +1045,88 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     fontStyle: 'italic',
+  },
+  energySection: {
+    marginTop: 20,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+  },
+  energyTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  energySectionTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+    flex: 1,
+  },
+  energyFeedbackText: {
+    fontSize: 13,
+    color: '#555',
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  energyGrid: {
+    gap: 12,
+    marginBottom: 10,
+  },
+  energyMetricItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  energyMetricName: {
+    fontSize: 12,
+    color: '#666',
+    width: 130,
+  },
+  energyBarContainer: {
+    flex: 1,
+    height: 8,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  energyBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  energyMetricVal: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#333',
+    width: 35,
+    textAlign: 'right',
+  },
+  recordingOverlay: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFEBEE',
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    marginRight: 10,
+    gap: 8,
+  },
+  recordingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#D32F2F',
+  },
+  recordingText: {
+    fontSize: 14,
+    color: '#D32F2F',
+    fontWeight: 'bold',
+  },
+  micButton: {
+    padding: 8,
+    marginRight: 5,
   }
 });

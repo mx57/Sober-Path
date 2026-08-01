@@ -3,7 +3,7 @@ import { JournalService } from '../services/journalService';
 
 jest.mock('../services/journalService');
 
-describe('AICoachService Sleep Quality Analysis', () => {
+describe('AICoachService Sleep Quality Analysis (Direct)', () => {
   it('should handle empty or missing entries gracefully', () => {
     const result = AICoachService.analyzeSleepFromJournal([]);
     expect(result.sleepQuality).toBe(3);

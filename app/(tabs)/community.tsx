@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   Image, Dimensions, Modal, TextInput, Alert
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FlashList } from '@shopify/flash-list';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -311,12 +312,34 @@ export default function CommunityPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [userKarma, setUserKarma] = useState(0);
 
+  const [selectedBuddy, setSelectedBuddy] = useState<any>(null);
+  const [pulseSent, setPulseSent] = useState(false);
+
+  const availableBuddies = [
+    { id: 'b1', name: 'Андрей', daysSober: 45, status: 'Держусь уверенно, сегодня тренировка', avatar: 'https://i.pravatar.cc/150?u=b1' },
+    { id: 'b2', name: 'Марина', daysSober: 12, status: 'Сложно под вечер, но медитации спасают', avatar: 'https://i.pravatar.cc/150?u=b2' },
+    { id: 'b3', name: 'Евгений', daysSober: 180, status: 'Полгода чистоты! Готов делиться опытом', avatar: 'https://i.pravatar.cc/150?u=b3' }
+  ];
+
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
       // Load Karma
       const karma = await CommunityService.getUserKarma();
       setUserKarma(karma);
+
+      // Load Sober Buddy
+      const storedBuddyId = await AsyncStorage.getItem('sober_path_buddy_id');
+      if (storedBuddyId) {
+        const buddy = availableBuddies.find(b => b.id === storedBuddyId);
+        if (buddy) setSelectedBuddy(buddy);
+      }
+
+      const pulseDate = await AsyncStorage.getItem('sober_path_buddy_pulse_date');
+      const todayStr = new Date().toDateString();
+      if (pulseDate === todayStr) {
+        setPulseSent(true);
+      }
 
       // Simulate network delay
       await new Promise(resolve => setTimeout(resolve, 1500));
@@ -464,6 +487,41 @@ export default function CommunityPage() {
     );
   };
 
+  const handleSelectBuddy = async (buddy: any) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setSelectedBuddy(buddy);
+    await AsyncStorage.setItem('sober_path_buddy_id', buddy.id);
+    Alert.alert('Напарник выбран 🤝', `Теперь вы напарники с ${buddy.name}! Поддерживайте друг друга каждый день.`);
+  };
+
+  const handleSendPulse = async () => {
+    if (pulseSent) {
+      Alert.alert('Уже отправлено', 'Вы уже отправляли пульс поддержки сегодня. Возвращайтесь завтра!');
+      return;
+    }
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setPulseSent(true);
+    const todayStr = new Date().toDateString();
+    await AsyncStorage.setItem('sober_path_buddy_pulse_date', todayStr);
+
+    // Add karma
+    const updatedKarma = await CommunityService.addKarmaPoints(15);
+    setUserKarma(updatedKarma);
+
+    Alert.alert(
+      'Пульс отправлен ⚡',
+      `Вы отправили пульс поддержки для ${selectedBuddy.name}. Напарник почувствовал ваше тепло!\n\nВы получили +15 Кармы 🌟 за укрепление связей.`
+    );
+  };
+
+  const handleDisconnectBuddy = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedBuddy(null);
+    setPulseSent(false);
+    await AsyncStorage.removeItem('sober_path_buddy_id');
+    await AsyncStorage.removeItem('sober_path_buddy_pulse_date');
+  };
+
   const filteredPosts = posts.filter(post =>
     selectedCircle === 'all' || post.category === selectedCircle
   );
@@ -474,6 +532,60 @@ export default function CommunityPage() {
 
     return (
     <View>
+      {/* Трезвый напарник */}
+      <View style={styles.buddyContainer}>
+        <Text style={styles.buddySectionTitle}>Трезвый напарник 🤝</Text>
+        {selectedBuddy ? (
+          <View style={styles.buddyActiveCard}>
+            <View style={styles.buddyHeader}>
+              <Image source={{ uri: selectedBuddy.avatar }} style={styles.buddyAvatar} />
+              <View style={styles.buddyInfo}>
+                <Text style={styles.buddyName}>{selectedBuddy.name}</Text>
+                <Text style={styles.buddyDays}>{selectedBuddy.daysSober} дней трезвости</Text>
+                <Text style={styles.buddyStatus}>«{selectedBuddy.status}»</Text>
+              </View>
+            </View>
+            <View style={styles.buddyActions}>
+              <TouchableOpacity
+                style={[styles.pulseButton, pulseSent && styles.pulseButtonDisabled]}
+                onPress={handleSendPulse}
+                disabled={pulseSent}
+              >
+                <MaterialIcons name="flash-on" size={16} color="white" />
+                <Text style={styles.pulseButtonText}>
+                  {pulseSent ? 'Пульс отправлен' : 'Отправить пульс поддержки (+15 🌟)'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.disconnectButton}
+                onPress={handleDisconnectBuddy}
+              >
+                <MaterialIcons name="close" size={16} color="#777" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          <View style={styles.buddySelectionCard}>
+            <Text style={styles.buddySelectionDesc}>
+              Найдите трезвого напарника, чтобы поддерживать друг друга каждый день и получать очки Кармы!
+            </Text>
+            <View style={styles.buddyOptionsGrid}>
+              {availableBuddies.map(buddy => (
+                <TouchableOpacity
+                  key={buddy.id}
+                  style={styles.buddyOptionCard}
+                  onPress={() => handleSelectBuddy(buddy)}
+                >
+                  <Image source={{ uri: buddy.avatar }} style={styles.buddyOptionAvatar} />
+                  <Text style={styles.buddyOptionName}>{buddy.name}</Text>
+                  <Text style={styles.buddyOptionDays}>{buddy.daysSober} дн.</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+      </View>
+
       {!isLoading && pulse.length > 0 && (
         <View style={styles.pulseContainer}>
             <View style={styles.pulseHeader}>
@@ -1289,6 +1401,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
   },
+  pulseDotContainer: {
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  pulseDotPing: {
+    position: 'absolute',
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#4CAF50',
+    opacity: 0.4,
+  },
   mentorshipContainer: {
     paddingHorizontal: 20,
     marginBottom: 20,
@@ -1696,5 +1823,123 @@ const styles = StyleSheet.create({
     color: '#999',
     textAlign: 'right',
     marginTop: 4,
+  },
+  buddyContainer: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 16,
+    marginVertical: 10,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  buddySectionTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#2E7D4A',
+    marginBottom: 10,
+  },
+  buddyActiveCard: {
+    gap: 12,
+  },
+  buddyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  buddyAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#F0F0F0',
+  },
+  buddyInfo: {
+    flex: 1,
+  },
+  buddyName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  buddyDays: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
+  },
+  buddyStatus: {
+    fontSize: 13,
+    color: '#555',
+    fontStyle: 'italic',
+  },
+  buddyActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  pulseButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2E7D4A',
+    paddingVertical: 10,
+    borderRadius: 8,
+    gap: 6,
+  },
+  pulseButtonDisabled: {
+    backgroundColor: '#A5D6A7',
+  },
+  pulseButtonText: {
+    color: 'white',
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+  disconnectButton: {
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: '#F5F5F5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buddySelectionCard: {
+    gap: 12,
+  },
+  buddySelectionDesc: {
+    fontSize: 13,
+    color: '#666',
+    lineHeight: 18,
+  },
+  buddyOptionsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  buddyOptionCard: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  buddyOptionAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#E0E0E0',
+    marginBottom: 6,
+  },
+  buddyOptionName: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  buddyOptionDays: {
+    fontSize: 10,
+    color: '#2E7D4A',
+    marginTop: 2,
   }
 });
