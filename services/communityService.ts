@@ -87,6 +87,7 @@ const POSTS_STORAGE_KEY = 'sober_path_community_posts';
 const CHALLENGES_STORAGE_KEY = 'sober_path_community_challenges';
 const USER_KARMA_KEY = 'sober_path_user_karma';
 const COMMUNITY_KARMA_MAP_KEY = 'sober_path_community_karma';
+const BUDDY_STORAGE_KEY = 'sober_path_buddy';
 
 export class CommunityService {
   private static userPosts: SupportPost[] = [];
@@ -1191,56 +1192,4 @@ export class CommunityService {
     ];
   }
 
-  static getAvailableBuddies() {
-    return [
-      { id: 'b1', name: 'Андрей', daysSober: 45, status: 'Держусь уверенно, сегодня тренировка', avatar: 'https://i.pravatar.cc/150?u=b1' },
-      { id: 'b2', name: 'Марина', daysSober: 12, status: 'Сложно под вечер, но медитации спасают', avatar: 'https://i.pravatar.cc/150?u=b2' },
-      { id: 'b3', name: 'Евгений', daysSober: 180, status: 'Полгода чистоты! Готов делиться опытом', avatar: 'https://i.pravatar.cc/150?u=b3' }
-    ];
-  }
-
-  static async getSelectedBuddy(): Promise<any | null> {
-    try {
-      const storedBuddyId = await AsyncStorage.getItem('sober_path_buddy_id');
-      if (storedBuddyId) {
-        const buddies = this.getAvailableBuddies();
-        return buddies.find(b => b.id === storedBuddyId) || null;
-      }
-      return null;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  static async selectBuddy(buddyId: string): Promise<void> {
-    try {
-      await AsyncStorage.setItem('sober_path_buddy_id', buddyId);
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  static async disconnectBuddy(): Promise<void> {
-    try {
-      await AsyncStorage.removeItem('sober_path_buddy_id');
-      await AsyncStorage.removeItem('sober_path_buddy_pulse_date');
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  static async sendSupportPulse(): Promise<boolean> {
-    try {
-      const pulseDate = await AsyncStorage.getItem('sober_path_buddy_pulse_date');
-      const todayStr = new Date().toDateString();
-      if (pulseDate === todayStr) {
-        return false;
-      }
-      await AsyncStorage.setItem('sober_path_buddy_pulse_date', todayStr);
-      await this.addKarmaPoints(15);
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
 }
