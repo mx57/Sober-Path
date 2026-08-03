@@ -48,7 +48,7 @@ describe('AICoachService Sleep Quality Analysis (Direct)', () => {
   });
 });
 
-describe('AICoachService Sleep Analysis', () => {
+describe('AICoachService Sleep Analysis from journalService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });

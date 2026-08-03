@@ -477,7 +477,7 @@ function HomePage() {
                 </View>
                 {weeklyRoadmap.focus ? (
                   <View style={styles.roadmapFocusBadge}>
-                    <MaterialIcons name="emoji_objects" size={14} color="#2E7D4A" />
+                    <MaterialIcons name="emoji-objects" size={14} color="#2E7D4A" />
                     <Text style={styles.roadmapFocusText} numberOfLines={1}>{weeklyRoadmap.focus}</Text>
                   </View>
                 ) : null}
@@ -1658,8 +1658,9 @@ const styles = StyleSheet.create({
   briefingItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 6,
+    gap: 10,
+    marginBottom: 8,
+    paddingHorizontal: 5
   },
   briefingText: {
     fontSize: 14,

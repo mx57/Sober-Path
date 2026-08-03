@@ -12,10 +12,12 @@ describe('AICoachService Daily Energy Forecast', () => {
     (JournalService.getEntries as jest.Mock).mockResolvedValue({ success: true, data: [] });
 
     const result = await AICoachService.getDailyEnergyForecast('test-user');
-    expect(result.physical).toBe(70);
-    expect(result.mood).toBe(65);
-    expect(result.mental).toBe(75);
-    expect(result.feedback).toContain('энергетический баланс в норме');
+    expect(result.physicalResilience).toBe(60);
+    expect(result.moodWellness).toBe(70);
+    expect(result.mentalClarity).toBe(65);
+    expect(result.energyLevel).toBe(65);
+    expect(result.recommendations).toBeDefined();
+    expect(result.recommendations.length).toBeGreaterThan(0);
   });
 
   it('should calculate higher physical energy for active & rested days', async () => {
@@ -27,20 +29,20 @@ describe('AICoachService Daily Energy Forecast', () => {
     });
 
     const result = await AICoachService.getDailyEnergyForecast('test-user');
-    expect(result.physical).toBeGreaterThan(75);
+    expect(result.physicalResilience).toBeGreaterThan(60);
   });
 
   it('should calculate lower physical and mental energy for tired/stressful days', async () => {
     (JournalService.getEntries as jest.Mock).mockResolvedValue({
       success: true,
       data: [
-        { content: 'Ужасно устал, болит голова, но настроение в норме', mood: 4 }
+        { content: 'Ужасно устал, плохо спал, болит голова, но настроение в норме', mood: 4 }
       ]
     });
 
     const result = await AICoachService.getDailyEnergyForecast('test-user');
-    expect(result.physical).toBeLessThan(75);
-    expect(result.feedback).toContain('Физический ресурс снижен');
+    expect(result.physicalResilience).toBeLessThan(60);
+    expect(result.recommendations[0]).toContain('физический тонус снижен');
   });
 
   it('should integrate dailyEnergy forecast into user insights', async () => {
@@ -53,6 +55,6 @@ describe('AICoachService Daily Energy Forecast', () => {
 
     const insights = await AICoachService.getUserInsights('test-user');
     expect(insights.dailyEnergy).toBeDefined();
-    expect(insights.dailyEnergy.mental).toBeGreaterThanOrEqual(80);
+    expect(insights.dailyEnergy.mentalClarity).toBeGreaterThanOrEqual(65);
   });
 });

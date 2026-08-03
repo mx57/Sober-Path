@@ -366,8 +366,65 @@ export default function EnhancedAICoach() {
           </KeyboardAvoidingView>
         )}
 
-        {vm.activeTab === 'insights' && vm.insights && (
+        {vm.activeTab === 'insights' && vm.insights && (() => {
+          const resilience = vm.insights?.profile?.resilience || 70;
+          const sleepQualityVal = vm.insights?.profile?.sleepQuality || 70;
+          const avgMood = vm.insights?.averageMood || 3;
+          const energyScore = Math.round((resilience * 0.3) + (sleepQualityVal * 0.4) + (avgMood * 20 * 0.3));
+
+          let physicalResilience = 'Средняя';
+          if (energyScore > 80) physicalResilience = 'Высокая';
+          else if (energyScore < 50) physicalResilience = 'Сниженная';
+
+          let mentalClarity = 'Стабильная';
+          if (energyScore > 85) mentalClarity = 'Превосходная';
+          else if (energyScore < 50) mentalClarity = 'Затуманенная (требуется отдых)';
+
+          let advice = 'Соблюдайте баланс активности и отдыха. Хороший день для плавного движения вперед.';
+          if (energyScore > 80) advice = 'Идеальный момент для изучения сложных уроков, тренировок или активного участия в жизни сообщества!';
+          else if (energyScore < 50) advice = 'Ваш ресурс сегодня ограничен. Рекомендуется снизить нагрузку, послушать SOS-медитации и дать телу восстановиться.';
+
+          return (
             <ScrollView style={styles.scrollContent}>
+                {/* Энергия дня */}
+                <Animated.View entering={FadeInUp} style={styles.forecastCard}>
+                  <View style={styles.forecastHeader}>
+                    <MaterialIcons name="bolt" size={26} color="#FFD700" />
+                    <Text style={styles.forecastTitle}>ИИ-Прогноз: Энергия дня ⚡</Text>
+                  </View>
+
+                  <View style={styles.forecastBody}>
+                    <View style={styles.forecastGaugeContainer}>
+                      <View style={styles.forecastGaugeBg}>
+                        <View style={[styles.forecastGaugeFill, { width: `${energyScore}%` }]} />
+                      </View>
+                      <Text style={styles.forecastGaugeText}>Уровень энергии: {energyScore}%</Text>
+                    </View>
+
+                    <View style={styles.forecastGrid}>
+                      <View style={styles.forecastGridItem}>
+                        <MaterialIcons name="fitness-center" size={16} color="#4CAF50" />
+                        <View>
+                          <Text style={styles.forecastGridLabel}>Физ. стойкость</Text>
+                          <Text style={styles.forecastGridValue}>{physicalResilience}</Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.forecastGridItem}>
+                        <MaterialIcons name="wb-incandescent" size={16} color="#2196F3" />
+                        <View>
+                          <Text style={styles.forecastGridLabel}>Ясность мысли</Text>
+                          <Text style={styles.forecastGridValue}>{mentalClarity}</Text>
+                        </View>
+                      </View>
+                    </View>
+
+                    <View style={styles.forecastAdviceBox}>
+                      <Text style={styles.forecastAdviceText}>«{advice}»</Text>
+                    </View>
+                  </View>
+                </Animated.View>
+
                 <View style={styles.insightCard}>
                   <Text style={styles.cardTitle}>Прогресс</Text>
                   <Text style={styles.statusText}>{vm.insights.progressSummary}</Text>
@@ -652,7 +709,8 @@ export default function EnhancedAICoach() {
                   <Text style={styles.emptyText}>Триггеры пока не выявлены. Продолжайте общение.</Text>
                 )}
             </ScrollView>
-        )}
+          );
+        })()}
       </View>
     </View>
   );
