@@ -477,7 +477,7 @@ function HomePage() {
                 </View>
                 {weeklyRoadmap.focus ? (
                   <View style={styles.roadmapFocusBadge}>
-                    <MaterialIcons name="emoji_objects" size={14} color="#2E7D4A" />
+                    <MaterialIcons name="emoji-objects" size={14} color="#2E7D4A" />
                     <Text style={styles.roadmapFocusText} numberOfLines={1}>{weeklyRoadmap.focus}</Text>
                   </View>
                 ) : null}

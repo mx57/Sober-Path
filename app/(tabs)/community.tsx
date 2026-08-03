@@ -9,7 +9,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { CommunityService, SuccessStory, SupportPost, ExpertQA, ReactionType, CommunityGoal, GroupChallenge, PulseActivity } from '../../services/communityService';
+import { CommunityService, SuccessStory, SupportPost, ExpertQA, ReactionType, CommunityGoal, GroupChallenge, PulseActivity, SoberBuddy } from '../../services/communityService';
 import Animated, { FadeInUp, FadeInRight, useSharedValue, useAnimatedStyle, withSpring, withSequence, withTiming } from 'react-native-reanimated';
 import { Skeleton } from '../../components/Skeleton';
 
@@ -19,7 +19,7 @@ const KarmaBadge = ({ userName }: { userName: string }) => {
   const [karma, setKarma] = useState(0);
 
   useEffect(() => {
-    CommunityService.getUserKarma(userName).then(setKarma);
+    CommunityService.getOtherUserKarma(userName).then(setKarma);
   }, [userName]);
 
   if (userName === 'Вы' || userName === 'Sober Path Bot') return null;
@@ -472,6 +472,50 @@ export default function CommunityPage() {
     Alert.alert('Успех', 'Ваша история опубликована!');
   };
 
+  const handleSendBuddyPulse = async () => {
+    if (!selectedBuddy) return;
+    const success = await CommunityService.sendBuddyPulse();
+    if (success) {
+      setHasSentPulseToday(true);
+      const updatedKarma = await CommunityService.getUserKarma();
+      setUserKarma(updatedKarma);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert('Импульс отправлен! ⚡', 'Вы поддержали своего напарника и получили +15 очков Кармы!');
+    } else {
+      Alert.alert('Уже отправлено', 'Вы уже отправляли импульс поддержки сегодня. Попробуйте завтра!');
+    }
+  };
+
+  const handleSelectBuddy = async (buddy: SoberBuddy) => {
+    await CommunityService.selectBuddy(buddy);
+    setSelectedBuddy(buddy);
+    const todayStr = new Date().toDateString();
+    setHasSentPulseToday(buddy.lastPulseSent === todayStr);
+    setIsBuddyModalVisible(false);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Alert.alert('Напарник выбран! 🤝', `Теперь вашим напарником является ${buddy.name}. Поддерживайте друг друга каждый день!`);
+  };
+
+  const handleRemoveBuddy = async () => {
+    Alert.alert(
+      'Разорвать связь?',
+      'Вы действительно хотите отказаться от текущего напарника? Вы сможете выбрать нового в любой момент.',
+      [
+        { text: 'Отмена', style: 'cancel' },
+        {
+          text: 'Да, разорвать',
+          style: 'destructive',
+          onPress: async () => {
+            await CommunityService.removeBuddy();
+            setSelectedBuddy(null);
+            setHasSentPulseToday(false);
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          }
+        }
+      ]
+    );
+  };
+
   const handleToggleChallenge = async (challengeId: string) => {
     const joined = await CommunityService.toggleChallengeParticipation(challengeId);
     const updatedChallenges = await CommunityService.getGroupChallenges();
@@ -604,6 +648,52 @@ export default function CommunityPage() {
                     </View>
                 ))}
             </ScrollView>
+        </View>
+      )}
+
+      {/* Трезвый напарник Widget */}
+      {!isLoading && (
+        <View style={styles.buddyWidgetContainer}>
+          <View style={styles.buddyWidgetHeader}>
+            <MaterialIcons name="people-outline" size={20} color="#2E7D4A" />
+            <Text style={styles.buddyWidgetTitle}>ТРЕЗВЫЙ НАПАРНИК</Text>
+          </View>
+          {selectedBuddy ? (
+            <View style={styles.buddyCard}>
+              <Image source={{ uri: selectedBuddy.avatar }} style={styles.buddyAvatar} />
+              <View style={styles.buddyInfo}>
+                <Text style={styles.buddyName}>{selectedBuddy.name}</Text>
+                <Text style={styles.buddyDays}>{selectedBuddy.daysSober} дней трезвости</Text>
+                <View style={styles.buddyStatusRow}>
+                  <View style={styles.buddyStatusDot} />
+                  <Text style={styles.buddyStatusText}>{selectedBuddy.status}</Text>
+                </View>
+              </View>
+              <View style={styles.buddyActions}>
+                <TouchableOpacity
+                  style={[styles.pulseButton, hasSentPulseToday && styles.pulseButtonSent]}
+                  onPress={handleSendBuddyPulse}
+                  disabled={hasSentPulseToday}
+                >
+                  <MaterialIcons name="flash-on" size={16} color="white" />
+                  <Text style={styles.pulseButtonText}>
+                    {hasSentPulseToday ? 'Импульс отправлен' : 'Отправить импульс'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.unpairButton} onPress={handleRemoveBuddy}>
+                  <MaterialIcons name="link-off" size={18} color="#999" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.noBuddyCard}>
+              <Text style={styles.noBuddyText}>У вас пока нет трезвого напарника. Вместе идти к трезвости легче и надежнее!</Text>
+              <TouchableOpacity style={styles.findBuddyButton} onPress={() => setIsBuddyModalVisible(true)}>
+                <MaterialIcons name="search" size={18} color="white" />
+                <Text style={styles.findBuddyButtonText}>Найти напарника</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       )}
 
@@ -993,6 +1083,47 @@ export default function CommunityPage() {
             >
               <Text style={styles.submitButtonText}>Ответить</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={isBuddyModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setIsBuddyModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Выбор напарника</Text>
+              <TouchableOpacity onPress={() => setIsBuddyModalVisible(false)}>
+                <MaterialIcons name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.modalHelperText}>
+              Выберите напарника (бадди), чтобы делиться поддержкой каждый день и зарабатывать очки Кармы.
+            </Text>
+            <ScrollView style={styles.buddyListScroll} showsVerticalScrollIndicator={false}>
+              {potentialBuddies.map(buddy => (
+                <TouchableOpacity
+                  key={buddy.id}
+                  style={styles.buddySelectionItem}
+                  onPress={() => handleSelectBuddy(buddy)}
+                >
+                  <Image source={{ uri: buddy.avatar }} style={styles.buddySelectAvatar} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.buddySelectName}>{buddy.name}</Text>
+                    <Text style={styles.buddySelectDays}>{buddy.daysSober} дней трезвости</Text>
+                    <Text style={styles.buddySelectStatus}>Статус: {buddy.status}</Text>
+                  </View>
+                  <View style={styles.buddySelectAction}>
+                    <Text style={styles.buddySelectActionText}>Выбрать</Text>
+                    <MaterialIcons name="chevron-right" size={20} color="#2E7D4A" />
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -1730,7 +1861,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 2,
   },
-  userCountPulseDot: {
+  pulseDotContainer: {
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  bottomPulseDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
