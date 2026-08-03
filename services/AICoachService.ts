@@ -626,6 +626,7 @@ export class AICoachService {
     const memory = this.getUserMemory(userId);
     const sleepData = await this.analyzeSleepPatterns();
     const profile = this.calculatePsychologicalProfile(memory, sleepData.averageScore);
+    const dailyEnergy = await this.getDailyEnergyForecast(userId);
     return {
       conversationCount: memory.conversations.length,
       averageMood: memory.emotionalPattern.averageMood,
@@ -636,7 +637,8 @@ export class AICoachService {
         ? 'Ваше состояние улучшается.'
         : 'Мы продолжаем работу.',
       profile,
-      sleepAnalysis: sleepData
+      sleepAnalysis: sleepData,
+      dailyEnergy
     };
   }
 
@@ -1113,5 +1115,76 @@ export class AICoachService {
     }
 
     await this.saveToStorage();
+  }
+
+  static async getDailyEnergyForecast(userId: string): Promise<{
+    physicalResilience: number;
+    moodWellness: number;
+    mentalClarity: number;
+    energyLevel: number;
+    recommendations: string[];
+  }> {
+    const journalResult = await JournalService.getEntries();
+    const entries = journalResult.success ? journalResult.data : [];
+
+    // 1. Mood Wellness Calculation
+    let moodWellness = 70; // default
+    if (entries.length > 0) {
+      const recentMoods = entries.slice(0, 5).map(e => e.mood);
+      const avgMood = recentMoods.reduce((sum, val) => sum + val, 0) / recentMoods.length;
+      moodWellness = Math.round(avgMood * 20); // Scale 1-5 to 20-100%
+    }
+
+    // 2. Physical Resilience Calculation
+    let physicalResilience = 60; // default
+    const sleepData = await this.analyzeSleepPatterns();
+    physicalResilience += Math.round((sleepData.averageScore - 70) * 0.5); // adjustment based on sleep (-15 to +15)
+
+    const sobrietyBonus = Math.min(20, Math.floor((entries.length || 0) * 2));
+    physicalResilience += sobrietyBonus;
+    physicalResilience = Math.max(10, Math.min(100, physicalResilience));
+
+    // 3. Mental Clarity Calculation
+    let mentalClarity = 65; // default
+    let stressDeduction = 0;
+    entries.slice(0, 3).forEach(entry => {
+      const content = entry.content.toLowerCase();
+      const stressKeywords = ['тревог', 'беспокой', 'устал', 'гнев', 'злость', 'напряжение', 'тяга'];
+      if (stressKeywords.some(kw => content.includes(kw))) {
+        stressDeduction += 10;
+      }
+    });
+    mentalClarity -= stressDeduction;
+    mentalClarity = Math.max(15, Math.min(100, mentalClarity + sobrietyBonus));
+
+    // 4. Overall Energy Level
+    const energyLevel = Math.round((physicalResilience + moodWellness + mentalClarity) / 3);
+
+    // 5. Actionable custom recommendations based on the lowest metric
+    const recommendations: string[] = [];
+    const minMetric = Math.min(physicalResilience, moodWellness, mentalClarity);
+
+    if (minMetric === physicalResilience) {
+      recommendations.push("Ваш физический тонус снижен. Постарайтесь уделить время сну, исключите гаджеты за час до отдыха и выпейте стакан чистой воды.");
+      recommendations.push("Небольшая растяжка или 15-минутная прогулка помогут запустить кровообращение без лишнего стресса для тела.");
+    } else if (minMetric === moodWellness) {
+      recommendations.push("Замечено колебание эмоционального фона. Напишите в дневник 3 вещи, за которые вы благодарны сегодня — это переключит фокус.");
+      recommendations.push("Загляните в раздел 'Общение' или напишите своему трезвуму напарнику. Поддержка единомышленников творит чудеса.");
+    } else {
+      recommendations.push("В голове может быть много мыслей и напряжения. Попробуйте дыхательную практику 'Квадратное дыхание' из вкладки SOS.");
+      recommendations.push("Сделайте паузу в работе на 10 минут. Ограничьте входящий поток информации и побудьте в тишине.");
+    }
+
+    if (energyLevel > 80) {
+      recommendations.unshift("Отличный день! Вы полны сил и ресурсов. Прекрасное время для закрепления новых привычек или изучения уроков!");
+    }
+
+    return {
+      physicalResilience,
+      moodWellness,
+      mentalClarity,
+      energyLevel,
+      recommendations: recommendations.slice(0, 2)
+    };
   }
 }
