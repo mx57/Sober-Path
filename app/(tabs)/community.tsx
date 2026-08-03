@@ -321,6 +321,10 @@ export default function CommunityPage() {
 
   const [selectedBuddy, setSelectedBuddy] = useState<any>(null);
   const [pulseSent, setPulseSent] = useState(false);
+  const [isBuddyChatVisible, setIsBuddyChatVisible] = useState(false);
+  const [buddyMessages, setBuddyMessages] = useState<any[]>([]);
+  const [buddyInputText, setBuddyInputText] = useState('');
+  const [isBuddyTyping, setIsBuddyTyping] = useState(false);
 
   const availableBuddies = [
     { id: 'b1', name: 'Андрей', daysSober: 45, status: 'Держусь уверенно, сегодня тренировка', avatar: 'https://i.pravatar.cc/150?u=b1' },
@@ -337,9 +341,22 @@ export default function CommunityPage() {
 
       // Load Sober Buddy
       const storedBuddyId = await AsyncStorage.getItem('sober_path_buddy_id');
+      let currentBuddy = null;
       if (storedBuddyId) {
-        const buddy = availableBuddies.find(b => b.id === storedBuddyId);
-        if (buddy) setSelectedBuddy(buddy);
+        currentBuddy = availableBuddies.find(b => b.id === storedBuddyId);
+        if (currentBuddy) setSelectedBuddy(currentBuddy);
+      }
+
+      // Load Buddy Messages
+      const storedMessages = await AsyncStorage.getItem('sober_path_buddy_chat_messages');
+      if (storedMessages) {
+        setBuddyMessages(JSON.parse(storedMessages));
+      } else if (currentBuddy) {
+        const welcomeMsgs = [
+          { id: 'm1', text: `Привет! Я рад, что мы напарники. Будем держаться вместе! Напиши мне, как твои дела.`, sender: 'buddy', timestamp: new Date().toISOString() }
+        ];
+        setBuddyMessages(welcomeMsgs);
+        await AsyncStorage.setItem('sober_path_buddy_chat_messages', JSON.stringify(welcomeMsgs));
       }
 
       const pulseDate = await AsyncStorage.getItem('sober_path_buddy_pulse_date');
@@ -498,6 +515,14 @@ export default function CommunityPage() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setSelectedBuddy(buddy);
     await AsyncStorage.setItem('sober_path_buddy_id', buddy.id);
+
+    // Set welcome message
+    const welcomeMsgs = [
+      { id: 'm1', text: `Привет! Я рад, что мы напарники. Будем держаться вместе! Напиши мне, как твои дела.`, sender: 'buddy', timestamp: new Date().toISOString() }
+    ];
+    setBuddyMessages(welcomeMsgs);
+    await AsyncStorage.setItem('sober_path_buddy_chat_messages', JSON.stringify(welcomeMsgs));
+
     Alert.alert('Напарник выбран 🤝', `Теперь вы напарники с ${buddy.name}! Поддерживайте друг друга каждый день.`);
   };
 
@@ -525,8 +550,94 @@ export default function CommunityPage() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedBuddy(null);
     setPulseSent(false);
+    setBuddyMessages([]);
     await AsyncStorage.removeItem('sober_path_buddy_id');
     await AsyncStorage.removeItem('sober_path_buddy_pulse_date');
+    await AsyncStorage.removeItem('sober_path_buddy_chat_messages');
+  };
+
+  const handleSendBuddyMessage = async () => {
+    if (!buddyInputText.trim() || !selectedBuddy) return;
+    const userMsgText = buddyInputText;
+    setBuddyInputText('');
+
+    const userMsg = {
+      id: `m_${Date.now()}`,
+      text: userMsgText,
+      sender: 'user',
+      timestamp: new Date().toISOString()
+    };
+
+    const updated = [...buddyMessages, userMsg];
+    setBuddyMessages(updated);
+    await AsyncStorage.setItem('sober_path_buddy_chat_messages', JSON.stringify(updated));
+
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    // Simulate typing
+    setIsBuddyTyping(true);
+    setTimeout(async () => {
+      setIsBuddyTyping(false);
+      const lower = userMsgText.toLowerCase();
+      let replyText = `Спасибо за сообщение! Главное — не сдаваться и идти вперед шаг за шагом. Я всегда на связи!`;
+
+      if (lower.includes('sos') || lower.includes('тяг') || lower.includes('сорва') || lower.includes('плохо') || lower.includes('тяжело')) {
+        replyText = `Держись, друг! Сделай глубокий вдох, выпей воды. Я с тобой! Давай созвонимся или пройдем дыхательную технику. Ты сильнее этого!`;
+      } else if (lower.includes('хорошо') || lower.includes('ура') || lower.includes('день') || lower.includes('трезв') || lower.includes('рад') || lower.includes('рада')) {
+        replyText = `Отличный результат! Горжусь тобой. Продолжай в том же духе, вместе мы сила! Наша трезвость — наше главное достижение.`;
+      }
+
+      const buddyMsg = {
+        id: `m_${Date.now() + 1}`,
+        text: replyText,
+        sender: 'buddy',
+        timestamp: new Date().toISOString()
+      };
+
+      const withReply = [...updated, buddyMsg];
+      setBuddyMessages(withReply);
+      await AsyncStorage.setItem('sober_path_buddy_chat_messages', JSON.stringify(withReply));
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }, 1200);
+  };
+
+  const handleSendBuddySOS = async () => {
+    if (!selectedBuddy) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+
+    const userMsg = {
+      id: `m_sos_${Date.now()}`,
+      text: `🚨 СИГНАЛ SOS: Пользователю нужна срочная поддержка! 🚨`,
+      sender: 'user',
+      timestamp: new Date().toISOString()
+    };
+
+    const updated = [...buddyMessages, userMsg];
+    setBuddyMessages(updated);
+    await AsyncStorage.setItem('sober_path_buddy_chat_messages', JSON.stringify(updated));
+
+    Alert.alert(
+      'Сигнал SOS отправлен! 🚨',
+      `Вы отправили экстренный сигнал вашему напарнику ${selectedBuddy.name}. Напарник предупрежден!`
+    );
+
+    setIsBuddyChatVisible(true);
+
+    setIsBuddyTyping(true);
+    setTimeout(async () => {
+      setIsBuddyTyping(false);
+      const buddyMsg = {
+        id: `m_${Date.now() + 2}`,
+        text: `Я здесь! Увидел твой SOS-сигнал. Не делай поспешных шагов, я рядом! Постарайся открыть раздел SOS-аудио и сделать заземление или набери меня прямо сейчас!`,
+        sender: 'buddy',
+        timestamp: new Date().toISOString()
+      };
+
+      const withReply = [...updated, buddyMsg];
+      setBuddyMessages(withReply);
+      await AsyncStorage.setItem('sober_path_buddy_chat_messages', JSON.stringify(withReply));
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }, 1000);
   };
 
   const filteredPosts = posts.filter(post =>
@@ -568,6 +679,27 @@ export default function CommunityPage() {
                 onPress={handleDisconnectBuddy}
               >
                 <MaterialIcons name="close" size={16} color="#777" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.buddyChatAndSOSRow}>
+              <TouchableOpacity
+                style={styles.buddyChatButton}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setIsBuddyChatVisible(true);
+                }}
+              >
+                <MaterialIcons name="chat" size={16} color="#2E7D4A" style={{ marginRight: 6 }} />
+                <Text style={styles.buddyChatButtonText}>Чат с напарником</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.buddySOSButton}
+                onPress={handleSendBuddySOS}
+              >
+                <MaterialIcons name="warning" size={16} color="white" style={{ marginRight: 6 }} />
+                <Text style={styles.buddySOSButtonText}>SOS Сигнал</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1996,5 +2128,41 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#2E7D4A',
     marginTop: 2,
+  },
+  buddyChatAndSOSRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
+  buddyChatButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E8F5E8',
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#C8E6C9',
+  },
+  buddyChatButtonText: {
+    color: '#2E7D4A',
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+  buddySOSButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FF6B6B',
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  buddySOSButtonText: {
+    color: 'white',
+    fontSize: 13,
+    fontWeight: 'bold',
   }
 });
