@@ -291,6 +291,13 @@ const CommunityPulse = () => {
   );
 };
 
+const BUDDY_CANDIDATES = [
+  { name: 'Александр', soberDays: 45, avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80', lastStatus: 'Сегодня пробежал 5 км, полет нормальный!', statusIcon: 'directions-run' },
+  { name: 'Екатерина', soberDays: 21, avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80', lastStatus: 'Читаю книгу по психологии и пью мятный чай ☕', statusIcon: 'menu-book' },
+  { name: 'Максим', soberDays: 90, avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=100&q=80', lastStatus: 'Помог другу остаться трезвым на дне рождения!', statusIcon: 'sentiment-very-satisfied' },
+  { name: 'Анна', soberDays: 8, avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=100&q=80', lastStatus: 'Тяжело, но держусь благодаря поддержке сообщества!', statusIcon: 'favorite' }
+];
+
 export default function CommunityPage() {
   const insets = useSafeAreaInsets();
   const [stories, setStories] = useState<SuccessStory[]>([]);
@@ -786,6 +793,61 @@ export default function CommunityPage() {
               <Text style={styles.mentorshipText}>«{advice.text}»</Text>
             </Animated.View>
           ))
+        )}
+      </View>
+
+      {/* Секция: Трезвый напарник */}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Трезвый напарник 🤝</Text>
+      </View>
+      <View style={styles.buddySectionContainer}>
+        {isSearchingBuddy ? (
+          <View style={styles.buddyLoadingContainer}>
+            <Skeleton width="100%" height={100} borderRadius={16} />
+            <Text style={styles.buddyLoadingText}>Анализируем прогресс сообщества и подбираем напарника...</Text>
+          </View>
+        ) : buddy ? (
+          <Animated.View entering={FadeInRight} style={styles.buddyCard}>
+            <View style={styles.buddyHeader}>
+              <Image source={{ uri: buddy.avatar }} style={styles.buddyAvatar} />
+              <View style={styles.buddyInfo}>
+                <View style={styles.buddyNameRow}>
+                  <Text style={styles.buddyName}>{buddy.name}</Text>
+                  <View style={styles.buddyDaysBadge}>
+                    <Text style={styles.buddyDaysText}>{buddy.soberDays} дней трезвости</Text>
+                  </View>
+                </View>
+                <View style={styles.buddyStatusRow}>
+                  <MaterialIcons name={buddy.statusIcon as any} size={14} color="#2E7D4A" style={{ marginRight: 4 }} />
+                  <Text style={styles.buddyStatus} numberOfLines={2}>«{buddy.lastStatus}»</Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={handleUnpairBuddy} style={styles.unpairButton}>
+                <MaterialIcons name="link-off" size={20} color="#FF6B6B" />
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.supportButton, sentSupportToday && styles.supportButtonSent]}
+              onPress={handleSendBuddySupport}
+              disabled={sentSupportToday}
+            >
+              <MaterialIcons name={sentSupportToday ? "check" : "favorite"} size={18} color="white" style={{ marginRight: 6 }} />
+              <Text style={styles.supportButtonText}>
+                {sentSupportToday ? "Импульс поддержки отправлен" : "Отправить импульс поддержки (+15 Кармы)"}
+              </Text>
+            </TouchableOpacity>
+          </Animated.View>
+        ) : (
+          <Animated.View entering={FadeInUp} style={styles.buddyEmptyCard}>
+            <Text style={styles.buddyEmptyText}>
+              Проходить путь трезвости с напарником легче и эффективнее! Делитесь опытом, поддерживайте друг друга в сложные моменты и увеличивайте Карму.
+            </Text>
+            <TouchableOpacity onPress={handleFindBuddy} style={styles.findBuddyButton}>
+              <MaterialIcons name="person-add" size={18} color="white" style={{ marginRight: 6 }} />
+              <Text style={styles.findBuddyButtonText}>Найти трезвого напарника</Text>
+            </TouchableOpacity>
+          </Animated.View>
         )}
       </View>
 
@@ -1731,7 +1793,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 2,
   },
-  pulseDotContainer: {
+  onlinePulseDotContainer: {
     width: 20,
     height: 20,
     justifyContent: 'center',

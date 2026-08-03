@@ -1658,8 +1658,9 @@ const styles = StyleSheet.create({
   briefingItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 6,
+    gap: 10,
+    marginBottom: 8,
+    paddingHorizontal: 5
   },
   briefingText: {
     fontSize: 14,
