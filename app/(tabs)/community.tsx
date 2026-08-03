@@ -9,7 +9,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { CommunityService, SuccessStory, SupportPost, ExpertQA, ReactionType, CommunityGoal, GroupChallenge, PulseActivity } from '../../services/communityService';
+import { CommunityService, SuccessStory, SupportPost, ExpertQA, ReactionType, CommunityGoal, GroupChallenge, PulseActivity, SoberBuddy } from '../../services/communityService';
 import Animated, { FadeInUp, FadeInRight, useSharedValue, useAnimatedStyle, withSpring, withSequence, withTiming } from 'react-native-reanimated';
 import { Skeleton } from '../../components/Skeleton';
 
@@ -19,7 +19,7 @@ const KarmaBadge = ({ userName }: { userName: string }) => {
   const [karma, setKarma] = useState(0);
 
   useEffect(() => {
-    CommunityService.getUserKarma(userName).then(setKarma);
+    CommunityService.getOtherUserKarma(userName).then(setKarma);
   }, [userName]);
 
   if (userName === 'Вы' || userName === 'Sober Path Bot') return null;
@@ -281,12 +281,12 @@ const CommunityPulse = () => {
   }, []);
 
   return (
-    <Animated.View entering={FadeInUp} style={styles.onlinePulseContainer}>
-      <View style={styles.onlinePulseDotContainer}>
-        <View style={styles.onlinePulseDot} />
-        <View style={[styles.onlinePulseDot, styles.onlinePulseDotPing]} />
+    <Animated.View entering={FadeInUp} style={styles.userCountPulseContainer}>
+      <View style={styles.pulseDotContainer}>
+        <View style={styles.userCountPulseDot} />
+        <View style={[styles.userCountPulseDot, styles.pulseDotPing]} />
       </View>
-      <Text style={styles.onlinePulseText}>{activeUsers} участников сейчас онлайн и поддерживают друг друга</Text>
+      <Text style={styles.userCountPulseText}>{activeUsers} участников сейчас онлайн и поддерживают друг друга</Text>
     </Animated.View>
   );
 };
@@ -319,10 +319,14 @@ export default function CommunityPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [userKarma, setUserKarma] = useState(0);
 
-  // States for Sober Buddy feature
-  const [buddy, setBuddy] = useState<any | null>(null);
-  const [isSearchingBuddy, setIsSearchingBuddy] = useState(false);
-  const [sentSupportToday, setSentSupportToday] = useState(false);
+  const [selectedBuddy, setSelectedBuddy] = useState<any>(null);
+  const [pulseSent, setPulseSent] = useState(false);
+
+  const availableBuddies = [
+    { id: 'b1', name: 'Андрей', daysSober: 45, status: 'Держусь уверенно, сегодня тренировка', avatar: 'https://i.pravatar.cc/150?u=b1' },
+    { id: 'b2', name: 'Марина', daysSober: 12, status: 'Сложно под вечер, но медитации спасают', avatar: 'https://i.pravatar.cc/150?u=b2' },
+    { id: 'b3', name: 'Евгений', daysSober: 180, status: 'Полгода чистоты! Готов делиться опытом', avatar: 'https://i.pravatar.cc/150?u=b3' }
+  ];
 
   useEffect(() => {
     const loadData = async () => {
@@ -331,21 +335,17 @@ export default function CommunityPage() {
       const karma = await CommunityService.getUserKarma();
       setUserKarma(karma);
 
-      // Load Buddy
-      try {
-        const storedBuddy = await AsyncStorage.getItem('sober_path_sober_buddy');
-        if (storedBuddy) {
-          setBuddy(JSON.parse(storedBuddy));
-        }
-        const storedSupport = await AsyncStorage.getItem('sober_path_support_today');
-        if (storedSupport) {
-          const dateStr = new Date().toDateString();
-          if (storedSupport === dateStr) {
-            setSentSupportToday(true);
-          }
-        }
-      } catch (e) {
-        console.error('Failed to load buddy state', e);
+      // Load Sober Buddy
+      const storedBuddyId = await AsyncStorage.getItem('sober_path_buddy_id');
+      if (storedBuddyId) {
+        const buddy = availableBuddies.find(b => b.id === storedBuddyId);
+        if (buddy) setSelectedBuddy(buddy);
+      }
+
+      const pulseDate = await AsyncStorage.getItem('sober_path_buddy_pulse_date');
+      const todayStr = new Date().toDateString();
+      if (pulseDate === todayStr) {
+        setPulseSent(true);
       }
 
       // Simulate network delay
@@ -494,69 +494,39 @@ export default function CommunityPage() {
     );
   };
 
-  const handleFindBuddy = async () => {
-    setIsSearchingBuddy(true);
+  const handleSelectBuddy = async (buddy: any) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-    setTimeout(async () => {
-      const randomIndex = Math.floor(Math.random() * BUDDY_CANDIDATES.length);
-      const selectedBuddy = BUDDY_CANDIDATES[randomIndex];
-
-      try {
-        await AsyncStorage.setItem('sober_path_sober_buddy', JSON.stringify(selectedBuddy));
-        setBuddy(selectedBuddy);
-        setIsSearchingBuddy(false);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        Alert.alert('Ура!', `Мы подобрали вам напарника. Знакомьтесь, это ${selectedBuddy.name}!`);
-      } catch (e) {
-        console.error(e);
-        setIsSearchingBuddy(false);
-      }
-    }, 1500);
+    setSelectedBuddy(buddy);
+    await AsyncStorage.setItem('sober_path_buddy_id', buddy.id);
+    Alert.alert('Напарник выбран 🤝', `Теперь вы напарники с ${buddy.name}! Поддерживайте друг друга каждый день.`);
   };
 
-  const handleSendBuddySupport = async () => {
-    if (!buddy) return;
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    const dateStr = new Date().toDateString();
-
-    try {
-      await AsyncStorage.setItem('sober_path_support_today', dateStr);
-      setSentSupportToday(true);
-      const updatedKarma = await CommunityService.addKarmaPoints(15);
-      setUserKarma(updatedKarma);
-      Alert.alert(
-        'Импульс отправлен!',
-        `Вы отправили поддержку напарнику ${buddy.name}. Ваша карма выросла: +15 очков (всего: ${updatedKarma})!`
-      );
-    } catch (e) {
-      console.error(e);
+  const handleSendPulse = async () => {
+    if (pulseSent) {
+      Alert.alert('Уже отправлено', 'Вы уже отправляли пульс поддержки сегодня. Возвращайтесь завтра!');
+      return;
     }
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setPulseSent(true);
+    const todayStr = new Date().toDateString();
+    await AsyncStorage.setItem('sober_path_buddy_pulse_date', todayStr);
+
+    // Add karma
+    const updatedKarma = await CommunityService.addKarmaPoints(15);
+    setUserKarma(updatedKarma);
+
+    Alert.alert(
+      'Пульс отправлен ⚡',
+      `Вы отправили пульс поддержки для ${selectedBuddy.name}. Напарник почувствовал ваше тепло!\n\nВы получили +15 Кармы 🌟 за укрепление связей.`
+    );
   };
 
-  const handleUnpairBuddy = () => {
-    Alert.alert(
-      'Расторгнуть связь?',
-      'Вы уверены, что хотите прекратить связь с этим напарником? Вы сможете найти нового в любое время.',
-      [
-        { text: 'Отмена', style: 'cancel' },
-        {
-          text: 'Да, расторгнуть',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await AsyncStorage.removeItem('sober_path_sober_buddy');
-              await AsyncStorage.removeItem('sober_path_support_today');
-              setBuddy(null);
-              setSentSupportToday(false);
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-            } catch (e) {
-              console.error(e);
-            }
-          }
-        }
-      ]
-    );
+  const handleDisconnectBuddy = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedBuddy(null);
+    setPulseSent(false);
+    await AsyncStorage.removeItem('sober_path_buddy_id');
+    await AsyncStorage.removeItem('sober_path_buddy_pulse_date');
   };
 
   const filteredPosts = posts.filter(post =>
@@ -569,6 +539,60 @@ export default function CommunityPage() {
 
     return (
     <View>
+      {/* Трезвый напарник */}
+      <View style={styles.buddyContainer}>
+        <Text style={styles.buddySectionTitle}>Трезвый напарник 🤝</Text>
+        {selectedBuddy ? (
+          <View style={styles.buddyActiveCard}>
+            <View style={styles.buddyHeader}>
+              <Image source={{ uri: selectedBuddy.avatar }} style={styles.buddyAvatar} />
+              <View style={styles.buddyInfo}>
+                <Text style={styles.buddyName}>{selectedBuddy.name}</Text>
+                <Text style={styles.buddyDays}>{selectedBuddy.daysSober} дней трезвости</Text>
+                <Text style={styles.buddyStatus}>«{selectedBuddy.status}»</Text>
+              </View>
+            </View>
+            <View style={styles.buddyActions}>
+              <TouchableOpacity
+                style={[styles.pulseButton, pulseSent && styles.pulseButtonDisabled]}
+                onPress={handleSendPulse}
+                disabled={pulseSent}
+              >
+                <MaterialIcons name="flash-on" size={16} color="white" />
+                <Text style={styles.pulseButtonText}>
+                  {pulseSent ? 'Пульс отправлен' : 'Отправить пульс поддержки (+15 🌟)'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.disconnectButton}
+                onPress={handleDisconnectBuddy}
+              >
+                <MaterialIcons name="close" size={16} color="#777" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          <View style={styles.buddySelectionCard}>
+            <Text style={styles.buddySelectionDesc}>
+              Найдите трезвого напарника, чтобы поддерживать друг друга каждый день и получать очки Кармы!
+            </Text>
+            <View style={styles.buddyOptionsGrid}>
+              {availableBuddies.map(buddy => (
+                <TouchableOpacity
+                  key={buddy.id}
+                  style={styles.buddyOptionCard}
+                  onPress={() => handleSelectBuddy(buddy)}
+                >
+                  <Image source={{ uri: buddy.avatar }} style={styles.buddyOptionAvatar} />
+                  <Text style={styles.buddyOptionName}>{buddy.name}</Text>
+                  <Text style={styles.buddyOptionDays}>{buddy.daysSober} дн.</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+      </View>
+
       {!isLoading && pulse.length > 0 && (
         <View style={styles.pulseContainer}>
             <View style={styles.pulseHeader}>
@@ -1034,6 +1058,7 @@ export default function CommunityPage() {
           </View>
         </View>
       </Modal>
+
     </View>
   );
 }
@@ -1439,6 +1464,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
   },
+  pulseDotContainer: {
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  pulseDotPing: {
+    position: 'absolute',
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#4CAF50',
+    opacity: 0.4,
+  },
   mentorshipContainer: {
     paddingHorizontal: 20,
     marginBottom: 20,
@@ -1574,7 +1614,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     gap: 2,
   },
-  authorMentorBadge: {
+  mentorBadgeGold: {
     backgroundColor: '#FFF8E1',
     borderWidth: 1,
     borderColor: '#FFD54F',
@@ -1739,7 +1779,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     lineHeight: 20
   },
-  onlinePulseContainer: {
+  userCountPulseContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     marginHorizontal: 20,
@@ -1760,21 +1800,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 10,
   },
-  onlinePulseDot: {
+  bottomPulseDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: '#4CAF50',
   },
-  onlinePulseDotPing: {
-    position: 'absolute',
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#4CAF50',
-    opacity: 0.4,
-  },
-  onlinePulseText: {
+  userCountPulseText: {
     fontSize: 13,
     color: '#666',
     fontWeight: '500',
@@ -1847,130 +1879,122 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     marginTop: 4,
   },
-  buddySectionContainer: {
-    marginHorizontal: 20,
-    marginBottom: 20,
-  },
-  buddyLoadingContainer: {
-    backgroundColor: '#F8F9FA',
-    padding: 15,
-    borderRadius: 16,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-  },
-  buddyLoadingText: {
-    marginTop: 10,
-    fontSize: 13,
-    color: '#666',
-    textAlign: 'center',
-  },
-  buddyCard: {
+  buddyContainer: {
     backgroundColor: 'white',
     borderRadius: 16,
-    padding: 15,
-    elevation: 2,
+    padding: 16,
+    marginVertical: 10,
+    elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    borderWidth: 1,
-    borderColor: '#E5F6ED',
+  },
+  buddySectionTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#2E7D4A',
+    marginBottom: 10,
+  },
+  buddyActiveCard: {
+    gap: 12,
   },
   buddyHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    gap: 12,
   },
   buddyAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    marginRight: 12,
-    backgroundColor: '#E5F6ED',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#F0F0F0',
   },
   buddyInfo: {
     flex: 1,
-  },
-  buddyNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 4,
   },
   buddyName: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
   },
-  buddyDaysBadge: {
-    backgroundColor: '#E5F6ED',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
-  },
-  buddyDaysText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#2E7D4A',
-  },
-  buddyStatusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  buddyStatus: {
+  buddyDays: {
     fontSize: 12,
     color: '#666',
+    marginBottom: 4,
+  },
+  buddyStatus: {
+    fontSize: 13,
+    color: '#555',
     fontStyle: 'italic',
+  },
+  buddyActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  pulseButton: {
     flex: 1,
-  },
-  unpairButton: {
-    padding: 6,
-  },
-  supportButton: {
-    backgroundColor: '#2E7D4A',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#2E7D4A',
     paddingVertical: 10,
-    borderRadius: 12,
-    gap: 4,
+    borderRadius: 8,
+    gap: 6,
   },
-  supportButtonSent: {
+  pulseButtonDisabled: {
     backgroundColor: '#A5D6A7',
   },
-  supportButtonText: {
+  pulseButtonText: {
     color: 'white',
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: 'bold',
   },
-  buddyEmptyCard: {
-    backgroundColor: '#F1F8F4',
-    borderRadius: 16,
-    padding: 20,
+  disconnectButton: {
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: '#F5F5F5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buddySelectionCard: {
+    gap: 12,
+  },
+  buddySelectionDesc: {
+    fontSize: 13,
+    color: '#666',
+    lineHeight: 18,
+  },
+  buddyOptionsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  buddyOptionCard: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 10,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#C8E6C9',
+    borderColor: '#E0E0E0',
   },
-  buddyEmptyText: {
-    fontSize: 13,
+  buddyOptionAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#E0E0E0',
+    marginBottom: 6,
+  },
+  buddyOptionName: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  buddyOptionDays: {
+    fontSize: 10,
     color: '#2E7D4A',
-    textAlign: 'center',
-    lineHeight: 18,
-    marginBottom: 15,
-  },
-  findBuddyButton: {
-    backgroundColor: '#2E7D4A',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-  },
-  findBuddyButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '600',
+    marginTop: 2,
   }
 });

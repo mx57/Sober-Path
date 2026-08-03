@@ -74,33 +74,117 @@ export interface GroupChallenge {
   category: string;
 }
 
+export interface SoberBuddy {
+  id: string;
+  name: string;
+  daysSober: number;
+  avatar: string;
+  status: string;
+  lastPulseSent?: string; // Date string to track daily pulse
+}
+
 const POSTS_STORAGE_KEY = 'sober_path_community_posts';
 const CHALLENGES_STORAGE_KEY = 'sober_path_community_challenges';
-const KARMA_STORAGE_KEY = 'sober_path_community_karma';
+const USER_KARMA_KEY = 'sober_path_user_karma';
+const COMMUNITY_KARMA_MAP_KEY = 'sober_path_community_karma';
 
 export class CommunityService {
   private static userPosts: SupportPost[] = [];
+
+  /**
+   * Получить список потенциальных напарников для выбора.
+   */
+  static getPotentialBuddies(): SoberBuddy[] {
+    return [
+      { id: 'b1', name: 'Дмитрий К.', daysSober: 125, avatar: 'https://i.pravatar.cc/150?u=dmitry', status: 'Мотивирован' },
+      { id: 'b2', name: 'Мария П.', daysSober: 42, avatar: 'https://i.pravatar.cc/150?u=maria', status: 'Нужна поддержка' },
+      { id: 'b3', name: 'Елена В.', daysSober: 88, avatar: 'https://i.pravatar.cc/150?u=elena', status: 'В сети' },
+      { id: 'b4', name: 'Игорь С.', daysSober: 215, avatar: 'https://i.pravatar.cc/150?u=igor', status: 'Мотивирован' },
+      { id: 'b5', name: 'Ольга М.', daysSober: 31, avatar: 'https://i.pravatar.cc/150?u=olga', status: 'В сети' }
+    ];
+  }
+
+  /**
+   * Получить выбранного напарника из AsyncStorage.
+   */
+  static async getSelectedBuddy(): Promise<SoberBuddy | null> {
+    try {
+      const stored = await AsyncStorage.getItem(BUDDY_STORAGE_KEY);
+      return stored ? JSON.parse(stored) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /**
+   * Сохранить выбранного напарника в AsyncStorage.
+   */
+  static async selectBuddy(buddy: SoberBuddy): Promise<void> {
+    try {
+      await AsyncStorage.setItem(BUDDY_STORAGE_KEY, JSON.stringify(buddy));
+    } catch (e) {
+      console.error('Failed to select buddy', e);
+    }
+  }
+
+  /**
+   * Удалить выбранного напарника (разрушить пару).
+   */
+  static async removeBuddy(): Promise<void> {
+    try {
+      await AsyncStorage.removeItem(BUDDY_STORAGE_KEY);
+    } catch (e) {
+      console.error('Failed to remove buddy', e);
+    }
+  }
+
+  /**
+   * Отправить импульс поддержки напарнику (+15 Кармы, раз в день).
+   */
+  static async sendBuddyPulse(): Promise<boolean> {
+    try {
+      const buddy = await this.getSelectedBuddy();
+      if (!buddy) return false;
+
+      const todayStr = new Date().toDateString();
+      if (buddy.lastPulseSent === todayStr) {
+        return false;
+      }
+
+      await this.addKarmaPoints(15);
+      buddy.lastPulseSent = todayStr;
+      await this.selectBuddy(buddy);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
 
   /**
    * Получить текущее количество очков Кармы (Очков поддержки) пользователя.
    */
   static async getUserKarma(userName?: string): Promise<number> {
     try {
-      const stored = await AsyncStorage.getItem(KARMA_STORAGE_KEY);
+      const stored = await AsyncStorage.getItem(USER_KARMA_KEY);
       if (!stored) return 0;
+
       try {
-        const karmaMap = JSON.parse(stored);
-        if (typeof karmaMap === 'object' && karmaMap !== null) {
+        const parsed = JSON.parse(stored);
+        if (typeof parsed === 'object' && parsed !== null) {
           if (userName) {
-            return karmaMap[userName] || 0;
+            return parsed[userName] || 0;
+          } else {
+            return parsed['current_user'] || 0;
           }
-          return karmaMap['Вы'] || karmaMap['User'] || karmaMap['Пользователь'] || 0;
+        } else if (typeof parsed === 'number') {
+          return userName ? 0 : parsed;
         }
-      } catch {
-        // не JSON, значит просто число
+      } catch (e) {
+        if (!userName) {
+          return parseInt(stored, 10) || 0;
+        }
       }
-      if (userName) return 0;
-      return parseInt(stored, 10) || 0;
+      return 0;
     } catch (e) {
       return 0;
     }
@@ -111,19 +195,26 @@ export class CommunityService {
    */
   static async addKarmaPoints(points: number): Promise<number> {
     try {
-      const current = await this.getUserKarma();
-      const updated = current + points;
-
-      const stored = await AsyncStorage.getItem(KARMA_STORAGE_KEY);
-      let karmaMap: any = {};
+      const stored = await AsyncStorage.getItem(USER_KARMA_KEY);
+      let karmaMap: Record<string, number> = {};
       try {
-        if (stored) karmaMap = JSON.parse(stored);
-        if (typeof karmaMap !== 'object' || karmaMap === null) karmaMap = {};
-      } catch {
-        karmaMap = {};
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (typeof parsed === 'object' && parsed !== null) {
+            karmaMap = parsed;
+          } else if (typeof parsed === 'number') {
+            karmaMap['current_user'] = parsed;
+          }
+        }
+      } catch (e) {
+        if (stored) {
+          karmaMap['current_user'] = parseInt(stored, 10) || 0;
+        }
       }
-      karmaMap['Вы'] = updated;
-      await AsyncStorage.setItem(KARMA_STORAGE_KEY, JSON.stringify(karmaMap));
+      const current = karmaMap['current_user'] || 0;
+      const updated = current + points;
+      karmaMap['current_user'] = updated;
+      await AsyncStorage.setItem(USER_KARMA_KEY, JSON.stringify(karmaMap));
       return updated;
     } catch (e) {
       return 0;
@@ -737,12 +828,13 @@ export class CommunityService {
   }
 
 
+
   private static async updateUserKarma(userName: string, points: number): Promise<void> {
     try {
-      const stored = await AsyncStorage.getItem(KARMA_STORAGE_KEY);
+      const stored = await AsyncStorage.getItem(COMMUNITY_KARMA_MAP_KEY);
       const karmaMap = stored ? JSON.parse(stored) : {};
       karmaMap[userName] = (karmaMap[userName] || 0) + points;
-      await AsyncStorage.setItem(KARMA_STORAGE_KEY, JSON.stringify(karmaMap));
+      await AsyncStorage.setItem(COMMUNITY_KARMA_MAP_KEY, JSON.stringify(karmaMap));
     } catch (e) {
       console.error('Failed to update karma', e);
     }
@@ -1097,5 +1189,58 @@ export class CommunityService {
         date: '2024-05-28'
       }
     ];
+  }
+
+  static getAvailableBuddies() {
+    return [
+      { id: 'b1', name: 'Андрей', daysSober: 45, status: 'Держусь уверенно, сегодня тренировка', avatar: 'https://i.pravatar.cc/150?u=b1' },
+      { id: 'b2', name: 'Марина', daysSober: 12, status: 'Сложно под вечер, но медитации спасают', avatar: 'https://i.pravatar.cc/150?u=b2' },
+      { id: 'b3', name: 'Евгений', daysSober: 180, status: 'Полгода чистоты! Готов делиться опытом', avatar: 'https://i.pravatar.cc/150?u=b3' }
+    ];
+  }
+
+  static async getSelectedBuddy(): Promise<any | null> {
+    try {
+      const storedBuddyId = await AsyncStorage.getItem('sober_path_buddy_id');
+      if (storedBuddyId) {
+        const buddies = this.getAvailableBuddies();
+        return buddies.find(b => b.id === storedBuddyId) || null;
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static async selectBuddy(buddyId: string): Promise<void> {
+    try {
+      await AsyncStorage.setItem('sober_path_buddy_id', buddyId);
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  static async disconnectBuddy(): Promise<void> {
+    try {
+      await AsyncStorage.removeItem('sober_path_buddy_id');
+      await AsyncStorage.removeItem('sober_path_buddy_pulse_date');
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  static async sendSupportPulse(): Promise<boolean> {
+    try {
+      const pulseDate = await AsyncStorage.getItem('sober_path_buddy_pulse_date');
+      const todayStr = new Date().toDateString();
+      if (pulseDate === todayStr) {
+        return false;
+      }
+      await AsyncStorage.setItem('sober_path_buddy_pulse_date', todayStr);
+      await this.addKarmaPoints(15);
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 }

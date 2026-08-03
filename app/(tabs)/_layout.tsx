@@ -36,11 +36,13 @@ const TabLayout = () => {
     React.createElement(Tabs.Screen, { name: 'gamification', options: { href: null } }),
     React.createElement(Tabs.Screen, { name: 'psychology', options: { href: null } }),
     React.createElement(Tabs.Screen, { name: 'therapy', options: { href: null } }),
-    React.createElement(Tabs.Screen, { name: 'enhanced-exercises', options: { href: null } }),
     React.createElement(Tabs.Screen, { name: 'exercises', options: { href: null } }),
     React.createElement(Tabs.Screen, { name: 'profile', options: { href: null } }),
     React.createElement(Tabs.Screen, { name: 'analytics', options: { href: null } }),
-    React.createElement(Tabs.Screen, { name: 'sounds', options: { href: null } })
+    React.createElement(Tabs.Screen, { name: 'sounds', options: { href: null } }),
+    React.createElement(Tabs.Screen, { name: 'journal', options: { href: null } }),
+    React.createElement(Tabs.Screen, { name: 'micro-courses', options: { href: null } }),
+    React.createElement(Tabs.Screen, { name: 'advanced-therapy', options: { href: null } })
   );
 };
 

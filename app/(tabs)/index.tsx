@@ -135,6 +135,13 @@ function HomePage() {
   const [dailyQuote, setDailyQuote] = useState<MotivationQuote | null>(null);
   const [dailyTip, setDailyTip] = useState<RecoveryTip | null>(null);
   const [weeklyRoadmap, setWeeklyRoadmap] = useState<WeeklyRoadmap | null>(null);
+  const [energyForecast, setEnergyForecast] = useState<{
+    physicalResilience: number;
+    moodWellness: number;
+    mentalClarity: number;
+    energyLevel: number;
+    recommendations: string[];
+  } | null>(null);
   const [isUpdatingRoadmap, setIsUpdatingRoadmap] = useState(false);
   const [questMilestones, setQuestMilestones] = useState<QuestMilestone[]>([]);
   const [showBriefing, setShowBriefing] = useState(false);
@@ -202,10 +209,17 @@ function HomePage() {
       }
     };
 
+    const loadEnergyForecast = async () => {
+      if (userProfile?.id) {
+        const forecast = await AICoachService.getDailyEnergyForecast(userProfile.id);
+        setEnergyForecast(forecast);
+      }
+    };
+
     loadRoadmap();
     loadQuest();
     checkBriefing();
-  }, [pulseValue, userProfile?.id, soberDays, mood]);
+  }, [userProfile?.id, soberDays]);
 
   const showWebAlert = useCallback((title: string, message: string, onOk?: () => void) => {
     if (Platform.OS === 'web') {
@@ -370,6 +384,71 @@ function HomePage() {
           </View>
         )}
 
+        {energyForecast && (
+          <View style={styles.energyCard}>
+            <LinearGradient colors={['#E8F5E9', '#FFFFFF']} style={styles.energyGradient}>
+              <View style={styles.energyHeader}>
+                <View style={styles.energyHeaderLeft}>
+                  <MaterialIcons name="bolt" size={24} color="#2E7D4A" />
+                  <Text style={styles.energyTitle}>Энергия дня</Text>
+                </View>
+                <View style={styles.energyBadge}>
+                  <Text style={styles.energyBadgeText}>{energyForecast.energyLevel}%</Text>
+                </View>
+              </View>
+
+              <Text style={styles.energySubtitle}>Прогноз самочувствия от ИИ-Коуча</Text>
+
+              <View style={styles.energyMetricsContainer}>
+                {/* Physical Resilience */}
+                <View style={styles.energyMetricRow}>
+                  <View style={styles.energyMetricLabelCol}>
+                    <MaterialIcons name="fitness-center" size={16} color="#4CAF50" />
+                    <Text style={styles.energyMetricLabel}>Физический тонус</Text>
+                  </View>
+                  <View style={styles.energyProgressBarBg}>
+                    <View style={[styles.energyProgressBarFill, { width: `${energyForecast.physicalResilience}%`, backgroundColor: '#4CAF50' }]} />
+                  </View>
+                  <Text style={styles.energyMetricValue}>{energyForecast.physicalResilience}%</Text>
+                </View>
+
+                {/* Mood Wellness */}
+                <View style={styles.energyMetricRow}>
+                  <View style={styles.energyMetricLabelCol}>
+                    <MaterialIcons name="mood" size={16} color="#FF9800" />
+                    <Text style={styles.energyMetricLabel}>Эмоции</Text>
+                  </View>
+                  <View style={styles.energyProgressBarBg}>
+                    <View style={[styles.energyProgressBarFill, { width: `${energyForecast.moodWellness}%`, backgroundColor: '#FF9800' }]} />
+                  </View>
+                  <Text style={styles.energyMetricValue}>{energyForecast.moodWellness}%</Text>
+                </View>
+
+                {/* Mental Clarity */}
+                <View style={styles.energyMetricRow}>
+                  <View style={styles.energyMetricLabelCol}>
+                    <MaterialIcons name="lens-blur" size={16} color="#2196F3" />
+                    <Text style={styles.energyMetricLabel}>Ясность разума</Text>
+                  </View>
+                  <View style={styles.energyProgressBarBg}>
+                    <View style={[styles.energyProgressBarFill, { width: `${energyForecast.mentalClarity}%`, backgroundColor: '#2196F3' }]} />
+                  </View>
+                  <Text style={styles.energyMetricValue}>{energyForecast.mentalClarity}%</Text>
+                </View>
+              </View>
+
+              {energyForecast.recommendations.length > 0 && (
+                <View style={styles.energyRecsBox}>
+                  <Text style={styles.energyRecsTitle}>Рекомендация ИИ:</Text>
+                  {energyForecast.recommendations.map((rec, idx) => (
+                    <Text key={idx} style={styles.energyRecText}>• {rec}</Text>
+                  ))}
+                </View>
+              )}
+            </LinearGradient>
+          </View>
+        )}
+
         <View style={styles.mainStatWrapper}>
           <StatCard
             icon="timeline"
@@ -387,7 +466,7 @@ function HomePage() {
 
         <QuestMap milestones={questMilestones} currentSoberDays={soberDays} />
 
-        {weeklyRoadmap && (
+        {weeklyRoadmap ? (
           <Link href="/ai-coach" asChild>
             <TouchableOpacity style={styles.roadmapWidget}>
               <LinearGradient colors={['#F0F7F0', '#FFFFFF']} style={styles.roadmapWidgetGradient}>
@@ -396,13 +475,19 @@ function HomePage() {
                   <Text style={styles.roadmapWidgetTitle}>План на неделю {weeklyRoadmap.weekNumber}</Text>
                   <MaterialIcons name="chevron-right" size={20} color="#2E7D4A" />
                 </View>
+                {weeklyRoadmap.focus ? (
+                  <View style={styles.roadmapFocusBadge}>
+                    <MaterialIcons name="emoji-objects" size={14} color="#2E7D4A" />
+                    <Text style={styles.roadmapFocusText} numberOfLines={1}>{weeklyRoadmap.focus}</Text>
+                  </View>
+                ) : null}
                 <View style={styles.roadmapWidgetProgress}>
                   <View style={styles.roadmapProgressBar}>
                     <View
                       style={[
                         styles.roadmapProgressFill,
                         {
-                          width: `${(weeklyRoadmap.tasks.filter(t => t.completed).length / weeklyRoadmap.tasks.length) * 100}%`
+                          width: `${weeklyRoadmap.tasks.length > 0 ? (weeklyRoadmap.tasks.filter(t => t.completed).length / weeklyRoadmap.tasks.length) * 100 : 0}%`
                         }
                       ]}
                     />
@@ -423,15 +508,15 @@ function HomePage() {
                     >
                       <MaterialIcons
                         name={task.completed ? "check-circle" : "radio-button-unchecked"}
-                        size={18}
-                        color={task.completed ? "#2E7D4A" : "#CCC"}
+                        size={20}
+                        color={task.completed ? "#2E7D4A" : "#9E9E9E"}
                       />
                       <Text
                         style={[
                           styles.roadmapTaskPreviewText,
                           task.completed && styles.roadmapTaskPreviewCompleted
                         ]}
-                        numberOfLines={1}
+                        numberOfLines={2}
                       >
                         {task.text}
                       </Text>
@@ -441,6 +526,17 @@ function HomePage() {
               </LinearGradient>
             </TouchableOpacity>
           </Link>
+        ) : (
+          <View style={styles.roadmapWidget}>
+            <View style={styles.roadmapWidgetGradient}>
+              <View style={styles.roadmapWidgetHeader}>
+                <MaterialIcons name="event-note" size={20} color="#2E7D4A" />
+                <Text style={styles.roadmapWidgetTitle}>План на неделю</Text>
+                <ActivityIndicator size="small" color="#2E7D4A" />
+              </View>
+              <Text style={styles.roadmapLoadingText}>Загрузка плана...</Text>
+            </View>
+          </View>
         )}
 
         {moodChartData && (
@@ -1008,7 +1104,7 @@ const styles = StyleSheet.create({
   secondaryStats: {
     flexDirection: 'row',
     gap: 15,
-    height: 120
+    height: 110,
   },
   healthContainer: {
     margin: 20,
@@ -1041,9 +1137,11 @@ const styles = StyleSheet.create({
   },
   quickActionsGrid: {
     flexDirection: 'row',
-    gap: 12
+    flexWrap: 'wrap',
+    gap: 12,
   },
   quickAction: {
+    minWidth: '45%',
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1117,7 +1215,7 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   roadmapWidgetGradient: {
-    padding: 15,
+    padding: 18,
   },
   roadmapWidgetHeader: {
     flexDirection: 'row',
@@ -1135,19 +1233,21 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   roadmapProgressBar: {
-    height: 6,
+    height: 8,
     backgroundColor: '#E0E0E0',
-    borderRadius: 3,
+    borderRadius: 4,
     overflow: 'hidden',
   },
   roadmapProgressFill: {
     height: '100%',
     backgroundColor: '#2E7D4A',
+    borderRadius: 4,
   },
   roadmapProgressText: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#666',
-    fontWeight: '500',
+    fontWeight: '600',
+    marginTop: 4,
   },
   roadmapTasksPreview: {
     marginTop: 10,
@@ -1156,16 +1256,39 @@ const styles = StyleSheet.create({
   roadmapTaskPreviewItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
+    paddingVertical: 4,
   },
   roadmapTaskPreviewText: {
-    fontSize: 13,
-    color: '#444',
+    fontSize: 14,
+    color: '#333',
     flex: 1,
+    lineHeight: 20,
   },
   roadmapTaskPreviewCompleted: {
     color: '#AAA',
     textDecorationLine: 'line-through',
+  },
+  roadmapFocusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(46, 125, 74, 0.08)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  roadmapFocusText: {
+    fontSize: 13,
+    color: '#2E7D4A',
+    fontWeight: '600',
+    flex: 1,
+  },
+  roadmapLoadingText: {
+    fontSize: 14,
+    color: '#999',
+    marginTop: 4,
   },
   modalContainer: {
     flex: 1,
@@ -1408,19 +1531,129 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16
   },
-  briefingFocus: {
-    fontSize: 16,
+  energyCard: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 15,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: '#E8F5E9',
+  },
+  energyGradient: {
+    padding: 18,
+  },
+  energyHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  energyHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  energyTitle: {
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#2E7D4A',
+  },
+  energyBadge: {
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#C8E6C9',
+  },
+  energyBadgeText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#2E7D4A',
+  },
+  energySubtitle: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
+    marginBottom: 14,
+  },
+  energyMetricsContainer: {
+    gap: 10,
+    marginBottom: 14,
+  },
+  energyMetricRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  energyMetricLabelCol: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    width: 140,
+  },
+  energyMetricLabel: {
+    fontSize: 13,
+    color: '#444',
+    fontWeight: '500',
+  },
+  energyProgressBarBg: {
+    flex: 1,
+    height: 6,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginHorizontal: 10,
+  },
+  energyProgressBarFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  energyMetricValue: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#444',
+    width: 35,
+    textAlign: 'right',
+  },
+  energyRecsBox: {
+    backgroundColor: '#F9FBF9',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E8F5E9',
+  },
+  energyRecsTitle: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#2E7D4A',
+    marginBottom: 4,
+  },
+  energyRecText: {
+    fontSize: 12.5,
+    color: '#444',
+    lineHeight: 18,
+    marginTop: 2,
+  },
+  briefingFocus: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#2E7D4A',
+    textAlign: 'center',
     marginBottom: 15,
-    textAlign: 'center'
+    backgroundColor: '#E8F5E9',
+    padding: 10,
+    borderRadius: 8,
   },
   briefingSectionTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: 'bold',
     color: '#333',
     marginTop: 15,
-    marginBottom: 10
+    marginBottom: 8,
   },
   briefingItem: {
     flexDirection: 'row',
@@ -1433,22 +1666,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#555',
     flex: 1,
-    lineHeight: 20
   },
   motivationQuoteBox: {
-    backgroundColor: '#F1F8F4',
-    padding: 15,
-    borderRadius: 10,
     marginTop: 20,
+    padding: 15,
+    backgroundColor: '#FFFDE7',
+    borderRadius: 12,
     borderLeftWidth: 4,
-    borderLeftColor: '#2E7D4A',
+    borderLeftColor: '#FBC02D',
   },
   briefingMotivation: {
     fontSize: 14,
-    color: '#2E7D4A',
     fontStyle: 'italic',
+    color: '#5D4037',
+    textAlign: 'center',
     lineHeight: 20,
-    textAlign: 'center'
   }
 });
 
