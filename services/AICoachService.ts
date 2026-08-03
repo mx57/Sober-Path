@@ -622,7 +622,17 @@ export class AICoachService {
     }
   }
 
-  static async getDailyEnergyForecast(userId: string): Promise<{ physical: number; mood: number; mental: number; feedback: string }> {
+  static async getDailyEnergyForecast(userId: string): Promise<{
+    physical: number;
+    mood: number;
+    mental: number;
+    feedback: string;
+    physicalResilience: number;
+    moodWellness: number;
+    mentalClarity: number;
+    energyLevel: number;
+    recommendations: string[];
+  }> {
     const journalResult = await JournalService.getEntries();
     let physical = 75;
     let mood = 70;
@@ -676,7 +686,131 @@ export class AICoachService {
       feedback = 'Высокий уровень энергии во всех сферах! Прекрасное время для помощи другим в сообществе или прохождения новых уроков.';
     }
 
-    return { physical, mood, mental, feedback };
+    const physicalResilience = physical;
+    const moodWellness = mood;
+    const mentalClarity = mental;
+    const energyLevel = Math.round((physicalResilience + moodWellness + mentalClarity) / 3);
+
+    const recommendations: string[] = [];
+    const minMetric = Math.min(physicalResilience, moodWellness, mentalClarity);
+
+    if (minMetric === physicalResilience) {
+      recommendations.push("Ваш физический тонус снижен. Постарайтесь уделить время сну, исключите гаджеты за час до отдыха и выпейте стакан чистой воды.");
+      recommendations.push("Небольшая растяжка или 15-минутная прогулка помогут запустить кровообращение без лишнего стресса для тела.");
+    } else if (minMetric === moodWellness) {
+      recommendations.push("Замечено колебание эмоционального фона. Напишите в дневник 3 вещи, за которые вы благодарны сегодня — это переключит фокус.");
+      recommendations.push("Загляните в раздел 'Общение' или напишите своему трезвуму напарнику. Поддержка единомышленников творит чудеса.");
+    } else {
+      recommendations.push("В голове может быть много мыслей и напряжения. Попробуйте дыхательную практику 'Квадратное дыхание' из вкладки SOS.");
+      recommendations.push("Сделайте паузу в работе на 10 минут. Ограничьте входящий поток информации и побудьте в тишине.");
+    }
+
+    if (energyLevel > 80) {
+      recommendations.unshift("Отличный день! Вы полны сил и ресурсов. Прекрасное время для закрепления новых привычек или изучения уроков!");
+    }
+
+    return {
+      physical,
+      mood,
+      mental,
+      feedback,
+      physicalResilience,
+      moodWellness,
+      mentalClarity,
+      energyLevel,
+      recommendations: recommendations.slice(0, 2)
+    };
+  }
+
+  static async getBurnoutDiagnostics(userId: string): Promise<{
+    rate: number;
+    level: 'Низкий' | 'Средний' | 'Высокий';
+    factors: string[];
+    recommendations: string[];
+  }> {
+    const journalResult = await JournalService.getEntries();
+    const entries = journalResult.success ? journalResult.data : [];
+
+    let rate = 20; // baseline
+    const factors: string[] = [];
+
+    if (entries.length > 0) {
+      const recentEntries = entries.slice(0, 5);
+      const avgMood = recentEntries.reduce((sum, e) => sum + e.mood, 0) / recentEntries.length;
+
+      if (avgMood < 3) {
+        rate += 20;
+        factors.push('Сниженный эмоциональный фон и упадок настроения');
+      }
+
+      let stressCount = 0;
+      let fatigueCount = 0;
+      let sleepIssueCount = 0;
+      let positiveCount = 0;
+
+      const stressKeywords = ['стресс', 'напряжение', 'бесит', 'раздражает', 'давление', 'тяжело'];
+      const fatigueKeywords = ['устал', 'устала', 'нет сил', 'выгорел', 'выгорела', 'истощен', 'истощена', 'разбит', 'разбита'];
+      const sleepIssueKeywords = ['бессонница', 'не спал', 'не спала', 'плохо спал', 'плохо спала', 'кошмар', 'ворочался'];
+      const positiveKeywords = ['отдохнул', 'выспался', 'спокоен', 'спокойна', 'баланс', 'рад', 'рада', 'хорошо'];
+
+      recentEntries.forEach(entry => {
+        const text = entry.content.toLowerCase();
+        if (stressKeywords.some(kw => text.includes(kw))) stressCount++;
+        if (fatigueKeywords.some(kw => text.includes(kw))) fatigueCount++;
+        if (sleepIssueKeywords.some(kw => text.includes(kw))) sleepIssueCount++;
+        if (positiveKeywords.some(kw => text.includes(kw))) positiveCount++;
+      });
+
+      if (stressCount > 0) {
+        rate += stressCount * 12;
+        factors.push('Высокий уровень эмоционального стресса');
+      }
+      if (fatigueCount > 0) {
+        rate += fatigueCount * 15;
+        factors.push('Накапливающаяся физическая усталость');
+      }
+      if (sleepIssueCount > 0) {
+        rate += sleepIssueCount * 12;
+        factors.push('Проблемы со сном и дефицит ночного отдыха');
+      }
+
+      rate -= positiveCount * 8;
+    } else {
+      rate = 15; // default low burnout for empty profile
+    }
+
+    // Clamp rate to 0-100
+    rate = Math.max(5, Math.min(100, Math.round(rate)));
+
+    let level: 'Низкий' | 'Средний' | 'Высокий' = 'Низкий';
+    const recommendations: string[] = [];
+
+    if (rate >= 70) {
+      level = 'Высокий';
+      recommendations.push('Внимание! Высокий риск срыва из-за переутомления. Немедленно снизьте нагрузку и отдохните.');
+      recommendations.push('Обсудите свое состояние с напарником (Buddy) или напишите пост поддержки в сообщество.');
+      recommendations.push('Обеспечьте себе не менее 8 часов спокойного сна и сделайте цифровой детокс.');
+    } else if (rate >= 35) {
+      level = 'Средний';
+      recommendations.push('Выделите время для полноценной релаксации на выходных, разрешите себе дни отдыха.');
+      recommendations.push('Попробуйте вечером травяной чай и дыхательное упражнение "Квадрат" из SOS-вкладки.');
+      recommendations.push('Не нагружайте себя слишком большим количеством новых обязательств и задач.');
+    } else {
+      level = 'Низкий';
+      recommendations.push('Ваш психоэмоциональный баланс стабилен. Продолжайте соблюдать режим сна и бодрствования.');
+      recommendations.push('Изучайте новые микро-курсы и помогайте новичкам в сообществе — это укрепляет трезвость.');
+    }
+
+    if (factors.length === 0) {
+      factors.push('Психоэмоциональное состояние в пределах нормы');
+    }
+
+    return {
+      rate,
+      level,
+      factors: Array.from(new Set(factors)),
+      recommendations
+    };
   }
 
   static async getUserInsights(userId: string) {
@@ -684,6 +818,7 @@ export class AICoachService {
     const sleepData = await this.analyzeSleepPatterns();
     const profile = this.calculatePsychologicalProfile(memory, sleepData.averageScore);
     const dailyEnergy = await this.getDailyEnergyForecast(userId);
+    const burnoutDiagnostics = await this.getBurnoutDiagnostics(userId);
     return {
       conversationCount: memory.conversations.length,
       averageMood: memory.emotionalPattern.averageMood,
@@ -694,7 +829,9 @@ export class AICoachService {
         ? 'Ваше состояние улучшается.'
         : 'Мы продолжаем работу.',
       profile,
-      sleepAnalysis: sleepData
+      sleepAnalysis: sleepData,
+      dailyEnergy,
+      burnoutDiagnostics
     };
   }
 
@@ -1171,76 +1308,5 @@ export class AICoachService {
     }
 
     await this.saveToStorage();
-  }
-
-  static async getDailyEnergyForecast(userId: string): Promise<{
-    physicalResilience: number;
-    moodWellness: number;
-    mentalClarity: number;
-    energyLevel: number;
-    recommendations: string[];
-  }> {
-    const journalResult = await JournalService.getEntries();
-    const entries = journalResult.success ? journalResult.data : [];
-
-    // 1. Mood Wellness Calculation
-    let moodWellness = 70; // default
-    if (entries.length > 0) {
-      const recentMoods = entries.slice(0, 5).map(e => e.mood);
-      const avgMood = recentMoods.reduce((sum, val) => sum + val, 0) / recentMoods.length;
-      moodWellness = Math.round(avgMood * 20); // Scale 1-5 to 20-100%
-    }
-
-    // 2. Physical Resilience Calculation
-    let physicalResilience = 60; // default
-    const sleepData = await this.analyzeSleepPatterns();
-    physicalResilience += Math.round((sleepData.averageScore - 70) * 0.5); // adjustment based on sleep (-15 to +15)
-
-    const sobrietyBonus = Math.min(20, Math.floor((entries.length || 0) * 2));
-    physicalResilience += sobrietyBonus;
-    physicalResilience = Math.max(10, Math.min(100, physicalResilience));
-
-    // 3. Mental Clarity Calculation
-    let mentalClarity = 65; // default
-    let stressDeduction = 0;
-    entries.slice(0, 3).forEach(entry => {
-      const content = entry.content.toLowerCase();
-      const stressKeywords = ['тревог', 'беспокой', 'устал', 'гнев', 'злость', 'напряжение', 'тяга'];
-      if (stressKeywords.some(kw => content.includes(kw))) {
-        stressDeduction += 10;
-      }
-    });
-    mentalClarity -= stressDeduction;
-    mentalClarity = Math.max(15, Math.min(100, mentalClarity + sobrietyBonus));
-
-    // 4. Overall Energy Level
-    const energyLevel = Math.round((physicalResilience + moodWellness + mentalClarity) / 3);
-
-    // 5. Actionable custom recommendations based on the lowest metric
-    const recommendations: string[] = [];
-    const minMetric = Math.min(physicalResilience, moodWellness, mentalClarity);
-
-    if (minMetric === physicalResilience) {
-      recommendations.push("Ваш физический тонус снижен. Постарайтесь уделить время сну, исключите гаджеты за час до отдыха и выпейте стакан чистой воды.");
-      recommendations.push("Небольшая растяжка или 15-минутная прогулка помогут запустить кровообращение без лишнего стресса для тела.");
-    } else if (minMetric === moodWellness) {
-      recommendations.push("Замечено колебание эмоционального фона. Напишите в дневник 3 вещи, за которые вы благодарны сегодня — это переключит фокус.");
-      recommendations.push("Загляните в раздел 'Общение' или напишите своему трезвуму напарнику. Поддержка единомышленников творит чудеса.");
-    } else {
-      recommendations.push("В голове может быть много мыслей и напряжения. Попробуйте дыхательную практику 'Квадратное дыхание' из вкладки SOS.");
-      recommendations.push("Сделайте паузу в работе на 10 минут. Ограничьте входящий поток информации и побудьте в тишине.");
-    }
-
-    if (energyLevel > 80) {
-      recommendations.unshift("Отличный день! Вы полны сил и ресурсов. Прекрасное время для закрепления новых привычек или изучения уроков!");
-    }
-
-    return {
-      physicalResilience,
-      moodWellness,
-      mentalClarity,
-      energyLevel,
-      recommendations: recommendations.slice(0, 2)
-    };
   }
 }
