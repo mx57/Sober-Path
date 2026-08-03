@@ -503,6 +503,70 @@ export default function EnhancedAICoach() {
                     </View>
                   )}
 
+                  {vm.insights.burnout && (
+                    <View style={styles.burnoutSection}>
+                      <View style={styles.burnoutTitleRow}>
+                        <MaterialIcons name="whatshot" size={20} color="#FF5722" />
+                        <Text style={styles.burnoutSectionTitle}>Уровень Выгорания (Диагностика ИИ)</Text>
+                        <View style={[
+                          styles.burnoutLevelBadge,
+                          {
+                            backgroundColor: vm.insights.burnout.level === 'Высокий' ? '#FFCDD2' :
+                                             vm.insights.burnout.level === 'Средний' ? '#FFE0B2' : '#C8E6C9'
+                          }
+                        ]}>
+                          <Text style={[
+                            styles.burnoutLevelText,
+                            {
+                              color: vm.insights.burnout.level === 'Высокий' ? '#C62828' :
+                                     vm.insights.burnout.level === 'Средний' ? '#E65100' : '#2E7D32'
+                            }
+                          ]}>{vm.insights.burnout.level}</Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.burnoutProgressContainer}>
+                        <View style={styles.burnoutProgressRow}>
+                          <Text style={styles.burnoutProgressLabel}>Шкала истощения:</Text>
+                          <Text style={styles.burnoutProgressValue}>{vm.insights.burnout.score}%</Text>
+                        </View>
+                        <View style={styles.burnoutBarBackground}>
+                          <View style={[
+                            styles.burnoutBarFill,
+                            {
+                              width: `${vm.insights.burnout.score}%`,
+                              backgroundColor: vm.insights.burnout.level === 'Высокий' ? '#E62828' :
+                                               vm.insights.burnout.level === 'Средний' ? '#FF9800' : '#4CAF50'
+                            }
+                          ]} />
+                        </View>
+                      </View>
+
+                      <View style={styles.burnoutContentRow}>
+                        <View style={styles.burnoutFactorsContainer}>
+                          <Text style={styles.burnoutSubTitle}>Факторы влияния:</Text>
+                          {vm.insights.burnout.factors.map((factor: string, idx: number) => (
+                            <View key={idx} style={styles.burnoutFactorItem}>
+                              <MaterialIcons
+                                name={vm.insights.burnout.level === 'Низкий' ? "check-circle" : "error"}
+                                size={14}
+                                color={vm.insights.burnout.level === 'Низкий' ? "#4CAF50" : "#FF9800"}
+                              />
+                              <Text style={styles.burnoutFactorText}>{factor}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      </View>
+
+                      <View style={styles.burnoutRecommendations}>
+                        <Text style={styles.burnoutSubTitle}>ИИ-Рекомендации по балансу:</Text>
+                        {vm.insights.burnout.recommendations.map((rec: string, idx: number) => (
+                          <Text key={idx} style={styles.burnoutRecItem}>• {rec}</Text>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+
                   {vm.insights.achievements && vm.insights.achievements.length > 0 && (
                     <View style={styles.achievementsMemory}>
                       <Text style={styles.achievementsMemoryTitle}>Зафиксированные успехи:</Text>
@@ -1102,6 +1166,98 @@ const styles = StyleSheet.create({
     color: '#333',
     width: 35,
     textAlign: 'right',
+  },
+  burnoutSection: {
+    marginTop: 20,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+  },
+  burnoutTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  burnoutSectionTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+    flex: 1,
+  },
+  burnoutLevelBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  burnoutLevelText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  burnoutProgressContainer: {
+    marginBottom: 12,
+  },
+  burnoutProgressRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 5,
+  },
+  burnoutProgressLabel: {
+    fontSize: 12,
+    color: '#666',
+  },
+  burnoutProgressValue: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  burnoutBarBackground: {
+    height: 10,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 5,
+    overflow: 'hidden',
+  },
+  burnoutBarFill: {
+    height: '100%',
+    borderRadius: 5,
+  },
+  burnoutContentRow: {
+    marginBottom: 12,
+  },
+  burnoutFactorsContainer: {
+    backgroundColor: '#F9F9F9',
+    padding: 10,
+    borderRadius: 8,
+  },
+  burnoutSubTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#444',
+    marginBottom: 6,
+  },
+  burnoutFactorItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  burnoutFactorText: {
+    fontSize: 12,
+    color: '#555',
+  },
+  burnoutRecommendations: {
+    backgroundColor: '#F1F8E9',
+    padding: 10,
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#8BC34A',
+    marginTop: 8,
+  },
+  burnoutRecItem: {
+    fontSize: 12,
+    color: '#33691E',
+    lineHeight: 16,
+    marginBottom: 4,
   },
   recordingOverlay: {
     flex: 1,

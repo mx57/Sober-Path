@@ -375,7 +375,7 @@ function HomePage() {
           <View style={styles.tipCard}>
             <LinearGradient colors={['#E0F2F1', '#F0F4F4']} style={styles.tipGradient}>
               <View style={styles.tipHeader}>
-                <MaterialIcons name={dailyTip.icon as any} size={24} color="#00796B" />
+                    <MaterialIcons name="emoji-objects" size={14} color="#2E7D4A" />
                 <Text style={styles.tipTitle}>Совет дня</Text>
               </View>
               <Text style={styles.tipSubtitle}>{dailyTip.title}</Text>
@@ -477,7 +477,7 @@ function HomePage() {
                 </View>
                 {weeklyRoadmap.focus ? (
                   <View style={styles.roadmapFocusBadge}>
-                    <MaterialIcons name="emoji_objects" size={14} color="#2E7D4A" />
+                    <MaterialIcons name="emoji-objects" size={14} color="#2E7D4A" />
                     <Text style={styles.roadmapFocusText} numberOfLines={1}>{weeklyRoadmap.focus}</Text>
                   </View>
                 ) : null}
