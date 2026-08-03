@@ -1,18 +1,23 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useThemeColors } from '../../hooks/useThemeColors';
 
 type TabIconProps = { color: string; size: number };
 
 const TabLayout = () => {
+  const themeColors = useThemeColors();
+
   const tabOptions = {
     headerShown: false,
-    tabBarActiveTintColor: '#2E7D4A',
-    tabBarInactiveTintColor: '#666',
+    tabBarActiveTintColor: themeColors.primary,
+    tabBarInactiveTintColor: themeColors.isDark ? '#888' : '#666',
     tabBarStyle: {
       height: 60,
       paddingBottom: 10,
-      paddingTop: 5
+      paddingTop: 5,
+      backgroundColor: themeColors.cardBackground,
+      borderTopColor: themeColors.border,
     }
   };
 

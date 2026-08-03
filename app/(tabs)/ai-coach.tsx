@@ -12,6 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAICoachViewModel, ChatMessage } from '../../hooks/useAICoachViewModel';
 import { AICoachChallenge } from '../../services/AICoachService';
 import { useRouter } from 'expo-router';
+import { useThemeColors } from '../../hooks/useThemeColors';
 import Animated, {
   FadeInUp,
   FadeInRight,
@@ -175,10 +176,11 @@ export default function EnhancedAICoach() {
   const vm = useAICoachViewModel();
   const scrollViewRef = useRef<ScrollView>(null);
   const router = useRouter();
+  const themeColors = useThemeColors();
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <LinearGradient colors={['#2E7D4A', '#4CAF50']} style={styles.header}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: themeColors.background }]}>
+      <LinearGradient colors={themeColors.gradient} style={styles.header}>
         <MaterialIcons name="psychology" size={32} color="white" />
         <Text style={styles.title}>AI-Коуч 2.0</Text>
         <Text style={styles.headerStats}>Дней: {vm.soberDays}</Text>
@@ -402,6 +404,67 @@ export default function EnhancedAICoach() {
                       <View style={styles.sleepRecommendations}>
                         <Text style={styles.recommendationsHeader}>Рекомендации ИИ по сну:</Text>
                         {vm.insights.sleepAnalysis.recommendations.map((rec: string, idx: number) => (
+                          <Text key={idx} style={styles.recommendationItem}>• {rec}</Text>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+
+                  {vm.insights.burnoutAnalysis && (
+                    <View style={styles.burnoutSection}>
+                      <View style={styles.burnoutTitleRow}>
+                        <MaterialIcons name="local-fire-department" size={20} color={
+                          vm.insights.burnoutAnalysis.level === 'high' ? '#E53935' :
+                          vm.insights.burnoutAnalysis.level === 'medium' ? '#FB8C00' : '#4CAF50'
+                        } />
+                        <Text style={styles.burnoutSectionTitle}>ИИ-Анализ Выгорания</Text>
+                        <View style={[styles.burnoutScoreBadge, {
+                          backgroundColor: vm.insights.burnoutAnalysis.level === 'high' ? '#FFEBEE' :
+                                           vm.insights.burnoutAnalysis.level === 'medium' ? '#FFF3E0' : '#E8F5E8'
+                        }]}>
+                          <Text style={[styles.burnoutScoreText, {
+                            color: vm.insights.burnoutAnalysis.level === 'high' ? '#D32F2F' :
+                                   vm.insights.burnoutAnalysis.level === 'medium' ? '#E65100' : '#2E7D4A'
+                          }]}>{vm.insights.burnoutAnalysis.burnoutRate}%</Text>
+                        </View>
+                      </View>
+
+                      <Text style={styles.burnoutFeedbackText}>{vm.insights.burnoutAnalysis.feedback}</Text>
+
+                      <View style={styles.profileProgressBar}>
+                        <View style={[styles.profileProgressFill, {
+                          width: `${vm.insights.burnoutAnalysis.burnoutRate}%`,
+                          backgroundColor: vm.insights.burnoutAnalysis.level === 'high' ? '#E53935' :
+                                           vm.insights.burnoutAnalysis.level === 'medium' ? '#FB8C00' : '#4CAF50'
+                        }]} />
+                      </View>
+
+                      {vm.insights.burnoutAnalysis.factors && vm.insights.burnoutAnalysis.factors.length > 0 && (
+                        <View style={[styles.burnoutFactorsContainer, {
+                          backgroundColor: vm.insights.burnoutAnalysis.level === 'high' ? '#FFEBEE' :
+                                           vm.insights.burnoutAnalysis.level === 'medium' ? '#FFF3E0' : '#F1F8F1',
+                          borderLeftColor: vm.insights.burnoutAnalysis.level === 'high' ? '#E53935' :
+                                           vm.insights.burnoutAnalysis.level === 'medium' ? '#FB8C00' : '#4CAF50'
+                        }]}>
+                          <Text style={[styles.burnoutFactorsTitle, {
+                            color: vm.insights.burnoutAnalysis.level === 'high' ? '#C62828' :
+                                   vm.insights.burnoutAnalysis.level === 'medium' ? '#E65100' : '#2E7D4A'
+                          }]}>Факторы риска:</Text>
+                          {vm.insights.burnoutAnalysis.factors.map((factor: string, idx: number) => (
+                            <View key={idx} style={styles.issueItem}>
+                              <MaterialIcons name="analytics" size={14} color={
+                                vm.insights.burnoutAnalysis.level === 'high' ? '#D32F2F' :
+                                vm.insights.burnoutAnalysis.level === 'medium' ? '#E65100' : '#2E7D4A'
+                              } />
+                              <Text style={styles.issueText}>{factor}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+
+                      <View style={styles.sleepRecommendations}>
+                        <Text style={styles.recommendationsHeader}>Рекомендации по профилактике:</Text>
+                        {vm.insights.burnoutAnalysis.recommendations.map((rec: string, idx: number) => (
                           <Text key={idx} style={styles.recommendationItem}>• {rec}</Text>
                         ))}
                       </View>
@@ -705,6 +768,51 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 10,
     marginBottom: 10,
+  },
+  burnoutSection: {
+    marginTop: 20,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+  },
+  burnoutTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  burnoutSectionTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+    flex: 1,
+  },
+  burnoutScoreBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  burnoutScoreText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  burnoutFeedbackText: {
+    fontSize: 13,
+    color: '#555',
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  burnoutFactorsContainer: {
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 12,
+    borderLeftWidth: 3,
+    marginTop: 10,
+  },
+  burnoutFactorsTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginBottom: 6,
   },
   recommendationsHeader: {
     fontSize: 12,

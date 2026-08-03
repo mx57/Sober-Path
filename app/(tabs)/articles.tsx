@@ -24,6 +24,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { FlashList } from "@shopify/flash-list";
 import { useRecovery } from '../../hooks/useRecovery';
+import { useThemeColors } from '../../hooks/useThemeColors';
+import * as Haptics from 'expo-haptics';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -151,6 +153,7 @@ export default function ArticlesPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('Все');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
+  const [activeInfoTimeline, setActiveInfoTimeline] = useState<'1w' | '1m' | '6m' | '1y'>('1w');
 
   useEffect(() => {
     if (id) {
@@ -194,7 +197,41 @@ export default function ArticlesPage() {
     setSelectedArticle(article);
   }, []);
 
-  const renderHeader = () => (
+  const renderHeader = () => {
+    const timelines = {
+      '1w': {
+        percentage: 35,
+        title: 'Очищение и Сверхчувствительность',
+        desc: 'Начало пути. Рецепторы перегружены и нечувствительны к обычным стимулам. Вы можете испытывать эмоциональные перепады, раздражительность или апатию, но нервная система уже начинает медленно очищаться от токсинов.',
+        progressColor: '#FF9800',
+        badge: 'Адаптация'
+      },
+      '1m': {
+        percentage: 60,
+        title: 'Регенерация Рецепторов',
+        desc: 'Начало регенерации D2-рецепторов. Возвращается способность радоваться простым вещам: вкусной еде, физической активности, природе и общению. Качество сна заметно улучшается.',
+        progressColor: '#2196F3',
+        badge: 'Восстановление'
+      },
+      '6m': {
+        percentage: 85,
+        title: 'Стабилизация и Мотивация',
+        desc: 'Плотность дофаминовых рецепторов практически полностью восстанавливается до нормы. Заметно улучшаются концентрация внимания, кратковременная память и возвращается здоровая долгосрочная мотивация.',
+        progressColor: '#9C27B0',
+        badge: 'Стабильность'
+      },
+      '1y': {
+        percentage: 100,
+        title: 'Полное Обновление Мозга',
+        desc: 'Полная нормализация дофаминовой системы. Способность испытывать глубокое естественное удовольствие и долгосрочную увлеченность жизнью восстановлена на 100%. Когнитивный тонус на пике.',
+        progressColor: '#2E7D4A',
+        badge: 'Новая жизнь'
+      }
+    };
+
+    const curTimeline = timelines[activeInfoTimeline];
+
+    return (
     <View>
       {!searchQuery && (
         <View style={styles.statsContainer}>
@@ -209,6 +246,69 @@ export default function ArticlesPage() {
           <View style={styles.statItem}>
             <Text style={styles.statNumber}>5.0</Text>
             <Text style={styles.statLabel}>Рейтинг</Text>
+          </View>
+        </View>
+      )}
+
+      {/* DOPAMINE RECEPTOR RECOVERY INFOGRAPHIC */}
+      {!searchQuery && (
+        <View style={styles.infoWidgetContainer}>
+          <View style={styles.infoWidgetHeader}>
+            <MaterialIcons name="insights" size={22} color="#2E7D4A" />
+            <Text style={styles.infoWidgetTitle}>Восстановление дофамина</Text>
+          </View>
+          <Text style={styles.infoWidgetSub}>
+            Интерактивная карта регенерации дофаминовых рецепторов мозга на пути к полной трезвости:
+          </Text>
+
+          {/* Timeline Tabs */}
+          <View style={styles.infoTabs}>
+            {(['1w', '1m', '6m', '1y'] as const).map((t) => {
+              const labels = { '1w': '1 Нед', '1m': '1 Мес', '6m': '6 Мес', '1y': '1 Год' };
+              const isSelected = activeInfoTimeline === t;
+              return (
+                <TouchableOpacity
+                  key={t}
+                  style={[styles.infoTabButton, isSelected && styles.infoTabButtonActive]}
+                  onPress={() => {
+                    setActiveInfoTimeline(t);
+                    Haptics.selectionAsync();
+                  }}
+                >
+                  <Text style={[styles.infoTabButtonText, isSelected && styles.infoTabButtonTextActive]}>
+                    {labels[t]}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {/* Content Card */}
+          <View style={styles.infoContentCard}>
+            <View style={styles.infoContentHeader}>
+              <Text style={styles.infoContentTitle}>{curTimeline.title}</Text>
+              <View style={[styles.infoContentBadge, { backgroundColor: curTimeline.progressColor + '20' }]}>
+                <Text style={[styles.infoContentBadgeText, { color: curTimeline.progressColor }]}>
+                  {curTimeline.badge}
+                </Text>
+              </View>
+            </View>
+
+            <Text style={styles.infoContentDesc}>{curTimeline.desc}</Text>
+
+            {/* Progress Bar */}
+            <View style={styles.infoProgressRow}>
+              <Text style={styles.infoProgressLabel}>Рецепторы:</Text>
+              <View style={styles.infoProgressBar}>
+                <View style={[
+                  styles.infoProgressFill,
+                  { width: `${curTimeline.percentage}%`, backgroundColor: curTimeline.progressColor }
+                ]} />
+              </View>
+              <Text style={[styles.infoProgressValue, { color: curTimeline.progressColor }]}>
+                {curTimeline.percentage}%
+              </Text>
+            </View>
           </View>
         </View>
       )}
@@ -238,11 +338,14 @@ export default function ArticlesPage() {
         {searchQuery ? `Результаты поиска (${filteredArticles.length})` : `📚 Статьи (${filteredArticles.length})`}
       </Text>
     </View>
-  );
+    );
+  };
+
+  const themeColors = useThemeColors();
 
   return (
-    <View style={styles.container}>
-      <LinearGradient colors={['#2E7D4A', '#4CAF50']} style={[styles.header, { paddingTop: insets.top + 10 }]}>
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+      <LinearGradient colors={themeColors.gradient} style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <View style={styles.headerContent}>
           <MaterialIcons name="menu-book" size={32} color="white" />
           <Text style={styles.headerTitle}>База знаний</Text>
@@ -479,5 +582,127 @@ const styles = StyleSheet.create({
   actionButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 12, borderRadius: 12, backgroundColor: '#E8F5E8', gap: 6 },
   activeActionButton: { backgroundColor: '#E91E63' },
   actionButtonText: { fontSize: 13, fontWeight: '600', color: '#2E7D4A' },
-  activeActionButtonText: { color: 'white' }
+  activeActionButtonText: { color: 'white' },
+  infoWidgetContainer: {
+    backgroundColor: 'white',
+    marginHorizontal: 20,
+    marginTop: 15,
+    borderRadius: 20,
+    padding: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  infoWidgetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 8,
+  },
+  infoWidgetTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  infoWidgetSub: {
+    fontSize: 12,
+    color: '#666',
+    lineHeight: 18,
+    marginBottom: 15,
+  },
+  infoTabs: {
+    flexDirection: 'row',
+    backgroundColor: '#F0F2F5',
+    padding: 4,
+    borderRadius: 12,
+    marginBottom: 15,
+    gap: 4,
+  },
+  infoTabButton: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderRadius: 10,
+  },
+  infoTabButtonActive: {
+    backgroundColor: 'white',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+  },
+  infoTabButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#666',
+  },
+  infoTabButtonTextActive: {
+    color: '#2E7D4A',
+    fontWeight: 'bold',
+  },
+  infoContentCard: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#EFEFEF',
+  },
+  infoContentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 8,
+  },
+  infoContentTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+    flex: 1,
+  },
+  infoContentBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  infoContentBadgeText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  infoContentDesc: {
+    fontSize: 12,
+    color: '#555',
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  infoProgressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  infoProgressLabel: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#666',
+  },
+  infoProgressBar: {
+    flex: 1,
+    height: 8,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  infoProgressFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  infoProgressValue: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    minWidth: 35,
+    textAlign: 'right',
+  }
 });

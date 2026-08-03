@@ -17,6 +17,7 @@ import * as Haptics from 'expo-haptics';
 
 import { MicroCoursesService, MicroCourse, Lesson } from '../../services/microCoursesService';
 import { allExpandedTechniques } from '../../services/expandedNLPTechniques';
+import { useThemeColors } from '../../hooks/useThemeColors';
 import { modernTherapeuticTechniques, microTechniques } from '../../services/therapeuticTechniques';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -180,9 +181,11 @@ export default function CoursesPage() {
     </Animated.View>
   );
 
+  const themeColors = useThemeColors();
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <LinearGradient colors={['#2E7D4A', '#4CAF50']} style={styles.header}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: themeColors.background }]}>
+      <LinearGradient colors={themeColors.gradient} style={styles.header}>
         <Text style={styles.headerTitle}>Курсы и Техники</Text>
         <Text style={styles.headerSubtitle}>Ваш путь к самопознанию и свободе</Text>
       </LinearGradient>

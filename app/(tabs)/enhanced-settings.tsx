@@ -214,7 +214,8 @@ export default function EnhancedSettingsPage() {
     { id: 'nature', name: 'Природа', icon: 'eco', gradient: ['#4CAF50', '#2E7D4A'] },
     { id: 'ocean', name: 'Океан', icon: 'waves', gradient: ['#2196F3', '#1565C0'] },
     { id: 'sunset', name: 'Закат', icon: 'wb-sunny', gradient: ['#FF9800', '#F57C00'] },
-    { id: 'minimal', name: 'Минимал', icon: 'palette', gradient: ['#607D8B', '#455A64'] }
+    { id: 'minimal', name: 'Минимал', icon: 'palette', gradient: ['#607D8B', '#455A64'] },
+    { id: 'dark', name: 'Тёмный', icon: 'nights-stay', gradient: ['#121212', '#1C1C1E'] }
   ];
 
   const settingSections: SettingSection[] = [
