@@ -145,6 +145,14 @@ export interface MorningBriefing {
   quickTips: string[];
 }
 
+export interface BurnoutResult {
+  burnoutRate: number; // 0 to 100
+  level: 'low' | 'medium' | 'high';
+  feedback: string;
+  factors: string[];
+  recommendations: string[];
+}
+
 const MEMORY_STORAGE_KEY = 'sober_path_ai_memory';
 const CHALLENGES_STORAGE_KEY = 'sober_path_ai_challenges';
 const ROADMAP_STORAGE_KEY = 'sober_path_ai_roadmap';
@@ -637,7 +645,8 @@ export class AICoachService {
         ? 'Ваше состояние улучшается.'
         : 'Мы продолжаем работу.',
       profile,
-      sleepAnalysis: sleepData
+      sleepAnalysis: sleepData,
+      burnoutAnalysis: burnoutData
     };
   }
 
@@ -713,6 +722,110 @@ export class AICoachService {
     }
 
     return { averageScore, insights };
+  }
+
+  static async getBurnoutRate(userId: string): Promise<BurnoutResult> {
+    const journalResult = await JournalService.getEntries();
+    if (!journalResult.success || journalResult.data.length === 0) {
+      return {
+        burnoutRate: 25,
+        level: 'low',
+        feedback: 'Недостаточно записей в дневнике для глубокого анализа выгорания. Продолжайте ежедневно вести дневник настроения.',
+        factors: ['Мало данных'],
+        recommendations: [
+          'Делайте записи в дневнике каждый день для более точной ИИ-диагностики.',
+          'Указывайте уровень стресса, усталости и качество вашего сна.'
+        ]
+      };
+    }
+
+    const entries = journalResult.data;
+    let baseRate = 30; // default baseline
+    const factors: string[] = [];
+
+    // 1. Analyze recent moods
+    const recentMoods = entries.slice(0, 7).map(e => e.mood);
+    const avgMood = recentMoods.reduce((sum, val) => sum + val, 0) / recentMoods.length;
+    if (avgMood < 3) {
+      baseRate += 20;
+      factors.push('Пониженный эмоциональный фон');
+    } else if (avgMood > 4) {
+      baseRate -= 10;
+    }
+
+    // 2. Keyword analysis for fatigue and stress
+    const fatigueKeywords = ['устал', 'бессили', 'выгоре', 'нет сил', 'истощен', 'выжат', 'апатия', 'слабость'];
+    const stressKeywords = ['стресс', 'тревог', 'напряжен', 'паник', 'нерв', 'беспокой', 'тяжело', 'накрыва'];
+
+    let fatigueCount = 0;
+    let stressCount = 0;
+
+    entries.slice(0, 10).forEach(entry => {
+      const text = entry.content.toLowerCase();
+      if (fatigueKeywords.some(kw => text.includes(kw))) fatigueCount++;
+      if (stressKeywords.some(kw => text.includes(kw))) stressCount++;
+    });
+
+    if (fatigueCount > 2) {
+      baseRate += 25;
+      factors.push('Накопленная физическая или умственная усталость');
+    }
+    if (stressCount > 2) {
+      baseRate += 20;
+      factors.push('Высокий уровень психологического напряжения');
+    }
+
+    // 3. Sleep influence
+    const sleepData = await this.analyzeSleepPatterns();
+    if (sleepData.averageScore < 60) {
+      baseRate += 15;
+      factors.push('Дефицит качественного сна и восстановления');
+    } else if (sleepData.averageScore > 85) {
+      baseRate -= 10;
+    }
+
+    // Clamp burnout rate
+    const burnoutRate = Math.max(5, Math.min(100, Math.round(baseRate)));
+
+    let level: 'low' | 'medium' | 'high' = 'low';
+    let feedback = '';
+    const recommendations: string[] = [];
+
+    if (burnoutRate > 70) {
+      level = 'high';
+      feedback = 'Внимание: критический уровень выгорания! Вы находитесь в зоне высокого риска срыва. Ваша нервная система истощена.';
+      recommendations.push(
+        'Срочно снизьте нагрузку на работе и дома, возьмите паузу.',
+        'Используйте упражнение "Квадратное дыхание" из SOS-вкладки трижды в день.',
+        'Обратитесь к наставнику в сообществе или напарнику за немедленной поддержкой.',
+        'Обеспечьте себе минимум 8 часов сна в полной темноте.'
+      );
+    } else if (burnoutRate >= 35) {
+      level = 'medium';
+      feedback = 'Умеренный уровень выгорания. Вы испытываете накопившееся утомление. Важно вовремя перезагрузиться, чтобы не допустить истощения.';
+      recommendations.push(
+        'Практикуйте медитацию "Сканирование тела" перед сном.',
+        'Добавьте легкие пешие прогулки на свежем воздухе без телефона (20-30 минут).',
+        'Ограничьте употребление кофеина во второй половине дня.',
+        'Напишите в дневнике 3 вещи, за которые вы благодарны себе сегодня.'
+      );
+    } else {
+      level = 'low';
+      feedback = 'Отличный показатель! Ваша нервная система сбалансирована, уровень выгорания минимальный. Вы успешно справляетесь с нагрузкой.';
+      recommendations.push(
+        'Продолжайте соблюдать текущий режим труда и отдыха.',
+        'Закрепите успех регулярными аэробными тренировками.',
+        'Помогите другим участникам в сообществе, делясь своим ресурсом.'
+      );
+    }
+
+    return {
+      burnoutRate,
+      level,
+      feedback,
+      factors: factors.length > 0 ? factors : ['Факторы риска не обнаружены'],
+      recommendations
+    };
   }
 
   static detectTriggerPatterns(userId: string): TriggerPattern[] {

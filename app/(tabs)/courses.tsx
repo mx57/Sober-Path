@@ -327,6 +327,8 @@ export default function CoursesPage() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const themeColors = useThemeColors();
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
