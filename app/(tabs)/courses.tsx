@@ -12,12 +12,12 @@ import {
   Platform,
   Alert
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialIcons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInUp, FadeInRight, useSharedValue, useAnimatedStyle, withSpring, withTiming, withSequence } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Import databases and services
 import { MicroCoursesService, MicroCourse, Lesson } from '../../services/microCoursesService';
@@ -326,6 +326,8 @@ export default function CoursesPage() {
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  const themeColors = useThemeColors();
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>

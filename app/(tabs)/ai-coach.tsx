@@ -12,6 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAICoachViewModel, ChatMessage } from '../../hooks/useAICoachViewModel';
 import { AICoachChallenge } from '../../services/AICoachService';
 import { useRouter } from 'expo-router';
+import { useThemeColors } from '../../hooks/useThemeColors';
 import Animated, {
   FadeInUp,
   FadeInRight,
@@ -175,6 +176,7 @@ export default function EnhancedAICoach() {
   const vm = useAICoachViewModel();
   const scrollViewRef = useRef<ScrollView>(null);
   const router = useRouter();
+  const themeColors = useThemeColors();
 
   const [isRecording, setIsRecording] = useState(false);
   const [recordSecs, setRecordSecs] = useState(0);
@@ -214,8 +216,8 @@ export default function EnhancedAICoach() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <LinearGradient colors={['#2E7D4A', '#4CAF50']} style={styles.header}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: themeColors.background }]}>
+      <LinearGradient colors={themeColors.gradient} style={styles.header}>
         <MaterialIcons name="psychology" size={32} color="white" />
         <Text style={styles.title}>AI-Коуч 2.0</Text>
         <Text style={styles.headerStats}>Дней: {vm.soberDays}</Text>
@@ -366,8 +368,65 @@ export default function EnhancedAICoach() {
           </KeyboardAvoidingView>
         )}
 
-        {vm.activeTab === 'insights' && vm.insights && (
+        {vm.activeTab === 'insights' && vm.insights && (() => {
+          const resilience = vm.insights?.profile?.resilience || 70;
+          const sleepQualityVal = vm.insights?.profile?.sleepQuality || 70;
+          const avgMood = vm.insights?.averageMood || 3;
+          const energyScore = Math.round((resilience * 0.3) + (sleepQualityVal * 0.4) + (avgMood * 20 * 0.3));
+
+          let physicalResilience = 'Средняя';
+          if (energyScore > 80) physicalResilience = 'Высокая';
+          else if (energyScore < 50) physicalResilience = 'Сниженная';
+
+          let mentalClarity = 'Стабильная';
+          if (energyScore > 85) mentalClarity = 'Превосходная';
+          else if (energyScore < 50) mentalClarity = 'Затуманенная (требуется отдых)';
+
+          let advice = 'Соблюдайте баланс активности и отдыха. Хороший день для плавного движения вперед.';
+          if (energyScore > 80) advice = 'Идеальный момент для изучения сложных уроков, тренировок или активного участия в жизни сообщества!';
+          else if (energyScore < 50) advice = 'Ваш ресурс сегодня ограничен. Рекомендуется снизить нагрузку, послушать SOS-медитации и дать телу восстановиться.';
+
+          return (
             <ScrollView style={styles.scrollContent}>
+                {/* Энергия дня */}
+                <Animated.View entering={FadeInUp} style={styles.forecastCard}>
+                  <View style={styles.forecastHeader}>
+                    <MaterialIcons name="bolt" size={26} color="#FFD700" />
+                    <Text style={styles.forecastTitle}>ИИ-Прогноз: Энергия дня ⚡</Text>
+                  </View>
+
+                  <View style={styles.forecastBody}>
+                    <View style={styles.forecastGaugeContainer}>
+                      <View style={styles.forecastGaugeBg}>
+                        <View style={[styles.forecastGaugeFill, { width: `${energyScore}%` }]} />
+                      </View>
+                      <Text style={styles.forecastGaugeText}>Уровень энергии: {energyScore}%</Text>
+                    </View>
+
+                    <View style={styles.forecastGrid}>
+                      <View style={styles.forecastGridItem}>
+                        <MaterialIcons name="fitness-center" size={16} color="#4CAF50" />
+                        <View>
+                          <Text style={styles.forecastGridLabel}>Физ. стойкость</Text>
+                          <Text style={styles.forecastGridValue}>{physicalResilience}</Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.forecastGridItem}>
+                        <MaterialIcons name="wb-incandescent" size={16} color="#2196F3" />
+                        <View>
+                          <Text style={styles.forecastGridLabel}>Ясность мысли</Text>
+                          <Text style={styles.forecastGridValue}>{mentalClarity}</Text>
+                        </View>
+                      </View>
+                    </View>
+
+                    <View style={styles.forecastAdviceBox}>
+                      <Text style={styles.forecastAdviceText}>«{advice}»</Text>
+                    </View>
+                  </View>
+                </Animated.View>
+
                 <View style={styles.insightCard}>
                   <Text style={styles.cardTitle}>Прогресс</Text>
                   <Text style={styles.statusText}>{vm.insights.progressSummary}</Text>
@@ -503,65 +562,62 @@ export default function EnhancedAICoach() {
                     </View>
                   )}
 
-                  {vm.insights.burnout && (
+                  {vm.insights.burnoutAnalysis && (
                     <View style={styles.burnoutSection}>
                       <View style={styles.burnoutTitleRow}>
-                        <MaterialIcons name="whatshot" size={20} color="#FF5722" />
-                        <Text style={styles.burnoutSectionTitle}>Уровень Выгорания (Диагностика ИИ)</Text>
-                        <View style={[
-                          styles.burnoutLevelBadge,
-                          {
-                            backgroundColor: vm.insights.burnout.level === 'Высокий' ? '#FFCDD2' :
-                                             vm.insights.burnout.level === 'Средний' ? '#FFE0B2' : '#C8E6C9'
-                          }
-                        ]}>
-                          <Text style={[
-                            styles.burnoutLevelText,
-                            {
-                              color: vm.insights.burnout.level === 'Высокий' ? '#C62828' :
-                                     vm.insights.burnout.level === 'Средний' ? '#E65100' : '#2E7D32'
-                            }
-                          ]}>{vm.insights.burnout.level}</Text>
+                        <MaterialIcons name="local-fire-department" size={20} color={
+                          vm.insights.burnoutAnalysis.level === 'high' ? '#E53935' :
+                          vm.insights.burnoutAnalysis.level === 'medium' ? '#FB8C00' : '#4CAF50'
+                        } />
+                        <Text style={styles.burnoutSectionTitle}>ИИ-Анализ Выгорания</Text>
+                        <View style={[styles.burnoutScoreBadge, {
+                          backgroundColor: vm.insights.burnoutAnalysis.level === 'high' ? '#FFEBEE' :
+                                           vm.insights.burnoutAnalysis.level === 'medium' ? '#FFF3E0' : '#E8F5E8'
+                        }]}>
+                          <Text style={[styles.burnoutScoreText, {
+                            color: vm.insights.burnoutAnalysis.level === 'high' ? '#D32F2F' :
+                                   vm.insights.burnoutAnalysis.level === 'medium' ? '#E65100' : '#2E7D4A'
+                          }]}>{vm.insights.burnoutAnalysis.burnoutRate}%</Text>
                         </View>
                       </View>
 
-                      <View style={styles.burnoutProgressContainer}>
-                        <View style={styles.burnoutProgressRow}>
-                          <Text style={styles.burnoutProgressLabel}>Шкала истощения:</Text>
-                          <Text style={styles.burnoutProgressValue}>{vm.insights.burnout.score}%</Text>
-                        </View>
-                        <View style={styles.burnoutBarBackground}>
-                          <View style={[
-                            styles.burnoutBarFill,
-                            {
-                              width: `${vm.insights.burnout.score}%`,
-                              backgroundColor: vm.insights.burnout.level === 'Высокий' ? '#E62828' :
-                                               vm.insights.burnout.level === 'Средний' ? '#FF9800' : '#4CAF50'
-                            }
-                          ]} />
-                        </View>
+                      <Text style={styles.burnoutFeedbackText}>{vm.insights.burnoutAnalysis.feedback}</Text>
+
+                      <View style={styles.profileProgressBar}>
+                        <View style={[styles.profileProgressFill, {
+                          width: `${vm.insights.burnoutAnalysis.burnoutRate}%`,
+                          backgroundColor: vm.insights.burnoutAnalysis.level === 'high' ? '#E53935' :
+                                           vm.insights.burnoutAnalysis.level === 'medium' ? '#FB8C00' : '#4CAF50'
+                        }]} />
                       </View>
 
-                      <View style={styles.burnoutContentRow}>
-                        <View style={styles.burnoutFactorsContainer}>
-                          <Text style={styles.burnoutSubTitle}>Факторы влияния:</Text>
-                          {vm.insights.burnout.factors.map((factor: string, idx: number) => (
-                            <View key={idx} style={styles.burnoutFactorItem}>
-                              <MaterialIcons
-                                name={vm.insights.burnout.level === 'Низкий' ? "check-circle" : "error"}
-                                size={14}
-                                color={vm.insights.burnout.level === 'Низкий' ? "#4CAF50" : "#FF9800"}
-                              />
-                              <Text style={styles.burnoutFactorText}>{factor}</Text>
+                      {vm.insights.burnoutAnalysis.factors && vm.insights.burnoutAnalysis.factors.length > 0 && (
+                        <View style={[styles.burnoutFactorsContainer, {
+                          backgroundColor: vm.insights.burnoutAnalysis.level === 'high' ? '#FFEBEE' :
+                                           vm.insights.burnoutAnalysis.level === 'medium' ? '#FFF3E0' : '#F1F8F1',
+                          borderLeftColor: vm.insights.burnoutAnalysis.level === 'high' ? '#E53935' :
+                                           vm.insights.burnoutAnalysis.level === 'medium' ? '#FB8C00' : '#4CAF50'
+                        }]}>
+                          <Text style={[styles.burnoutFactorsTitle, {
+                            color: vm.insights.burnoutAnalysis.level === 'high' ? '#C62828' :
+                                   vm.insights.burnoutAnalysis.level === 'medium' ? '#E65100' : '#2E7D4A'
+                          }]}>Факторы риска:</Text>
+                          {vm.insights.burnoutAnalysis.factors.map((factor: string, idx: number) => (
+                            <View key={idx} style={styles.issueItem}>
+                              <MaterialIcons name="analytics" size={14} color={
+                                vm.insights.burnoutAnalysis.level === 'high' ? '#D32F2F' :
+                                vm.insights.burnoutAnalysis.level === 'medium' ? '#E65100' : '#2E7D4A'
+                              } />
+                              <Text style={styles.issueText}>{factor}</Text>
                             </View>
                           ))}
                         </View>
-                      </View>
+                      )}
 
-                      <View style={styles.burnoutRecommendations}>
-                        <Text style={styles.burnoutSubTitle}>ИИ-Рекомендации по балансу:</Text>
-                        {vm.insights.burnout.recommendations.map((rec: string, idx: number) => (
-                          <Text key={idx} style={styles.burnoutRecItem}>• {rec}</Text>
+                      <View style={styles.sleepRecommendations}>
+                        <Text style={styles.recommendationsHeader}>Рекомендации по профилактике:</Text>
+                        {vm.insights.burnoutAnalysis.recommendations.map((rec: string, idx: number) => (
+                          <Text key={idx} style={styles.recommendationItem}>• {rec}</Text>
                         ))}
                       </View>
                     </View>
@@ -652,7 +708,8 @@ export default function EnhancedAICoach() {
                   <Text style={styles.emptyText}>Триггеры пока не выявлены. Продолжайте общение.</Text>
                 )}
             </ScrollView>
-        )}
+          );
+        })()}
       </View>
     </View>
   );
@@ -864,6 +921,51 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 10,
     marginBottom: 10,
+  },
+  burnoutSection: {
+    marginTop: 20,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+  },
+  burnoutTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  burnoutSectionTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+    flex: 1,
+  },
+  burnoutScoreBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  burnoutScoreText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  burnoutFeedbackText: {
+    fontSize: 13,
+    color: '#555',
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  burnoutFactorsContainer: {
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 12,
+    borderLeftWidth: 3,
+    marginTop: 10,
+  },
+  burnoutFactorsTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginBottom: 6,
   },
   recommendationsHeader: {
     fontSize: 12,
