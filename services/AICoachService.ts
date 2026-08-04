@@ -634,7 +634,7 @@ export class AICoachService {
     const memory = this.getUserMemory(userId);
     const sleepData = await this.analyzeSleepPatterns();
     const profile = this.calculatePsychologicalProfile(memory, sleepData.averageScore);
-    const burnoutData = await this.getBurnoutRate(userId);
+    const dailyEnergy = await this.getDailyEnergyForecast(userId);
     return {
       conversationCount: memory.conversations.length,
       averageMood: memory.emotionalPattern.averageMood,
@@ -1122,17 +1122,19 @@ export class AICoachService {
       briefing = lowMoodTemplates[Math.floor(Math.random() * lowMoodTemplates.length)];
     }
 
+    const currentQuickTips = [...quickTips];
     // Интеграция анализа сна в брифинг
     const sleepData = await this.analyzeSleepPatterns();
     if (sleepData.averageScore < 60) {
       quickTips.push('Уделите внимание сну: плохой сон — частый триггер срыва.');
     }
 
-    if (soberDays > 30 && !briefing.plan.includes("Поделиться опытом в сообществе")) {
-      briefing.plan.push("Поделиться опытом в сообществе");
+    const currentPlan = [...briefing.plan];
+    if (soberDays > 30 && !currentPlan.includes("Поделиться опытом в сообществе")) {
+      currentPlan.push("Поделиться опытом в сообществе");
     }
 
-    return { ...briefing, quickTips };
+    return { ...briefing, plan: currentPlan, quickTips: currentQuickTips };
   }
 
   private static extractTopics(message: string): string[] {

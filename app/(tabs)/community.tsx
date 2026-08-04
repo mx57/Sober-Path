@@ -4,12 +4,13 @@ import {
   Image, Dimensions, Modal, TextInput, Alert, Platform,
   KeyboardAvoidingView
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FlashList } from '@shopify/flash-list';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { CommunityService, SuccessStory, SupportPost, ExpertQA, ReactionType, CommunityGoal, GroupChallenge, PulseActivity } from '../../services/communityService';
+import { CommunityService, SuccessStory, SupportPost, ExpertQA, ReactionType, CommunityGoal, GroupChallenge, PulseActivity, SoberBuddy } from '../../services/communityService';
 import Animated, { FadeInUp, FadeInRight, useSharedValue, useAnimatedStyle, withSpring, withSequence, withTiming } from 'react-native-reanimated';
 import { Skeleton } from '../../components/Skeleton';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -28,7 +29,7 @@ const KarmaBadge = ({ userName }: { userName: string }) => {
   const [karma, setKarma] = useState(0);
 
   useEffect(() => {
-    CommunityService.getUserKarma(userName).then(setKarma);
+    CommunityService.getOtherUserKarma(userName).then(setKarma);
   }, [userName]);
 
   if (userName === 'Вы' || userName === 'Sober Path Bot') return null;
@@ -300,6 +301,13 @@ const CommunityPulse = () => {
   );
 };
 
+const BUDDY_CANDIDATES = [
+  { name: 'Александр', soberDays: 45, avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80', lastStatus: 'Сегодня пробежал 5 км, полет нормальный!', statusIcon: 'directions-run' },
+  { name: 'Екатерина', soberDays: 21, avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80', lastStatus: 'Читаю книгу по психологии и пью мятный чай ☕', statusIcon: 'menu-book' },
+  { name: 'Максим', soberDays: 90, avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=100&q=80', lastStatus: 'Помог другу остаться трезвым на дне рождения!', statusIcon: 'sentiment-very-satisfied' },
+  { name: 'Анна', soberDays: 8, avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=100&q=80', lastStatus: 'Тяжело, но держусь благодаря поддержке сообщества!', statusIcon: 'favorite' }
+];
+
 export default function CommunityPage() {
   const insets = useSafeAreaInsets();
   const themeColors = useThemeColors();
@@ -322,14 +330,14 @@ export default function CommunityPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [userKarma, setUserKarma] = useState(0);
 
-  // Sober Buddy States
-  const [pairedBuddyId, setPairedBuddyId] = useState<string | null>(null);
-  const [lastPulseDate, setLastPulseDate] = useState<string | null>(null);
-  const [isBuddyModalVisible, setIsBuddyModalVisible] = useState(false);
-  const [isBuddyChatVisible, setIsBuddyChatVisible] = useState(false);
-  const [buddyMessages, setBuddyChatMessages] = useState<any[]>([]);
-  const [newBuddyMessage, setNewBuddyMessage] = useState('');
-  const [isBuddyTyping, setIsBuddyTyping] = useState(false);
+  const [selectedBuddy, setSelectedBuddy] = useState<any>(null);
+  const [pulseSent, setPulseSent] = useState(false);
+
+  const availableBuddies = [
+    { id: 'b1', name: 'Андрей', daysSober: 45, status: 'Держусь уверенно, сегодня тренировка', avatar: 'https://i.pravatar.cc/150?u=b1' },
+    { id: 'b2', name: 'Марина', daysSober: 12, status: 'Сложно под вечер, но медитации спасают', avatar: 'https://i.pravatar.cc/150?u=b2' },
+    { id: 'b3', name: 'Евгений', daysSober: 180, status: 'Полгода чистоты! Готов делиться опытом', avatar: 'https://i.pravatar.cc/150?u=b3' }
+  ];
 
   useEffect(() => {
     const loadData = async () => {
@@ -338,11 +346,18 @@ export default function CommunityPage() {
       const karma = await CommunityService.getUserKarma();
       setUserKarma(karma);
 
-      // Load Sober Buddy info
-      const buddyId = await AsyncStorage.getItem('sober_path_paired_buddy');
-      setPairedBuddyId(buddyId);
-      const pulseDate = await AsyncStorage.getItem('sober_path_last_pulse');
-      setLastPulseDate(pulseDate);
+      // Load Sober Buddy
+      const storedBuddyId = await AsyncStorage.getItem('sober_path_buddy_id');
+      if (storedBuddyId) {
+        const buddy = availableBuddies.find(b => b.id === storedBuddyId);
+        if (buddy) setSelectedBuddy(buddy);
+      }
+
+      const pulseDate = await AsyncStorage.getItem('sober_path_buddy_pulse_date');
+      const todayStr = new Date().toDateString();
+      if (pulseDate === todayStr) {
+        setPulseSent(true);
+      }
 
       // Simulate network delay
       await new Promise(resolve => setTimeout(resolve, 1500));
@@ -586,6 +601,41 @@ export default function CommunityPage() {
     );
   };
 
+  const handleSelectBuddy = async (buddy: any) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setSelectedBuddy(buddy);
+    await AsyncStorage.setItem('sober_path_buddy_id', buddy.id);
+    Alert.alert('Напарник выбран 🤝', `Теперь вы напарники с ${buddy.name}! Поддерживайте друг друга каждый день.`);
+  };
+
+  const handleSendPulse = async () => {
+    if (pulseSent) {
+      Alert.alert('Уже отправлено', 'Вы уже отправляли пульс поддержки сегодня. Возвращайтесь завтра!');
+      return;
+    }
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setPulseSent(true);
+    const todayStr = new Date().toDateString();
+    await AsyncStorage.setItem('sober_path_buddy_pulse_date', todayStr);
+
+    // Add karma
+    const updatedKarma = await CommunityService.addKarmaPoints(15);
+    setUserKarma(updatedKarma);
+
+    Alert.alert(
+      'Пульс отправлен ⚡',
+      `Вы отправили пульс поддержки для ${selectedBuddy.name}. Напарник почувствовал ваше тепло!\n\nВы получили +15 Кармы 🌟 за укрепление связей.`
+    );
+  };
+
+  const handleDisconnectBuddy = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedBuddy(null);
+    setPulseSent(false);
+    await AsyncStorage.removeItem('sober_path_buddy_id');
+    await AsyncStorage.removeItem('sober_path_buddy_pulse_date');
+  };
+
   const filteredPosts = posts.filter(post =>
     selectedCircle === 'all' || post.category === selectedCircle
   );
@@ -598,6 +648,60 @@ export default function CommunityPage() {
 
     return (
     <View>
+      {/* Трезвый напарник */}
+      <View style={styles.buddyContainer}>
+        <Text style={styles.buddySectionTitle}>Трезвый напарник 🤝</Text>
+        {selectedBuddy ? (
+          <View style={styles.buddyActiveCard}>
+            <View style={styles.buddyHeader}>
+              <Image source={{ uri: selectedBuddy.avatar }} style={styles.buddyAvatar} />
+              <View style={styles.buddyInfo}>
+                <Text style={styles.buddyName}>{selectedBuddy.name}</Text>
+                <Text style={styles.buddyDays}>{selectedBuddy.daysSober} дней трезвости</Text>
+                <Text style={styles.buddyStatus}>«{selectedBuddy.status}»</Text>
+              </View>
+            </View>
+            <View style={styles.buddyActions}>
+              <TouchableOpacity
+                style={[styles.pulseButton, pulseSent && styles.pulseButtonDisabled]}
+                onPress={handleSendPulse}
+                disabled={pulseSent}
+              >
+                <MaterialIcons name="flash-on" size={16} color="white" />
+                <Text style={styles.pulseButtonText}>
+                  {pulseSent ? 'Пульс отправлен' : 'Отправить пульс поддержки (+15 🌟)'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.disconnectButton}
+                onPress={handleDisconnectBuddy}
+              >
+                <MaterialIcons name="close" size={16} color="#777" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          <View style={styles.buddySelectionCard}>
+            <Text style={styles.buddySelectionDesc}>
+              Найдите трезвого напарника, чтобы поддерживать друг друга каждый день и получать очки Кармы!
+            </Text>
+            <View style={styles.buddyOptionsGrid}>
+              {availableBuddies.map(buddy => (
+                <TouchableOpacity
+                  key={buddy.id}
+                  style={styles.buddyOptionCard}
+                  onPress={() => handleSelectBuddy(buddy)}
+                >
+                  <Image source={{ uri: buddy.avatar }} style={styles.buddyOptionAvatar} />
+                  <Text style={styles.buddyOptionName}>{buddy.name}</Text>
+                  <Text style={styles.buddyOptionDays}>{buddy.daysSober} дн.</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+      </View>
+
       {!isLoading && pulse.length > 0 && (
         <View style={styles.pulseContainer}>
             <View style={styles.pulseHeader}>
@@ -1128,181 +1232,6 @@ export default function CommunityPage() {
         </View>
       </Modal>
 
-      {/* CHOOSE BUDDY MODAL */}
-      <Modal
-        visible={isBuddyModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setIsBuddyModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Выбор трезвого напарника</Text>
-              <TouchableOpacity onPress={() => setIsBuddyModalVisible(false)}>
-                <MaterialIcons name="close" size={24} color="#333" />
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.modalHelperText}>
-              Выберите человека, с которым хотите проходить путь выздоровления рука об руку. Вы сможете обмениваться поддержкой и общаться в чате.
-            </Text>
-
-            <ScrollView style={{ maxHeight: 400 }} showsVerticalScrollIndicator={false}>
-              {BUDDIES.map((buddy) => {
-                const isSelected = pairedBuddyId === buddy.id;
-                return (
-                  <TouchableOpacity
-                    key={buddy.id}
-                    style={[styles.buddySelectCard, isSelected && styles.buddySelectCardSelected]}
-                    onPress={() => handleSelectBuddy(buddy.id)}
-                  >
-                    <Image source={{ uri: buddy.avatar }} style={styles.buddySelectAvatar} />
-                    <View style={styles.buddySelectInfo}>
-                      <Text style={styles.buddySelectName}>{buddy.name}</Text>
-                      <Text style={styles.buddySelectSober}>{buddy.daysSober} дн. трезвости</Text>
-                      <Text style={styles.buddySelectStatus}>{buddy.status}</Text>
-                      <Text style={styles.buddySelectKarma}>🌟 {buddy.level} • {buddy.karma} Карма</Text>
-                    </View>
-                    <View style={[
-                      styles.buddySelectCheck,
-                      isSelected ? styles.buddySelectCheckActive : styles.buddySelectCheckInactive
-                    ]}>
-                      {isSelected ? (
-                        <MaterialIcons name="check" size={16} color="white" />
-                      ) : (
-                        <MaterialIcons name="add" size={16} color="#666" />
-                      )}
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
-      {/* SOBER BUDDY CHAT MODAL */}
-      <Modal
-        visible={isBuddyChatVisible}
-        animationType="slide"
-        transparent={false}
-        onRequestClose={() => setIsBuddyChatVisible(false)}
-      >
-        <View style={[styles.chatModalContainer, { paddingTop: insets.top }]}>
-          {/* Chat Header */}
-          <View style={styles.chatHeader}>
-            <TouchableOpacity style={styles.chatBackButton} onPress={() => setIsBuddyChatVisible(false)}>
-              <MaterialIcons name="arrow-back" size={24} color="#333" />
-            </TouchableOpacity>
-
-            {pairedBuddy && (
-              <View style={styles.chatHeaderBuddyInfo}>
-                <Image source={{ uri: pairedBuddy.avatar }} style={styles.chatHeaderAvatar} />
-                <View>
-                  <Text style={styles.chatHeaderName}>{pairedBuddy.name}</Text>
-                  <Text style={styles.chatHeaderSub}>{pairedBuddy.daysSober} дн. трезвости • В сети</Text>
-                </View>
-              </View>
-            )}
-
-            {/* Step 4 SOS Alert Button will be placed here! Let's render it as a prominent red button. */}
-            <TouchableOpacity
-              style={styles.chatSosButton}
-              onPress={() => {
-                // We will implement this in Step 4
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-                Alert.alert(
-                  'Экстренный Шеринг 🚨',
-                  'Вы собираетесь отправить SOS-уведомление вашему напарнику. Он мгновенно получит оповещение о том, что вам нужна поддержка.',
-                  [
-                    { text: 'Отмена', style: 'cancel' },
-                    { text: 'Отправить SOS', style: 'destructive', onPress: () => handleSendBuddyMessage('🚨 SOS! Мне сейчас очень трудно, нужна поддержка!') }
-                  ]
-                );
-              }}
-            >
-              <MaterialIcons name="report-problem" size={16} color="white" />
-              <Text style={styles.chatSosButtonText}>SOS</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Messages Area */}
-          <ScrollView
-            style={styles.chatMessagesArea}
-            contentContainerStyle={styles.chatMessagesContent}
-            ref={(ref) => ref?.scrollToEnd({ animated: true })}
-            onContentSizeChange={(w, h) => {}}
-          >
-            {buddyMessages.length === 0 ? (
-              <View style={styles.chatEmptyState}>
-                <MaterialIcons name="chat-bubble-outline" size={48} color="#999" />
-                <Text style={styles.chatEmptyText}>Напишите первое сообщение вашему напарнику...</Text>
-              </View>
-            ) : (
-              buddyMessages.map((msg) => {
-                const isUser = msg.isUser;
-                const formattedTime = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' }) : '';
-                return (
-                  <View
-                    key={msg.id}
-                    style={[
-                      styles.chatMsgRow,
-                      isUser ? styles.chatMsgRowUser : styles.chatMsgRowBuddy
-                    ]}
-                  >
-                    <View style={[
-                      styles.chatMsgBubble,
-                      isUser ? styles.chatMsgBubbleUser : styles.chatMsgBubbleBuddy
-                    ]}>
-                      <Text style={[
-                        styles.chatMsgText,
-                        isUser ? styles.chatMsgTextUser : styles.chatMsgTextBuddy
-                      ]}>{msg.text}</Text>
-                      <Text style={[
-                        styles.chatMsgTime,
-                        isUser ? styles.chatMsgTimeUser : styles.chatMsgTimeBuddy
-                      ]}>{formattedTime}</Text>
-                    </View>
-                  </View>
-                );
-              })
-            )}
-
-            {isBuddyTyping && (
-              <View style={styles.chatMsgRowBuddy}>
-                <View style={[styles.chatMsgBubbleBuddy, styles.typingBubble]}>
-                  <Text style={styles.chatMsgTextBuddy}>печатает...</Text>
-                </View>
-              </View>
-            )}
-          </ScrollView>
-
-          {/* Chat Input Bar */}
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-          >
-            <View style={styles.chatInputBar}>
-              <TextInput
-                style={styles.chatTextInput}
-                placeholder="Сообщение..."
-                value={newBuddyMessage}
-                onChangeText={setNewBuddyMessage}
-                onSubmitEditing={() => handleSendBuddyMessage()}
-                returnKeyType="send"
-              />
-              <TouchableOpacity
-                style={[styles.chatSendBtn, !newBuddyMessage.trim() && styles.chatSendBtnDisabled]}
-                onPress={() => handleSendBuddyMessage()}
-                disabled={!newBuddyMessage.trim()}
-              >
-                <MaterialIcons name="send" size={20} color="white" />
-              </TouchableOpacity>
-            </View>
-          </KeyboardAvoidingView>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -1926,6 +1855,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
   },
+  pulseDotContainer: {
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  pulseDotPing: {
+    position: 'absolute',
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#4CAF50',
+    opacity: 0.4,
+  },
   mentorshipContainer: {
     paddingHorizontal: 20,
     marginBottom: 20,
@@ -2240,26 +2184,18 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 2,
   },
-  pulseDotContainer: {
+  onlinePulseDotContainer: {
     width: 20,
     height: 20,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 10,
   },
-  userCountPulseDot: {
+  bottomPulseDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: '#4CAF50',
-  },
-  pulseDotPing: {
-    position: 'absolute',
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#4CAF50',
-    opacity: 0.4,
   },
   userCountPulseText: {
     fontSize: 13,
@@ -2334,157 +2270,122 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     marginTop: 4,
   },
-  chatModalContainer: {
-    flex: 1,
-    backgroundColor: '#F5F7FA',
-  },
-  chatHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  buddyContainer: {
     backgroundColor: 'white',
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-    gap: 10,
+    borderRadius: 16,
+    padding: 16,
+    marginVertical: 10,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
-  chatBackButton: {
-    padding: 4,
+  buddySectionTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#2E7D4A',
+    marginBottom: 10,
   },
-  chatHeaderBuddyInfo: {
-    flex: 1,
+  buddyActiveCard: {
+    gap: 12,
+  },
+  buddyHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
   },
-  chatHeaderAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#E0E0E0',
+  buddyAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#F0F0F0',
   },
-  chatHeaderName: {
-    fontSize: 15,
+  buddyInfo: {
+    flex: 1,
+  },
+  buddyName: {
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
   },
-  chatHeaderSub: {
-    fontSize: 11,
-    color: '#4CAF50',
-    fontWeight: '600',
+  buddyDays: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
   },
-  chatSosButton: {
+  buddyStatus: {
+    fontSize: 13,
+    color: '#555',
+    fontStyle: 'italic',
+  },
+  buddyActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E53935',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-    gap: 4,
+    gap: 8,
   },
-  chatSosButtonText: {
-    color: 'white',
-    fontSize: 11,
-    fontWeight: 'bold',
-  },
-  chatMessagesArea: {
+  pulseButton: {
     flex: 1,
-    paddingHorizontal: 15,
-  },
-  chatMessagesContent: {
-    paddingVertical: 15,
-    gap: 12,
-  },
-  chatEmptyState: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 80,
+    backgroundColor: '#2E7D4A',
+    paddingVertical: 10,
+    borderRadius: 8,
+    gap: 6,
+  },
+  pulseButtonDisabled: {
+    backgroundColor: '#A5D6A7',
+  },
+  pulseButtonText: {
+    color: 'white',
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+  disconnectButton: {
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: '#F5F5F5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buddySelectionCard: {
+    gap: 12,
+  },
+  buddySelectionDesc: {
+    fontSize: 13,
+    color: '#666',
+    lineHeight: 18,
+  },
+  buddyOptionsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     gap: 10,
   },
-  chatEmptyText: {
-    fontSize: 14,
-    color: '#999',
-    textAlign: 'center',
-  },
-  chatMsgRow: {
-    flexDirection: 'row',
-    width: '100%',
-  },
-  chatMsgRowUser: {
-    justifyContent: 'flex-end',
-  },
-  chatMsgRowBuddy: {
-    justifyContent: 'flex-start',
-  },
-  chatMsgBubble: {
-    maxWidth: '80%',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 16,
-    position: 'relative',
-  },
-  chatMsgBubbleUser: {
-    backgroundColor: '#2E7D4A',
-    borderTopRightRadius: 4,
-  },
-  chatMsgBubbleBuddy: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 4,
+  buddyOptionCard: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 10,
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: '#E0E0E0',
   },
-  chatMsgText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  chatMsgTextUser: {
-    color: 'white',
-  },
-  chatMsgTextBuddy: {
-    color: '#333',
-  },
-  chatMsgTime: {
-    fontSize: 9,
-    alignSelf: 'flex-end',
-    marginTop: 4,
-  },
-  chatMsgTimeUser: {
-    color: 'rgba(255,255,255,0.7)',
-  },
-  chatMsgTimeBuddy: {
-    color: '#999',
-  },
-  typingBubble: {
-    opacity: 0.8,
-  },
-  chatInputBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
-    gap: 8,
-  },
-  chatTextInput: {
-    flex: 1,
-    backgroundColor: '#F0F2F5',
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    fontSize: 14,
-    maxHeight: 100,
-  },
-  chatSendBtn: {
+  buddyOptionAvatar: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#2E7D4A',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: '#E0E0E0',
+    marginBottom: 6,
   },
-  chatSendBtnDisabled: {
-    backgroundColor: '#CFD8DC',
+  buddyOptionName: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  buddyOptionDays: {
+    fontSize: 10,
+    color: '#2E7D4A',
+    marginTop: 2,
   }
 });
