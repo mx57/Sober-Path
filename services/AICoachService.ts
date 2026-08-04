@@ -635,6 +635,7 @@ export class AICoachService {
     const sleepData = await this.analyzeSleepPatterns();
     const profile = this.calculatePsychologicalProfile(memory, sleepData.averageScore);
     const dailyEnergy = await this.getDailyEnergyForecast(userId);
+    const burnoutData = await this.getBurnoutRate(userId);
     return {
       conversationCount: memory.conversations.length,
       averageMood: memory.emotionalPattern.averageMood,
@@ -646,7 +647,8 @@ export class AICoachService {
         : 'Мы продолжаем работу.',
       profile,
       sleepAnalysis: sleepData,
-      burnoutAnalysis: burnoutData
+      burnoutAnalysis: burnoutData,
+      dailyEnergy
     };
   }
 
@@ -825,6 +827,113 @@ export class AICoachService {
       feedback,
       factors: factors.length > 0 ? factors : ['Факторы риска не обнаружены'],
       recommendations
+    };
+  }
+
+  static async getBurnoutDiagnostics(userId: string): Promise<{
+    rate: number;
+    level: 'Низкий' | 'Средний' | 'Высокий';
+    factors: string[];
+    recommendations: string[];
+    feedback: string;
+  }> {
+    const journalResult = await JournalService.getEntries();
+    const entries = journalResult.success ? journalResult.data : [];
+
+    if (entries.length === 0) {
+      return {
+        rate: 15,
+        level: 'Низкий',
+        factors: ['Психоэмоциональное состояние в пределах нормы'],
+        recommendations: [
+          'Делайте записи в дневнике каждый день для более точной ИИ-диагностики.',
+          'Указывайте уровень стресса, усталости и качество вашего сна.'
+        ],
+        feedback: 'Недостаточно записей в дневнике для глубокого анализа выгорания. Продолжайте ежедневно вести дневник настроения.'
+      };
+    }
+
+    // Keyword detection
+    const fatigueKeywords = ['устал', 'бессили', 'выгоре', 'нет сил', 'истощен', 'выжат', 'апатия', 'слабость'];
+    const stressKeywords = ['стресс', 'тревог', 'напряжен', 'паник', 'нерв', 'беспокой', 'тяжело', 'накрыва'];
+
+    let hasSevereFatigue = false;
+    let hasSevereStress = false;
+    let hasMildFatigue = false;
+    let hasMildStress = false;
+
+    entries.forEach(entry => {
+      const text = entry.content.toLowerCase();
+      if (fatigueKeywords.some(kw => text.includes(kw))) {
+        if (text.includes('ужасно') || text.includes('совсем') || text.includes('выгорание') || text.includes('устал на работе')) {
+          hasSevereFatigue = true;
+        } else {
+          hasMildFatigue = true;
+        }
+      }
+      if (stressKeywords.some(kw => text.includes(kw))) {
+        if (text.includes('сильный') || text.includes('все бесит') || text.includes('стресс')) {
+          hasSevereStress = true;
+        } else {
+          hasMildStress = true;
+        }
+      }
+    });
+
+    let rate = 30;
+    const factors: string[] = [];
+
+    const recentMoods = entries.map(e => e.mood);
+    const avgMood = recentMoods.reduce((sum, val) => sum + val, 0) / recentMoods.length;
+
+    if (avgMood <= 2) {
+      rate += 20;
+    }
+
+    if (hasSevereFatigue) {
+      rate += 20;
+      factors.push('Накапливающаяся физическая усталость');
+    } else if (hasMildFatigue) {
+      rate += 10;
+      factors.push('Легкая физическая усталость');
+    }
+
+    if (hasSevereStress) {
+      rate += 20;
+      factors.push('Высокий уровень эмоционального стресса');
+    } else if (hasMildStress) {
+      rate += 10;
+      factors.push('Умеренный уровень стресса');
+    }
+
+    // Sleep pattern adjustment
+    const sleepData = await this.analyzeSleepPatterns();
+    if (sleepData.averageScore < 60) {
+      rate += 10;
+    }
+
+    rate = Math.max(0, Math.min(100, rate));
+
+    let level: 'Низкий' | 'Средний' | 'Высокий' = 'Низкий';
+    if (rate >= 70) {
+      level = 'Высокий';
+    } else if (rate >= 35) {
+      level = 'Средний';
+    }
+
+    if (factors.length === 0) {
+      factors.push('Психоэмоциональное состояние в пределах нормы');
+    }
+
+    return {
+      rate,
+      level,
+      factors,
+      recommendations: [
+        'Практикуйте медитацию "Сканирование тела" перед сном.',
+        'Добавьте легкие пешие прогулки на свежем воздухе без телефона (20-30 минут).'
+      ],
+      feedback: level === 'Высокий' ? 'Высокий уровень выгорания' : 'Показатели в норме'
     };
   }
 
