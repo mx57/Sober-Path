@@ -1269,6 +1269,98 @@ const styles = StyleSheet.create({
     width: 35,
     textAlign: 'right',
   },
+  burnoutSection: {
+    marginTop: 20,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+  },
+  burnoutTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  burnoutSectionTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+    flex: 1,
+  },
+  burnoutLevelBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  burnoutLevelText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  burnoutProgressContainer: {
+    marginBottom: 12,
+  },
+  burnoutProgressRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 5,
+  },
+  burnoutProgressLabel: {
+    fontSize: 12,
+    color: '#666',
+  },
+  burnoutProgressValue: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  burnoutBarBackground: {
+    height: 10,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 5,
+    overflow: 'hidden',
+  },
+  burnoutBarFill: {
+    height: '100%',
+    borderRadius: 5,
+  },
+  burnoutContentRow: {
+    marginBottom: 12,
+  },
+  burnoutFactorsContainer: {
+    backgroundColor: '#F9F9F9',
+    padding: 10,
+    borderRadius: 8,
+  },
+  burnoutSubTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#444',
+    marginBottom: 6,
+  },
+  burnoutFactorItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  burnoutFactorText: {
+    fontSize: 12,
+    color: '#555',
+  },
+  burnoutRecommendations: {
+    backgroundColor: '#F1F8E9',
+    padding: 10,
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#8BC34A',
+    marginTop: 8,
+  },
+  burnoutRecItem: {
+    fontSize: 12,
+    color: '#33691E',
+    lineHeight: 16,
+    marginBottom: 4,
+  },
   recordingOverlay: {
     flex: 1,
     flexDirection: 'row',

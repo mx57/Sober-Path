@@ -333,6 +333,11 @@ export default function CommunityPage() {
   const [selectedBuddy, setSelectedBuddy] = useState<any>(null);
   const [pulseSent, setPulseSent] = useState(false);
 
+  const [isBuddyChatOpen, setIsBuddyChatOpen] = useState(false);
+  const [buddyMessages, setBuddyMessages] = useState<Array<{ sender: 'user' | 'buddy'; text: string; timestamp: Date }>>([]);
+  const [typedMessage, setTypedMessage] = useState('');
+  const [isBuddyTyping, setIsBuddyTyping] = useState(false);
+
   const availableBuddies = [
     { id: 'b1', name: 'Андрей', daysSober: 45, status: 'Держусь уверенно, сегодня тренировка', avatar: 'https://i.pravatar.cc/150?u=b1' },
     { id: 'b2', name: 'Марина', daysSober: 12, status: 'Сложно под вечер, но медитации спасают', avatar: 'https://i.pravatar.cc/150?u=b2' },
@@ -636,6 +641,86 @@ export default function CommunityPage() {
     await AsyncStorage.removeItem('sober_path_buddy_pulse_date');
   };
 
+  const handleOpenBuddyChat = () => {
+    if (!selectedBuddy) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setIsBuddyChatOpen(true);
+
+    if (buddyMessages.length === 0) {
+      let welcomeMsg = 'Привет! Рад общению.';
+      if (selectedBuddy.id === 'b1') {
+        welcomeMsg = 'Привет! Как твои дела сегодня? Готов обсудить спортивные цели или просто поболтать!';
+      } else if (selectedBuddy.id === 'b2') {
+        welcomeMsg = 'Привет! Как твоё настроение? Если вечер выдался сложным, помни: мы справимся вместе.';
+      } else if (selectedBuddy.id === 'b3') {
+        welcomeMsg = 'Приветствую! Полгода чистоты научили меня многому. Спрашивай о чём угодно, всегда подскажу!';
+      }
+      setBuddyMessages([
+        { sender: 'buddy', text: welcomeMsg, timestamp: new Date() }
+      ]);
+    }
+  };
+
+  const handleSendBuddyMessage = () => {
+    if (!typedMessage.trim() || !selectedBuddy) return;
+
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const userMsg = typedMessage;
+    const newMessages = [...buddyMessages, { sender: 'user', text: userMsg, timestamp: new Date() }];
+    setBuddyMessages(newMessages);
+    setTypedMessage('');
+    setIsBuddyTyping(true);
+
+    setTimeout(() => {
+      let reply = 'Понимаю тебя! Мы на верном пути. Трезвость — лучший выбор, который мы сделали. Что планируешь делать дальше сегодня?';
+      const text = userMsg.toLowerCase();
+
+      if (text.includes('тяг') || text.includes('срыв') || text.includes('выпить') || text.includes('плохо') || text.includes('хочу')) {
+        reply = 'Я тебя отлично понимаю. Сделай глубокий вдох, выпей стакан холодной воды. Тяга длится всего 10-15 минут, и она обязательно отступит. Я верю в тебя!';
+      } else if (text.includes('устал') || text.includes('стресс') || text.includes('напряж') || text.includes('устала')) {
+        reply = 'Да, усталость и стресс — частые триггеры. Постарайся отдохнуть, полежать в тишине или прогуляться без гаджетов. Ты заслуживаешь здорового, трезвого отдыха!';
+      } else if (text.includes('спасибо') || text.includes('благодар') || text.includes('спс')) {
+        reply = 'Всегда рад помочь! Для этого мы и стали напарниками. Вместе двигаться намного легче!';
+      } else if (text.includes('хорошо') || text.includes('отличн') || text.includes('ура') || text.includes('выдержал') || text.includes('спорт')) {
+        reply = 'Просто супер! Горжусь твоими результатами! Такие моменты победы вдохновляют двигаться дальше. Так держать!';
+      }
+
+      setBuddyMessages(prev => [...prev, { sender: 'buddy', text: reply, timestamp: new Date() }]);
+      setIsBuddyTyping(false);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }, 1500);
+  };
+
+  const handleSendBuddySOS = () => {
+    if (!selectedBuddy) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+
+    Alert.alert(
+      '🚨 Экстренный SOS',
+      `Отправить SOS-сигнал напарнику ${selectedBuddy.name}? Он сразу же выйдет на связь для твоей поддержки.`,
+      [
+        { text: 'Отмена', style: 'cancel' },
+        {
+          text: 'Отправить',
+          onPress: () => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            Alert.alert(
+              'Сигнал SOS отправлен! ⚡',
+              `Ваш напарник ${selectedBuddy.name} получил сигнал бедствия и уже спешит на помощь!`
+            );
+
+            // Set urgent SOS messages in Chat
+            const sosUserMsg = { sender: 'user', text: '🚨 SOS: Мне нужна срочная поддержка! Очень тяжело.', timestamp: new Date() };
+            const sosBuddyReply = { sender: 'buddy', text: `Я на связи! Получил твой SOS-сигнал. Не поддавайся импульсу! Давай сделаем 5 глубоких медленных вдохов прямо сейчас. Расскажи, что именно спровоцировало это состояние? Я с тобой!`, timestamp: new Date() };
+
+            setBuddyMessages([sosUserMsg, sosBuddyReply]);
+            setIsBuddyChatOpen(true);
+          }
+        }
+      ]
+    );
+  };
+
   const filteredPosts = posts.filter(post =>
     selectedCircle === 'all' || post.category === selectedCircle
   );
@@ -667,16 +752,33 @@ export default function CommunityPage() {
                 onPress={handleSendPulse}
                 disabled={pulseSent}
               >
-                <MaterialIcons name="flash-on" size={16} color="white" />
+                <MaterialIcons name="flash-on" size={14} color="white" />
                 <Text style={styles.pulseButtonText}>
-                  {pulseSent ? 'Пульс отправлен' : 'Отправить пульс поддержки (+15 🌟)'}
+                  {pulseSent ? 'Пульс' : 'Пульс (+15 🌟)'}
                 </Text>
               </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.chatBuddyButton}
+                onPress={handleOpenBuddyChat}
+              >
+                <MaterialIcons name="chat" size={14} color="white" />
+                <Text style={styles.chatBuddyButtonText}>Чат</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.sosBuddyButton}
+                onPress={handleSendBuddySOS}
+              >
+                <MaterialIcons name="warning" size={14} color="white" />
+                <Text style={styles.sosBuddyButtonText}>🚨 SOS</Text>
+              </TouchableOpacity>
+
               <TouchableOpacity
                 style={styles.disconnectButton}
                 onPress={handleDisconnectBuddy}
               >
-                <MaterialIcons name="close" size={16} color="#777" />
+                <MaterialIcons name="close" size={14} color="#777" />
               </TouchableOpacity>
             </View>
           </View>
@@ -2387,5 +2489,33 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#2E7D4A',
     marginTop: 2,
+  },
+  chatBuddyButton: {
+    backgroundColor: '#0288D1',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  chatBuddyButtonText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  sosBuddyButton: {
+    backgroundColor: '#D32F2F',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  sosBuddyButtonText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
   }
 });
