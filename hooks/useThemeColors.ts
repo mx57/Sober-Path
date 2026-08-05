@@ -1,4 +1,4 @@
-import { useRecovery } from '../contexts/RecoveryContext';
+import { useRecovery } from './useRecovery';
 
 export function useThemeColors() {
   const { userProfile } = useRecovery();
