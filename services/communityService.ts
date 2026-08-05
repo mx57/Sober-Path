@@ -93,6 +93,17 @@ export class CommunityService {
   private static userPosts: SupportPost[] = [];
 
   /**
+   * Получить список доступных напарников для тестов.
+   */
+  static getAvailableBuddies(): SoberBuddy[] {
+    return [
+      { id: 'b1', name: 'Андрей', daysSober: 45, avatar: 'https://i.pravatar.cc/150?u=b1', status: 'Держусь уверенно, сегодня тренировка' },
+      { id: 'b2', name: 'Марина', daysSober: 12, avatar: 'https://i.pravatar.cc/150?u=b2', status: 'Сложно под вечер, но медитации спасают' },
+      { id: 'b3', name: 'Евгений', daysSober: 180, avatar: 'https://i.pravatar.cc/150?u=b3', status: 'Полгода чистоты! Готов делиться опытом' }
+    ];
+  }
+
+  /**
    * Получить список потенциальных напарников для выбора.
    */
   static getPotentialBuddies(): SoberBuddy[] {
@@ -120,9 +131,17 @@ export class CommunityService {
   /**
    * Сохранить выбранного напарника в AsyncStorage.
    */
-  static async selectBuddy(buddy: SoberBuddy): Promise<void> {
+  static async selectBuddy(buddyOrId: any): Promise<void> {
     try {
-      await AsyncStorage.setItem(BUDDY_STORAGE_KEY, JSON.stringify(buddy));
+      if (typeof buddyOrId === 'string') {
+        const buddies = [...this.getAvailableBuddies(), ...this.getPotentialBuddies()];
+        const found = buddies.find(b => b.id === buddyOrId);
+        if (found) {
+          await AsyncStorage.setItem(BUDDY_STORAGE_KEY, JSON.stringify(found));
+        }
+      } else {
+        await AsyncStorage.setItem(BUDDY_STORAGE_KEY, JSON.stringify(buddyOrId));
+      }
     } catch (e) {
       console.error('Failed to select buddy', e);
     }
@@ -140,25 +159,46 @@ export class CommunityService {
   }
 
   /**
+   * Синоним для тестов или других частей приложения.
+   */
+  static async disconnectBuddy(): Promise<void> {
+    await this.removeBuddy();
+  }
+
+  /**
    * Отправить импульс поддержки напарнику (+15 Кармы, раз в день).
    */
-  static async sendBuddyPulse(): Promise<boolean> {
+  static async sendSupportPulse(): Promise<boolean> {
     try {
-      const buddy = await this.getSelectedBuddy();
-      if (!buddy) return false;
-
       const todayStr = new Date().toDateString();
-      if (buddy.lastPulseSent === todayStr) {
+      const storedPulseDate = await AsyncStorage.getItem('sober_path_buddy_pulse_date');
+      if (storedPulseDate === todayStr) {
         return false;
       }
 
+      const buddy = await this.getSelectedBuddy();
       await this.addKarmaPoints(15);
-      buddy.lastPulseSent = todayStr;
-      await this.selectBuddy(buddy);
+      await AsyncStorage.setItem('sober_path_buddy_pulse_date', todayStr);
+
+      if (buddy) {
+        buddy.lastPulseSent = todayStr;
+        await this.selectBuddy(buddy);
+      }
       return true;
     } catch (e) {
       return false;
     }
+  }
+
+  /**
+   * Метод-алиас для обратной совместимости в UI.
+   */
+  static async sendBuddyPulse(): Promise<boolean> {
+    const buddy = await this.getSelectedBuddy();
+    if (!buddy) {
+      return false;
+    }
+    return await this.sendSupportPulse();
   }
 
   /**
