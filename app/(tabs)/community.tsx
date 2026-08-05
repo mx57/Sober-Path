@@ -383,101 +383,11 @@ export default function CommunityPage() {
     loadData();
   }, []);
 
-  const handleSelectBuddy = async (buddyId: string) => {
-    await AsyncStorage.setItem('sober_path_paired_buddy', buddyId);
-    setPairedBuddyId(buddyId);
-    setIsBuddyModalVisible(false);
 
-    // Initialise Chat with a welcome message from the buddy
-    const welcomeKey = `sober_path_buddy_chat_welcomed_${buddyId}`;
-    const welcomed = await AsyncStorage.getItem(welcomeKey);
-    if (!welcomed) {
-      const buddy = BUDDIES.find(b => b.id === buddyId);
-      const firstMsg = {
-        id: `m_${Date.now()}`,
-        text: `Привет! Я твой новый трезвый напарник ${buddy?.name}. Вместе идти по этому пути гораздо легче! Пиши мне в любое время. Если накроет сильная тяга, нажми красную кнопку SOS (Экстренный Шеринг).`,
-        isUser: false,
-        timestamp: new Date().toISOString()
-      };
-      await AsyncStorage.setItem(`sober_path_buddy_chat_${buddyId}`, JSON.stringify([firstMsg]));
-      await AsyncStorage.setItem(welcomeKey, 'true');
-    }
 
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    Alert.alert('Успех', 'Трезвый напарник успешно выбран! Теперь вы можете обмениваться пульсами поддержки и общаться в чате.');
-  };
 
-  const handleSendPulse = async () => {
-    if (!pairedBuddyId) return;
-    const today = new Date().toDateString();
-    if (lastPulseDate === today) {
-      Alert.alert('Пульс поддержки', 'Вы уже отправляли пульс поддержки сегодня. Напарник чувствует вашу заботу!');
-      return;
-    }
 
-    await AsyncStorage.setItem('sober_path_last_pulse', today);
-    setLastPulseDate(today);
 
-    const updatedKarma = await CommunityService.addKarmaPoints(15);
-    setUserKarma(updatedKarma);
-
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-    const buddy = BUDDIES.find(b => b.id === pairedBuddyId);
-    Alert.alert(
-      'Пульс отправлен! ⚡',
-      `Вы отправили пульс поддержки для ${buddy?.name}. Вы получили +15 очков Кармы 🌟! Она/он почувствует ваше внимание.`
-    );
-  };
-
-  const handleSendBuddyMessage = async (overrideText?: string) => {
-    const textToSend = overrideText || newBuddyMessage;
-    if (!textToSend.trim() || !pairedBuddyId) return;
-
-    const userMsg = {
-      id: `m_${Date.now()}`,
-      text: textToSend,
-      isUser: true,
-      timestamp: new Date().toISOString()
-    };
-
-    const updated = [...buddyMessages, userMsg];
-    setBuddyChatMessages(updated);
-    if (!overrideText) setNewBuddyMessage('');
-
-    await AsyncStorage.setItem(`sober_path_buddy_chat_${pairedBuddyId}`, JSON.stringify(updated));
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-    // Simulate Buddy response
-    setIsBuddyTyping(true);
-    setTimeout(async () => {
-      setIsBuddyTyping(false);
-
-      const lower = textToSend.toLowerCase();
-      let responseText = "Понимаю тебя. В трезвости бывают разные моменты, главное — не оставаться наедине со своими мыслями. Я здесь и всегда готов поддержать!";
-
-      if (lower.includes('тяг') || lower.includes('выпит') || lower.includes('плохо') || lower.includes('сорв') || lower.includes('алко') || lower.includes('пив') || lower.includes('вин') || lower.includes('водк') || lower.includes('sos') || lower.includes('помоги')) {
-        responseText = "Я с тобой! Дыши глубже. Давай сделаем дыхательную технику 4-7-8 или просто выйдем прогуляться. Напиши мне, когда отпустит, я на связи и держу за тебя кулаки! 💪";
-      } else if (lower.includes('день') || lower.includes('дней') || lower.includes('недел') || lower.includes('месяц') || lower.includes('справ') || lower.includes('побед') || lower.includes('круто')) {
-        responseText = "Поздравляю! Горжусь тобой! Твой прогресс мотивирует и меня. Давай продолжать в том же духе, только вперед! 🚀";
-      } else if (lower.includes('привет') || lower.includes('здравствуй') || lower.includes('как дела') || lower.includes('как жизнь') || lower.includes('как ты')) {
-        const buddy = BUDDIES.find(b => b.id === pairedBuddyId);
-        responseText = `Привет! У меня все отлично, сегодня очередной трезвый день (${buddy?.daysSober} дней чистоты). Как твои дела? Как настроение?`;
-      }
-
-      const buddyMsg = {
-        id: `m_${Date.now() + 1}`,
-        text: responseText,
-        isUser: false,
-        timestamp: new Date().toISOString()
-      };
-
-      const finalMessages = [...updated, buddyMsg];
-      setBuddyChatMessages(finalMessages);
-      await AsyncStorage.setItem(`sober_path_buddy_chat_${pairedBuddyId}`, JSON.stringify(finalMessages));
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    }, 1500);
-  };
 
   const handleReactionPress = async (postId: string, reaction: ReactionType) => {
     await CommunityService.addReaction(postId, reaction);
@@ -642,9 +552,6 @@ export default function CommunityPage() {
   const renderHeader = () => {
     const mentorshipAdvice = CommunityService.getMentorshipAdvice(selectedCircle);
     const currentCircle = circles.find(c => c.id === selectedCircle);
-    const pairedBuddy = BUDDIES.find(b => b.id === pairedBuddyId);
-    const todayStr = new Date().toDateString();
-
     return (
     <View>
       {/* Трезвый напарник */}
@@ -722,124 +629,7 @@ export default function CommunityPage() {
         </View>
       )}
 
-      {/* SOBER BUDDY WIDGET */}
-      <View style={styles.buddyWidgetContainer}>
-        <View style={styles.buddyWidgetHeader}>
-          <MaterialIcons name="people-outline" size={20} color="#2E7D4A" />
-          <Text style={styles.buddyWidgetTitle}>Трезвый напарник</Text>
-          {pairedBuddy && (
-            <TouchableOpacity onPress={() => setIsBuddyModalVisible(true)}>
-              <Text style={styles.changeBuddyText}>Сменить</Text>
-            </TouchableOpacity>
-          )}
-        </View>
 
-        {!pairedBuddy ? (
-          <View style={styles.noBuddyCard}>
-            <Text style={styles.noBuddyText}>
-              У вас еще нет напарника. Вместе преодолевать трудности, делиться успехами и оставаться трезвыми гораздо легче!
-            </Text>
-            <TouchableOpacity
-              style={styles.selectBuddyBtn}
-              onPress={() => setIsBuddyModalVisible(true)}
-            >
-              <MaterialIcons name="person-add" size={18} color="white" />
-              <Text style={styles.selectBuddyBtnText}>Подобрать напарника</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View style={styles.buddyCard}>
-            <View style={styles.buddyInfoRow}>
-              <Image source={{ uri: pairedBuddy.avatar }} style={styles.buddyAvatar} />
-              <View style={styles.buddyDetails}>
-                <View style={styles.buddyNameRow}>
-                  <Text style={styles.buddyName}>{pairedBuddy.name}</Text>
-                  <View style={styles.buddyDaysBadge}>
-                    <Text style={styles.buddyDaysText}>{pairedBuddy.daysSober} дн. трезвости</Text>
-                  </View>
-                </View>
-                <Text style={styles.buddyStatus} numberOfLines={1}>{pairedBuddy.status}</Text>
-                <Text style={styles.buddyLevelText}>🌟 {pairedBuddy.level} • {pairedBuddy.karma} Карма</Text>
-              </View>
-            </View>
-
-            <View style={styles.buddyActionsRow}>
-              <TouchableOpacity
-                style={[
-                  styles.buddyPulseBtn,
-                  lastPulseDate === todayStr && styles.buddyPulseBtnDisabled
-                ]}
-                onPress={handleSendPulse}
-                disabled={lastPulseDate === todayStr}
-              >
-                <MaterialIcons name="offline-bolt" size={18} color="white" />
-                <Text style={styles.buddyPulseBtnText}>
-                  {lastPulseDate === todayStr ? 'Пульс' : 'Пульс'}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.buddyChatBtn}
-                onPress={async () => {
-                  // Load chat messages
-                  const stored = await AsyncStorage.getItem(`sober_path_buddy_chat_${pairedBuddyId}`);
-                  setBuddyChatMessages(stored ? JSON.parse(stored) : []);
-                  setIsBuddyChatVisible(true);
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                }}
-              >
-                <MaterialIcons name="chat" size={18} color="#2E7D4A" />
-                <Text style={styles.buddyChatBtnText}>Чат</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.buddySosBtn}
-                onPress={() => {
-                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-                  Alert.alert(
-                    'Экстренный Шеринг 🚨',
-                    'Вы собираетесь отправить SOS-уведомление вашему напарнику. Он получит оповещение о том, что вам нужна поддержка.',
-                    [
-                      { text: 'Отмена', style: 'cancel' },
-                      { text: 'Отправить SOS', style: 'destructive', onPress: async () => {
-                        // Load and append SOS message in chat
-                        const stored = await AsyncStorage.getItem(`sober_path_buddy_chat_${pairedBuddyId}`);
-                        const messages = stored ? JSON.parse(stored) : [];
-                        const userMsg = {
-                          id: `m_${Date.now()}`,
-                          text: '🚨 SOS! Мне сейчас очень трудно, нужна поддержка!',
-                          isUser: true,
-                          timestamp: new Date().toISOString()
-                        };
-                        const updated = [...messages, userMsg];
-                        await AsyncStorage.setItem(`sober_path_buddy_chat_${pairedBuddyId}`, JSON.stringify(updated));
-
-                        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                        Alert.alert('Уведомление отправлено', 'SOS сигнал успешно отправлен вашему напарнику. Он уже пишет ответ поддержки!');
-
-                        // Simulate buddy response in background
-                        setTimeout(async () => {
-                          const buddyMsg = {
-                            id: `m_${Date.now() + 1}`,
-                            text: 'Держись! Я с тобой. Пожалуйста, сделай несколько глубоких вдохов, попей воды. Я сейчас свободен и могу поговорить, если хочешь. Напиши мне в чат!',
-                            isUser: false,
-                            timestamp: new Date().toISOString()
-                          };
-                          const finalMsg = [...updated, buddyMsg];
-                          await AsyncStorage.setItem(`sober_path_buddy_chat_${pairedBuddyId}`, JSON.stringify(finalMsg));
-                        }, 1500);
-                      }}
-                    ]
-                  );
-                }}
-              >
-                <MaterialIcons name="report-problem" size={18} color="white" />
-                <Text style={styles.buddySosBtnText}>SOS</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-      </View>
 
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Групповые челленджи</Text>
