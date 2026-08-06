@@ -10,7 +10,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { CommunityService, SuccessStory, SupportPost, ExpertQA, ReactionType, CommunityGoal, GroupChallenge, PulseActivity, SoberBuddy } from '../../services/communityService';
+import { CommunityService, SuccessStory, SupportPost, ExpertQA, ReactionType, CommunityGoal, GroupChallenge, PulseActivity, SoberBuddy, SupportGroup } from '../../services/communityService';
 import Animated, { FadeInUp, FadeInRight, useSharedValue, useAnimatedStyle, withSpring, withSequence, withTiming } from 'react-native-reanimated';
 import { Skeleton } from '../../components/Skeleton';
 import { useThemeColors } from '../../hooks/useThemeColors';
@@ -316,6 +316,7 @@ export default function CommunityPage() {
   const [expertQA, setExpertQA] = useState<ExpertQA[]>([]);
   const [communityGoals, setCommunityGoals] = useState<CommunityGoal[]>([]);
   const [groupChallenges, setGroupChallenges] = useState<(GroupChallenge & { isParticipating?: boolean })[]>([]);
+  const [supportGroups, setSupportGroups] = useState<SupportGroup[]>([]);
   const [circles, setCircles] = useState<any[]>([]);
   const [selectedCircle, setSelectedCircle] = useState('all');
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -365,6 +366,9 @@ export default function CommunityPage() {
       setCommunityGoals(CommunityService.getCommunityGoals());
       const loadedChallenges = await CommunityService.getGroupChallenges();
       setGroupChallenges(loadedChallenges);
+
+      const loadedGroups = await CommunityService.getSupportGroups();
+      setSupportGroups(loadedGroups);
 
       const loadedPosts = await CommunityService.getSupportPosts();
       const dailyThread = CommunityService.getDailyThread();
@@ -510,6 +514,26 @@ export default function CommunityPage() {
     );
   };
 
+  const handleToggleGroup = async (groupId: string) => {
+    const isJoined = await CommunityService.toggleGroupParticipation(groupId);
+
+    // Haptics and alert
+    if (isJoined) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert("Поздравляем!", "Вы успешно вступили в группу поддержки! Вам начислено +20 очков Кармы. 🎉");
+    } else {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      Alert.alert("Вы вышли из группы", "Вы покинули группу поддержки.");
+    }
+
+    // Refresh groups list and karma
+    const loadedGroups = await CommunityService.getSupportGroups();
+    setSupportGroups(loadedGroups);
+
+    const karma = await CommunityService.getUserKarma();
+    setUserKarma(karma);
+  };
+
   const handleSelectBuddy = async (buddy: any) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setSelectedBuddy(buddy);
@@ -560,11 +584,11 @@ export default function CommunityPage() {
         {selectedBuddy ? (
           <View style={styles.buddyActiveCard}>
             <View style={styles.buddyHeader}>
-              <Image source={{ uri: selectedBuddy.avatar }} style={styles.buddyAvatar} />
+              <Image source={{ uri: selectedBuddy.avatar }} style={styles.buddyActiveAvatar} />
               <View style={styles.buddyInfo}>
-                <Text style={styles.buddyName}>{selectedBuddy.name}</Text>
+                <Text style={styles.buddyActiveName}>{selectedBuddy.name}</Text>
                 <Text style={styles.buddyDays}>{selectedBuddy.daysSober} дней трезвости</Text>
-                <Text style={styles.buddyStatus}>«{selectedBuddy.status}»</Text>
+                <Text style={styles.buddyActiveStatus}>«{selectedBuddy.status}»</Text>
               </View>
             </View>
             <View style={styles.buddyActions}>
@@ -678,6 +702,58 @@ export default function CommunityPage() {
                   styles.challengeParticipants,
                   challenge.isParticipating && { color: '#2E7D4A', fontWeight: 'bold' }
                 ]}>{challenge.participants} участников</Text>
+              </View>
+            </TouchableOpacity>
+          ))
+        )}
+      </ScrollView>
+
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Группы поддержки 💬</Text>
+      </View>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.goalsContainer}
+      >
+        {isLoading ? (
+          [1, 2].map(i => <Skeleton key={i} width={250} height={120} borderRadius={16} />)
+        ) : (
+          supportGroups.map(group => (
+            <TouchableOpacity
+              key={group.id}
+              style={[
+                styles.challengeCard,
+                group.isJoined && styles.activeChallengeCard
+              ]}
+              onPress={() => handleToggleGroup(group.id)}
+            >
+              <View style={styles.challengeHeader}>
+                <View style={[
+                  styles.challengeBadge,
+                  { backgroundColor: group.color + '15' }
+                ]}>
+                  <Text style={[
+                    styles.challengeBadgeText,
+                    { color: group.color }
+                  ]}>{group.category}</Text>
+                </View>
+                {group.isJoined && (
+                  <View style={styles.participatingBadge}>
+                    <MaterialIcons name="check" size={12} color="white" />
+                    <Text style={styles.participatingText}>Вы состоите</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={styles.challengeTitle}>{group.name}</Text>
+              <Text style={styles.challengeDesc} numberOfLines={2}>{group.description}</Text>
+              <View style={styles.challengeFooter}>
+                <MaterialIcons name="people" size={16} color={group.isJoined ? '#2E7D4A' : '#666'} />
+                <Text style={[
+                  styles.challengeParticipants,
+                  group.isJoined && { color: '#2E7D4A', fontWeight: 'bold' }
+                ]}>{group.membersCount} участников</Text>
               </View>
             </TouchableOpacity>
           ))
@@ -2084,7 +2160,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  buddyAvatar: {
+  buddyActiveAvatar: {
     width: 50,
     height: 50,
     borderRadius: 25,
@@ -2093,7 +2169,7 @@ const styles = StyleSheet.create({
   buddyInfo: {
     flex: 1,
   },
-  buddyName: {
+  buddyActiveName: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
@@ -2103,7 +2179,7 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 4,
   },
-  buddyStatus: {
+  buddyActiveStatus: {
     fontSize: 13,
     color: '#555',
     fontStyle: 'italic',
