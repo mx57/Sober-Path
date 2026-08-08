@@ -83,11 +83,23 @@ export interface SoberBuddy {
   lastPulseSent?: string; // Date string to track daily pulse
 }
 
+export interface SupportGroup {
+  id: string;
+  name: string;
+  description: string;
+  membersCount: number;
+  category: string;
+  icon: string;
+  color: string;
+  isJoined?: boolean;
+}
+
 const POSTS_STORAGE_KEY = 'sober_path_community_posts';
 const CHALLENGES_STORAGE_KEY = 'sober_path_community_challenges';
 const USER_KARMA_KEY = 'sober_path_user_karma';
 const COMMUNITY_KARMA_MAP_KEY = 'sober_path_community_karma';
 const BUDDY_STORAGE_KEY = 'sober_path_buddy';
+const GROUPS_STORAGE_KEY = 'sober_path_community_groups';
 
 export class CommunityService {
   private static userPosts: SupportPost[] = [];
@@ -1230,6 +1242,94 @@ export class CommunityService {
         date: '2024-05-28'
       }
     ];
+  }
+
+  /**
+   * Получить список групп поддержки с отметкой, в каких состоит пользователь.
+   */
+  static async getSupportGroups(): Promise<SupportGroup[]> {
+    const joinedIds = await this.getJoinedGroupIds();
+    const staticGroups: SupportGroup[] = [
+      {
+        id: 'g1',
+        name: 'Первый месяц вместе 🎯',
+        description: 'Группа интенсивной поддержки для тех, кто находится на самом старте своего пути трезвости.',
+        membersCount: 342,
+        category: 'Начало пути',
+        icon: 'child-care',
+        color: '#FF5722'
+      },
+      {
+        id: 'g2',
+        name: 'Осознанные родители 👨‍👩‍👧',
+        description: 'Обсуждаем, как сохранять трезвость, воспитывать детей и справляться с родительским выгоранием.',
+        membersCount: 185,
+        category: 'Семья',
+        icon: 'people',
+        color: '#3F51B5'
+      },
+      {
+        id: 'g3',
+        name: 'Жизнь без тревоги 🧘‍♂️',
+        description: 'Делимся практиками медитации, дыхания и борьбы с паническими атаками в трезвой жизни.',
+        membersCount: 290,
+        category: 'Психология',
+        icon: 'spa',
+        color: '#4CAF50'
+      },
+      {
+        id: 'g4',
+        name: 'Выходные на легке 🚴‍♀️',
+        description: 'Планируем трезвый досуг на субботу и воскресенье, делимся идеями хобби и спортивных встреч.',
+        membersCount: 156,
+        category: 'Спорт и досуг',
+        icon: 'directions-run',
+        color: '#FF9800'
+      }
+    ];
+
+    return staticGroups.map(group => ({
+      ...group,
+      isJoined: joinedIds.includes(group.id),
+      membersCount: joinedIds.includes(group.id) ? group.membersCount + 1 : group.membersCount
+    }));
+  }
+
+  /**
+   * Получить список ID групп поддержки, в которых состоит пользователь.
+   */
+  static async getJoinedGroupIds(): Promise<string[]> {
+    try {
+      const stored = await AsyncStorage.getItem(GROUPS_STORAGE_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /**
+   * Вступить в группу или выйти из нее. При вступлении начисляется +20 очков кармы.
+   */
+  static async toggleGroupParticipation(groupId: string): Promise<boolean> {
+    try {
+      const joinedIds = await this.getJoinedGroupIds();
+      let updatedIds: string[];
+      let isJoining = false;
+
+      if (joinedIds.includes(groupId)) {
+        updatedIds = joinedIds.filter(id => id !== groupId);
+      } else {
+        updatedIds = [...joinedIds, groupId];
+        isJoining = true;
+        // Начислить +20 кармы за вступление
+        await this.addKarmaPoints(20);
+      }
+
+      await AsyncStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(updatedIds));
+      return isJoining;
+    } catch (e) {
+      return false;
+    }
   }
 
 }
