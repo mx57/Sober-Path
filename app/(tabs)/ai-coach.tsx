@@ -1,9 +1,9 @@
 
-import React, { useCallback, useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { 
   View, Text, StyleSheet, ScrollView, TouchableOpacity, 
-  TextInput, KeyboardAvoidingView, Platform, Modal,
-  Dimensions, ActivityIndicator, ViewStyle, Alert
+  TextInput, KeyboardAvoidingView, Platform,
+  ActivityIndicator, ViewStyle, Alert
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -17,8 +17,6 @@ import Animated, {
   FadeInUp,
   FadeInRight,
 } from 'react-native-reanimated';
-
-const { width: screenWidth } = Dimensions.get('window');
 
 const ChallengeCard = React.memo(({ challenge, onComplete }: {
   challenge: AICoachChallenge,
@@ -1294,5 +1292,86 @@ const styles = StyleSheet.create({
   micButton: {
     padding: 8,
     marginRight: 5,
+  },
+  forecastCard: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FFD700',
+  },
+  forecastHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 15,
+  },
+  forecastTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  forecastBody: {
+    gap: 15,
+  },
+  forecastGaugeContainer: {
+    gap: 8,
+  },
+  forecastGaugeBg: {
+    height: 12,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
+  forecastGaugeFill: {
+    height: '100%',
+    backgroundColor: '#FFD700',
+    borderRadius: 6,
+  },
+  forecastGaugeText: {
+    fontSize: 13,
+    color: '#666',
+    fontWeight: '600',
+  },
+  forecastGrid: {
+    flexDirection: 'row',
+    gap: 15,
+  },
+  forecastGridItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#F8F9FA',
+    padding: 12,
+    borderRadius: 12,
+  },
+  forecastGridLabel: {
+    fontSize: 12,
+    color: '#666',
+  },
+  forecastGridValue: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  forecastAdviceBox: {
+    backgroundColor: '#FFFDE7',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FFF59D',
+  },
+  forecastAdviceText: {
+    fontSize: 13,
+    color: '#5D4037',
+    fontStyle: 'italic',
+    lineHeight: 18,
   }
 });
