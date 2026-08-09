@@ -8,6 +8,16 @@ export interface SuccessStory {
   date: string;
 }
 
+export interface CommunityGratitude {
+  id: string;
+  author: string;
+  authorDaysSober: number;
+  text: string;
+  hearts: number;
+  date: string;
+  userHearted?: boolean;
+}
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type ReactionType = 'support' | 'agree' | 'hug' | 'like';
