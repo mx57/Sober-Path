@@ -93,12 +93,23 @@ export interface SoberBuddy {
   lastPulseSent?: string; // Date string to track daily pulse
 }
 
+export interface SupportGroup {
+  id: string;
+  name: string;
+  description: string;
+  membersCount: number;
+  category: string;
+  icon: string;
+  color: string;
+  isJoined?: boolean;
+}
+
 const POSTS_STORAGE_KEY = 'sober_path_community_posts';
 const CHALLENGES_STORAGE_KEY = 'sober_path_community_challenges';
 const USER_KARMA_KEY = 'sober_path_user_karma';
 const COMMUNITY_KARMA_MAP_KEY = 'sober_path_community_karma';
 const BUDDY_STORAGE_KEY = 'sober_path_buddy';
-const GRATITUDES_STORAGE_KEY = 'sober_path_community_gratitudes';
+const GROUPS_STORAGE_KEY = 'sober_path_community_groups';
 
 export class CommunityService {
   private static userPosts: SupportPost[] = [];
@@ -1244,111 +1255,91 @@ export class CommunityService {
   }
 
   /**
-   * Получить предустановленные благодарности.
+   * Получить список групп поддержки с отметкой, в каких состоит пользователь.
    */
-  static getPrepopulatedGratitudes(): CommunityGratitude[] {
-    return [
+  static async getSupportGroups(): Promise<SupportGroup[]> {
+    const joinedIds = await this.getJoinedGroupIds();
+    const staticGroups: SupportGroup[] = [
       {
-        id: 'g_p1',
-        author: 'Александр',
-        authorDaysSober: 365,
-        text: 'Сегодня ровно год моей свободы! Безумно благодарен семье за поддержку и веру в меня.',
-        hearts: 48,
-        date: '2024-03-20',
-        userHearted: false
+        id: 'g1',
+        name: 'Первый месяц вместе 🎯',
+        description: 'Группа интенсивной поддержки для тех, кто находится на самом старте своего пути трезвости.',
+        membersCount: 342,
+        category: 'Начало пути',
+        icon: 'child-care',
+        color: '#FF5722'
       },
       {
-        id: 'g_p2',
-        author: 'Мария П.',
-        authorDaysSober: 42,
-        text: 'Благодарна за это прекрасное утро без чувства вины и похмелья. Кофе кажется невероятно вкусным!',
-        hearts: 24,
-        date: '2024-03-19',
-        userHearted: false
+        id: 'g2',
+        name: 'Осознанные родители 👨‍👩‍👧',
+        description: 'Обсуждаем, как сохранять трезвость, воспитывать детей и справляться с родительским выгоранием.',
+        membersCount: 185,
+        category: 'Семья',
+        icon: 'people',
+        color: '#3F51B5'
       },
       {
-        id: 'g_p3',
-        author: 'Игорь С.',
-        authorDaysSober: 215,
-        text: 'Спасибо моему трезвому напарнику Дмитрию за вчерашний вечерний разговор. Без него бы не справился.',
-        hearts: 31,
-        date: '2024-03-18',
-        userHearted: false
+        id: 'g3',
+        name: 'Жизнь без тревоги 🧘‍♂️',
+        description: 'Делимся практиками медитации, дыхания и борьбы с паническими атаками в трезвой жизни.',
+        membersCount: 290,
+        category: 'Психология',
+        icon: 'spa',
+        color: '#4CAF50'
       },
       {
-        id: 'g_p4',
-        author: 'Елена В.',
-        authorDaysSober: 88,
-        text: 'Благодарна сообществу Sober Path. Читаю ваши истории каждый вечер, они возвращают веру в себя.',
-        hearts: 56,
-        date: '2024-03-17',
-        userHearted: false
+        id: 'g4',
+        name: 'Выходные на легке 🚴‍♀️',
+        description: 'Планируем трезвый досуг на субботу и воскресенье, делимся идеями хобби и спортивных встреч.',
+        membersCount: 156,
+        category: 'Спорт и досуг',
+        icon: 'directions-run',
+        color: '#FF9800'
       }
     ];
+
+    return staticGroups.map(group => ({
+      ...group,
+      isJoined: joinedIds.includes(group.id),
+      membersCount: joinedIds.includes(group.id) ? group.membersCount + 1 : group.membersCount
+    }));
   }
 
   /**
-   * Получить список всех благодарностей (включая сохраненные локально).
+   * Получить список ID групп поддержки, в которых состоит пользователь.
    */
-  static async getGratitudes(): Promise<CommunityGratitude[]> {
+  static async getJoinedGroupIds(): Promise<string[]> {
     try {
-      const stored = await AsyncStorage.getItem(GRATITUDES_STORAGE_KEY);
-      if (stored) {
-        return JSON.parse(stored);
-      }
-      const prepopulated = this.getPrepopulatedGratitudes();
-      await AsyncStorage.setItem(GRATITUDES_STORAGE_KEY, JSON.stringify(prepopulated));
-      return prepopulated;
+      const stored = await AsyncStorage.getItem(GROUPS_STORAGE_KEY);
+      return stored ? JSON.parse(stored) : [];
     } catch (e) {
-      return this.getPrepopulatedGratitudes();
+      return [];
     }
   }
 
   /**
-   * Сохранить новую благодарность пользователя (+15 Кармы).
+   * Вступить в группу или выйти из нее. При вступлении начисляется +20 очков кармы.
    */
-  static async saveGratitude(text: string, author: string = 'Вы', authorDaysSober: number = 0): Promise<CommunityGratitude> {
-    const list = await this.getGratitudes();
-    const newGratitude: CommunityGratitude = {
-      id: `g_${Date.now()}`,
-      author,
-      authorDaysSober,
-      text,
-      hearts: 0,
-      date: new Date().toISOString().split('T')[0],
-      userHearted: false
-    };
-    const updated = [newGratitude, ...list];
-    await AsyncStorage.setItem(GRATITUDES_STORAGE_KEY, JSON.stringify(updated));
-    await this.addKarmaPoints(15);
-    return newGratitude;
-  }
+  static async toggleGroupParticipation(groupId: string): Promise<boolean> {
+    try {
+      const joinedIds = await this.getJoinedGroupIds();
+      let updatedIds: string[];
+      let isJoining = false;
 
-  /**
-   * Лайкнуть/убрать лайк с благодарности (+1 Карма пользователю).
-   */
-  static async toggleGratitudeHeart(id: string): Promise<CommunityGratitude[]> {
-    const list = await this.getGratitudes();
-    let karmaToAward = 0;
-    const updated = list.map(g => {
-      if (g.id === id) {
-        const hearted = !g.userHearted;
-        if (hearted) {
-          karmaToAward = 1;
-        }
-        return {
-          ...g,
-          userHearted: hearted,
-          hearts: hearted ? g.hearts + 1 : Math.max(0, g.hearts - 1)
-        };
+      if (joinedIds.includes(groupId)) {
+        updatedIds = joinedIds.filter(id => id !== groupId);
+      } else {
+        updatedIds = [...joinedIds, groupId];
+        isJoining = true;
+        // Начислить +20 кармы за вступление
+        await this.addKarmaPoints(20);
       }
-      return g;
-    });
-    await AsyncStorage.setItem(GRATITUDES_STORAGE_KEY, JSON.stringify(updated));
-    if (karmaToAward > 0) {
-      await this.addKarmaPoints(karmaToAward);
+
+      await AsyncStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(updatedIds));
+      return isJoining;
+    } catch (e) {
+      return false;
     }
-    return updated;
   }
 
 }
