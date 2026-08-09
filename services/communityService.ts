@@ -8,6 +8,16 @@ export interface SuccessStory {
   date: string;
 }
 
+export interface CommunityGratitude {
+  id: string;
+  author: string;
+  authorDaysSober: number;
+  text: string;
+  hearts: number;
+  date: string;
+  userHearted?: boolean;
+}
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type ReactionType = 'support' | 'agree' | 'hug' | 'like';
@@ -88,6 +98,7 @@ const CHALLENGES_STORAGE_KEY = 'sober_path_community_challenges';
 const USER_KARMA_KEY = 'sober_path_user_karma';
 const COMMUNITY_KARMA_MAP_KEY = 'sober_path_community_karma';
 const BUDDY_STORAGE_KEY = 'sober_path_buddy';
+const GRATITUDES_STORAGE_KEY = 'sober_path_community_gratitudes';
 
 export class CommunityService {
   private static userPosts: SupportPost[] = [];
@@ -1230,6 +1241,114 @@ export class CommunityService {
         date: '2024-05-28'
       }
     ];
+  }
+
+  /**
+   * Получить предустановленные благодарности.
+   */
+  static getPrepopulatedGratitudes(): CommunityGratitude[] {
+    return [
+      {
+        id: 'g_p1',
+        author: 'Александр',
+        authorDaysSober: 365,
+        text: 'Сегодня ровно год моей свободы! Безумно благодарен семье за поддержку и веру в меня.',
+        hearts: 48,
+        date: '2024-03-20',
+        userHearted: false
+      },
+      {
+        id: 'g_p2',
+        author: 'Мария П.',
+        authorDaysSober: 42,
+        text: 'Благодарна за это прекрасное утро без чувства вины и похмелья. Кофе кажется невероятно вкусным!',
+        hearts: 24,
+        date: '2024-03-19',
+        userHearted: false
+      },
+      {
+        id: 'g_p3',
+        author: 'Игорь С.',
+        authorDaysSober: 215,
+        text: 'Спасибо моему трезвому напарнику Дмитрию за вчерашний вечерний разговор. Без него бы не справился.',
+        hearts: 31,
+        date: '2024-03-18',
+        userHearted: false
+      },
+      {
+        id: 'g_p4',
+        author: 'Елена В.',
+        authorDaysSober: 88,
+        text: 'Благодарна сообществу Sober Path. Читаю ваши истории каждый вечер, они возвращают веру в себя.',
+        hearts: 56,
+        date: '2024-03-17',
+        userHearted: false
+      }
+    ];
+  }
+
+  /**
+   * Получить список всех благодарностей (включая сохраненные локально).
+   */
+  static async getGratitudes(): Promise<CommunityGratitude[]> {
+    try {
+      const stored = await AsyncStorage.getItem(GRATITUDES_STORAGE_KEY);
+      if (stored) {
+        return JSON.parse(stored);
+      }
+      const prepopulated = this.getPrepopulatedGratitudes();
+      await AsyncStorage.setItem(GRATITUDES_STORAGE_KEY, JSON.stringify(prepopulated));
+      return prepopulated;
+    } catch (e) {
+      return this.getPrepopulatedGratitudes();
+    }
+  }
+
+  /**
+   * Сохранить новую благодарность пользователя (+15 Кармы).
+   */
+  static async saveGratitude(text: string, author: string = 'Вы', authorDaysSober: number = 0): Promise<CommunityGratitude> {
+    const list = await this.getGratitudes();
+    const newGratitude: CommunityGratitude = {
+      id: `g_${Date.now()}`,
+      author,
+      authorDaysSober,
+      text,
+      hearts: 0,
+      date: new Date().toISOString().split('T')[0],
+      userHearted: false
+    };
+    const updated = [newGratitude, ...list];
+    await AsyncStorage.setItem(GRATITUDES_STORAGE_KEY, JSON.stringify(updated));
+    await this.addKarmaPoints(15);
+    return newGratitude;
+  }
+
+  /**
+   * Лайкнуть/убрать лайк с благодарности (+1 Карма пользователю).
+   */
+  static async toggleGratitudeHeart(id: string): Promise<CommunityGratitude[]> {
+    const list = await this.getGratitudes();
+    let karmaToAward = 0;
+    const updated = list.map(g => {
+      if (g.id === id) {
+        const hearted = !g.userHearted;
+        if (hearted) {
+          karmaToAward = 1;
+        }
+        return {
+          ...g,
+          userHearted: hearted,
+          hearts: hearted ? g.hearts + 1 : Math.max(0, g.hearts - 1)
+        };
+      }
+      return g;
+    });
+    await AsyncStorage.setItem(GRATITUDES_STORAGE_KEY, JSON.stringify(updated));
+    if (karmaToAward > 0) {
+      await this.addKarmaPoints(karmaToAward);
+    }
+    return updated;
   }
 
 }
