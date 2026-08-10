@@ -1294,5 +1294,19 @@ const styles = StyleSheet.create({
   micButton: {
     padding: 8,
     marginRight: 5,
-  }
+  },
+  forecastHeader: {},
+  forecastTitle: {},
+  forecastBody: {},
+  forecastGaugeContainer: {},
+  forecastGaugeBg: {},
+  forecastGaugeFill: {},
+  forecastGaugeText: {},
+  forecastGrid: {},
+  forecastGridItem: {},
+  forecastGridLabel: {},
+  forecastGridValue: {},
+  forecastAdviceBox: {},
+  forecastAdviceText: {},
+  forecastCard: {},
 });
