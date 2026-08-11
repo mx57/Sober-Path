@@ -110,9 +110,142 @@ const USER_KARMA_KEY = 'sober_path_user_karma';
 const COMMUNITY_KARMA_MAP_KEY = 'sober_path_community_karma';
 const BUDDY_STORAGE_KEY = 'sober_path_buddy';
 const GROUPS_STORAGE_KEY = 'sober_path_community_groups';
+const GRATITUDES_STORAGE_KEY = 'sober_path_community_gratitudes';
+
+const DEFAULT_GRATITUDES: CommunityGratitude[] = [
+  {
+    id: 'g_default_1',
+    author: 'Мария П.',
+    authorDaysSober: 42,
+    text: 'Благодарна за поддержку мужа и крепкий сон без кошмаров.',
+    hearts: 12,
+    date: new Date().toISOString(),
+    userHearted: false
+  },
+  {
+    id: 'g_default_2',
+    author: 'Дмитрий К.',
+    authorDaysSober: 125,
+    text: 'Спасибо этому приложению и моему напарнику за то, что помогли пережить кризис прошлой пятницы.',
+    hearts: 25,
+    date: new Date().toISOString(),
+    userHearted: false
+  },
+  {
+    id: 'g_default_3',
+    author: 'Елена В.',
+    authorDaysSober: 88,
+    text: 'Благодарна за утреннюю свежесть и ясную голову каждый день.',
+    hearts: 8,
+    date: new Date().toISOString(),
+    userHearted: false
+  },
+  {
+    id: 'g_default_4',
+    author: 'Игорь С.',
+    authorDaysSober: 215,
+    text: 'Рад, что нашел силы начать этот путь. Жизнь заиграла новыми красками!',
+    hearts: 31,
+    date: new Date().toISOString(),
+    userHearted: false
+  }
+];
 
 export class CommunityService {
   private static userPosts: SupportPost[] = [];
+
+  /**
+   * Получить список благодарностей со Стены благодарностей.
+   */
+  static async getGratitudes(): Promise<CommunityGratitude[]> {
+    try {
+      const stored = await AsyncStorage.getItem(GRATITUDES_STORAGE_KEY);
+      if (stored) {
+        return JSON.parse(stored);
+      }
+      await AsyncStorage.setItem(GRATITUDES_STORAGE_KEY, JSON.stringify(DEFAULT_GRATITUDES));
+      return DEFAULT_GRATITUDES;
+    } catch (e) {
+      return DEFAULT_GRATITUDES;
+    }
+  }
+
+  /**
+   * Сохранить новую благодарность и начислить +15 кармы.
+   */
+  static async saveGratitude(text: string, author: string, authorDaysSober: number): Promise<CommunityGratitude> {
+    const list = await this.getGratitudes();
+    const newGratitude: CommunityGratitude = {
+      id: `g_${Date.now()}`,
+      author,
+      authorDaysSober,
+      text,
+      hearts: 0,
+      date: new Date().toISOString(),
+      userHearted: false
+    };
+
+    const updated = [newGratitude, ...list];
+    await AsyncStorage.setItem(GRATITUDES_STORAGE_KEY, JSON.stringify(updated));
+    await this.addKarmaPoints(15);
+    return newGratitude;
+  }
+
+  /**
+   * Переключить лайк (сердечко) благодарности (+1 карма автору при лайке).
+   */
+  static async toggleGratitudeHeart(id: string): Promise<CommunityGratitude[]> {
+    const list = await this.getGratitudes();
+    let authorToReward = '';
+    let isAddingHeart = false;
+
+    const updated = list.map(g => {
+      if (g.id === id) {
+        const userHearted = !g.userHearted;
+        const hearts = userHearted ? g.hearts + 1 : Math.max(0, g.hearts - 1);
+        authorToReward = g.author;
+        isAddingHeart = userHearted;
+        return { ...g, userHearted, hearts };
+      }
+      return g;
+    });
+
+    await AsyncStorage.setItem(GRATITUDES_STORAGE_KEY, JSON.stringify(updated));
+
+    if (isAddingHeart && authorToReward && authorToReward !== 'Вы' && authorToReward !== 'Sober Path Bot') {
+      await this.updateUserKarma(authorToReward, 1);
+    }
+
+    return updated;
+  }
+
+  /**
+   * Получить карму другого пользователя.
+   */
+  static async getOtherUserKarma(userName: string): Promise<number> {
+    try {
+      const stored = await AsyncStorage.getItem(COMMUNITY_KARMA_MAP_KEY);
+      const karmaMap = stored ? JSON.parse(stored) : {};
+
+      if (karmaMap[userName] !== undefined) {
+        return karmaMap[userName];
+      }
+
+      const buddyDefaults: Record<string, number> = {
+        'Александр': 1200,
+        'Елена': 510,
+        'Дмитрий': 850,
+        'Кристина': 210,
+        'Андрей': 450,
+        'Марина': 180,
+        'Евгений': 600,
+      };
+
+      return buddyDefaults[userName] || 0;
+    } catch (e) {
+      return 0;
+    }
+  }
 
   /**
    * Получить список доступных напарников для тестов.
