@@ -403,6 +403,31 @@ export class AICoachService {
         const knowledgeMatch = findRelevantKnowledge(userMessage);
         const sentiment = this.detectSentiment(userMessage);
 
+        // Проверка на запрос упражнения
+        if (lowercaseMessage.includes('мегаполис') || lowercaseMessage.includes('город') || lowercaseMessage.includes('шум') || lowercaseMessage.includes('детокс')) {
+          return success({
+            message: 'Стресс мегаполиса — частый триггер срыва. Давайте проведем сессию "Умного городского детокса", чтобы быстро сбросить напряжение и вернуть фокус. Начнем?',
+            emotionalTone: 'supportive',
+            suggestions: ['Начать упражнение', 'Не сейчас'],
+            followUpQuestions: [],
+            memoryUpdates: ['User requested urban stress detox exercise'],
+            confidenceLevel: 1.0,
+            exercise: {
+              id: 'urban_detox',
+              name: 'Умный городской детокс',
+              type: 'grounding',
+              currentStep: -1,
+              steps: [
+                'Сфокусируйтесь на фоновом шуме города вокруг вас. Осознайте его, но не цепляйтесь за него. Сделайте глубокий вдох.',
+                'Сделайте вдох на 4 счета, задержите дыхание на 4 счета и выдыхайте в течение 6 секунд. Повторите один раз.',
+                'Представьте невидимый защитный купол вокруг себя, сквозь который суета и шум города не могут проникнуть к вам.',
+                'Обратите внимание на 3 физических ощущения в теле: контакт ног с землей, дыхание, тепло ваших рук.',
+                'Медленно откройте глаза и скажите себе: "Я здесь, я в безопасности, я управляю своими реакциями".'
+              ]
+            }
+          });
+        }
+
         // Когнитивный рефрейминг при негативных мыслях
         if (sentiment === 'frustrated' || sentiment === 'anxious' || lowercaseMessage.includes('никогда') || lowercaseMessage.includes('не смогу')) {
           if (Math.random() > 0.6) {
@@ -449,6 +474,30 @@ export class AICoachService {
                 'Найдите и назовите 3 звука, которые вы слышите.',
                 'Найдите и назовите 2 запаха, которые вы чувствуете (или ваши любимые запахи).',
                 'Назовите 1 вещь, которую вы можете попробовать на вкус (или ваш любимый вкус).'
+              ]
+            }
+          });
+        }
+
+        if (lowercaseMessage.includes('смэр') || lowercaseMessage.includes('дневник смэр') || lowercaseMessage.includes('анализ ситуации') || lowercaseMessage.includes('когнитивный дневник')) {
+          return success({
+            message: 'Давайте заполним Когнитивный Дневник Мыслей "СМЭР". Это мощный инструмент КПТ (когнитивно-поведенческой терапии) для разбора сложных ситуаций и снижения тревоги. Готовы начать?',
+            emotionalTone: 'supportive',
+            suggestions: ['Начать упражнение', 'Не сейчас'],
+            followUpQuestions: [],
+            memoryUpdates: ['User requested CBT SMER exercise'],
+            confidenceLevel: 1.0,
+            exercise: {
+              id: 'cbt_smer',
+              name: 'Когнитивный дневник СМЭР',
+              type: 'nlp',
+              currentStep: -1,
+              steps: [
+                'Опишите СИТУАЦИЮ: Что произошло? Где? С кем? (Например: "Начальник сделал замечание перед коллегами")',
+                'Опишите автоматические МЫСЛИ: Какие мысли промелькнули в вашей голове в этот момент? (Например: "Я ничтожество, меня уволят")',
+                'Опишите ваши ЭМОЦИИ: Что вы почувствовали (тревога, злость, обида) и насколько сильно по шкале от 0 до 100%?',
+                'Опишите РЕАКЦИЮ: Каковы были ваши действия, слова или телесные ощущения (например, сжались кулаки, захотелось хлопнуть дверью)?',
+                'Сформулируйте АЛЬТЕРНАТИВНУЮ МЫСЛЬ: Посмотрите на ситуацию объективно. Есть ли другое объяснение? Как изменилось ваше состояние сейчас?'
               ]
             }
           });
@@ -534,6 +583,22 @@ export class AICoachService {
         if (achievements.length > 0 && Math.random() > 0.7) {
           const lastAchievement = achievements[achievements.length - 1];
           response = `${response}\n\nКстати, я помню ваш успех: ${lastAchievement.replace('Упоминание прогресса: ', '')}. Это было круто!`;
+        }
+
+        // Интеграция вступивших групп поддержки и активных курсов
+        try {
+          const { CommunityService } = require('./communityService');
+          const joinedIds = await CommunityService.getJoinedGroupIds();
+          if (joinedIds && joinedIds.length > 0) {
+            const allGroups = await CommunityService.getSupportGroups();
+            const joinedGroups = allGroups.filter((g: any) => joinedIds.includes(g.id));
+            if (joinedGroups.length > 0 && Math.random() > 0.5) {
+              const groupNames = joinedGroups.map((g: any) => g.name).join(', ');
+              response = `${response}\n\nЯ очень рад видеть, что вы состоите в группах поддержки: ${groupNames}. Помните, что сообщество — ваш надежный щит!`;
+            }
+          }
+        } catch (err) {
+          // Игнорируем ошибки динамического импорта
         }
 
         // Проактивная поддержка при высоком стрессе

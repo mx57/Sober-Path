@@ -9,10 +9,11 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { CommunityService, SuccessStory, SupportPost, ExpertQA, ReactionType, CommunityGoal, GroupChallenge, PulseActivity } from '../../services/communityService';
+import { CommunityService, SuccessStory, SupportPost, ExpertQA, ReactionType, CommunityGoal, GroupChallenge, PulseActivity, SoberBuddy, SupportGroup } from '../../services/communityService';
 import Animated, { FadeInUp, FadeInRight, useSharedValue, useAnimatedStyle, withSpring, withSequence, withTiming } from 'react-native-reanimated';
 import { Skeleton } from '../../components/Skeleton';
 import { useThemeColors } from '../../hooks/useThemeColors';
+import { useRecovery } from '../../hooks/useRecovery';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -70,6 +71,30 @@ const PostPoll = ({ poll, onVote }: { poll: any, onVote: (optionId: string) => v
         );
       })}
       <Text style={styles.pollTotalVotes}>{totalVotes} голосов</Text>
+    </View>
+  );
+};
+
+const GratitudeCard = ({ gratitude, onHeartPress, themeColors }: { gratitude: CommunityGratitude, onHeartPress: (id: string) => void, themeColors: any }) => {
+  return (
+    <View style={[styles.gratitudeCard, { backgroundColor: themeColors.isDark ? '#232325' : '#FFFDF0', borderColor: themeColors.isDark ? '#3A3A3C' : '#FCEFB4', borderWidth: 1 }]}>
+      <View style={styles.gratitudeHeader}>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.gratitudeAuthor, { color: themeColors.text }]} numberOfLines={1}>{gratitude.author}</Text>
+          <Text style={styles.gratitudeDays}>{gratitude.authorDaysSober} дн. трезвости</Text>
+        </View>
+        <TouchableOpacity style={styles.gratitudeHeartBtn} onPress={() => onHeartPress(gratitude.id)}>
+          <MaterialIcons
+            name={gratitude.userHearted ? "favorite" : "favorite-border"}
+            size={18}
+            color={gratitude.userHearted ? "#E91E63" : (themeColors.isDark ? "#888" : "#666")}
+          />
+          <Text style={[styles.gratitudeHeartCount, { color: themeColors.isDark ? "#FFF" : "#444" }]}>{gratitude.hearts}</Text>
+        </TouchableOpacity>
+      </View>
+      <Text style={[styles.gratitudeText, { color: themeColors.isDark ? '#E5E5E7' : '#555' }]} numberOfLines={4}>
+        {gratitude.text}
+      </Text>
     </View>
   );
 };
@@ -300,12 +325,14 @@ const availableBuddies = [
 export default function CommunityPage() {
   const insets = useSafeAreaInsets();
   const themeColors = useThemeColors();
+  const { soberDays } = useRecovery();
   const [stories, setStories] = useState<SuccessStory[]>([]);
   const [posts, setPosts] = useState<SupportPost[]>([]);
   const [pulse, setPulse] = useState<PulseActivity[]>([]);
   const [expertQA, setExpertQA] = useState<ExpertQA[]>([]);
   const [communityGoals, setCommunityGoals] = useState<CommunityGoal[]>([]);
   const [groupChallenges, setGroupChallenges] = useState<(GroupChallenge & { isParticipating?: boolean })[]>([]);
+  const [supportGroups, setSupportGroups] = useState<SupportGroup[]>([]);
   const [circles, setCircles] = useState<any[]>([]);
   const [selectedCircle, setSelectedCircle] = useState('all');
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -316,6 +343,9 @@ export default function CommunityPage() {
   const [newPostContent, setNewPostContent] = useState('');
   const [newStoryContent, setNewStoryContent] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<'motivation' | 'question' | 'support' | 'milestone'>('support');
+  const [gratitudes, setGratitudes] = useState<CommunityGratitude[]>([]);
+  const [isGratitudeModalVisible, setIsGratitudeModalVisible] = useState(false);
+  const [newGratitudeText, setNewGratitudeText] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [userKarma, setUserKarma] = useState(0);
 
@@ -347,8 +377,13 @@ export default function CommunityPage() {
       setStories(CommunityService.getSuccessStories());
       setExpertQA(CommunityService.getExpertQA());
       setCommunityGoals(CommunityService.getCommunityGoals());
+      const loadedGratitudes = await CommunityService.getGratitudes();
+      setGratitudes(loadedGratitudes);
       const loadedChallenges = await CommunityService.getGroupChallenges();
       setGroupChallenges(loadedChallenges);
+
+      const loadedGroups = await CommunityService.getSupportGroups();
+      setSupportGroups(loadedGroups);
 
       const loadedPosts = await CommunityService.getSupportPosts();
       const dailyThread = CommunityService.getDailyThread();
@@ -479,6 +514,43 @@ export default function CommunityPage() {
     Alert.alert('Успех', 'Ваша история опубликована!');
   };
 
+  const handleCreateGratitude = async () => {
+    if (!newGratitudeText.trim()) {
+      Alert.alert('Ошибка', 'Пожалуйста, введите текст благодарности');
+      return;
+    }
+
+    // ИИ-модерация на токсичность
+    const modResult = CommunityService.moderatePostContent(newGratitudeText);
+    if (!modResult.isApproved) {
+      Alert.alert('ИИ-Модерация', modResult.reason);
+      return;
+    }
+
+    const newGrat = await CommunityService.saveGratitude(newGratitudeText, 'Вы', soberDays || 0);
+    setGratitudes(current => [newGrat, ...current]);
+    setNewGratitudeText('');
+    setIsGratitudeModalVisible(false);
+
+    // Получить обновленную Карму
+    const updatedKarma = await CommunityService.getUserKarma();
+    setUserKarma(updatedKarma);
+
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Alert.alert('Опубликовано ❤️', 'Спасибо, что поделились своей благодарностью!\n\nВы получили +15 очков Кармы 🌟.');
+  };
+
+  const handleGratitudeHeartPress = async (id: string) => {
+    const updated = await CommunityService.toggleGratitudeHeart(id);
+    setGratitudes(updated);
+
+    // Получить обновленную Карму
+    const updatedKarma = await CommunityService.getUserKarma();
+    setUserKarma(updatedKarma);
+
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
   const handleToggleChallenge = async (challengeId: string) => {
     const joined = await CommunityService.toggleChallengeParticipation(challengeId);
     const updatedChallenges = await CommunityService.getGroupChallenges();
@@ -492,6 +564,26 @@ export default function CommunityPage() {
       joined ? 'Вы присоединились!' : 'Вы покинули челендж',
       joined ? 'Вместе идти к цели легче. Удачи!' : 'Вы всегда можете вернуться позже.'
     );
+  };
+
+  const handleToggleGroup = async (groupId: string) => {
+    const isJoined = await CommunityService.toggleGroupParticipation(groupId);
+
+    // Haptics and alert
+    if (isJoined) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert("Поздравляем!", "Вы успешно вступили в группу поддержки! Вам начислено +20 очков Кармы. 🎉");
+    } else {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      Alert.alert("Вы вышли из группы", "Вы покинули группу поддержки.");
+    }
+
+    // Refresh groups list and karma
+    const loadedGroups = await CommunityService.getSupportGroups();
+    setSupportGroups(loadedGroups);
+
+    const karma = await CommunityService.getUserKarma();
+    setUserKarma(karma);
   };
 
   const handleSelectBuddy = async (buddy: any) => {
@@ -669,6 +761,58 @@ export default function CommunityPage() {
       </ScrollView>
 
       <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Группы поддержки 💬</Text>
+      </View>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.goalsContainer}
+      >
+        {isLoading ? (
+          [1, 2].map(i => <Skeleton key={i} width={250} height={120} borderRadius={16} />)
+        ) : (
+          supportGroups.map(group => (
+            <TouchableOpacity
+              key={group.id}
+              style={[
+                styles.challengeCard,
+                group.isJoined && styles.activeChallengeCard
+              ]}
+              onPress={() => handleToggleGroup(group.id)}
+            >
+              <View style={styles.challengeHeader}>
+                <View style={[
+                  styles.challengeBadge,
+                  { backgroundColor: group.color + '15' }
+                ]}>
+                  <Text style={[
+                    styles.challengeBadgeText,
+                    { color: group.color }
+                  ]}>{group.category}</Text>
+                </View>
+                {group.isJoined && (
+                  <View style={styles.participatingBadge}>
+                    <MaterialIcons name="check" size={12} color="white" />
+                    <Text style={styles.participatingText}>Вы состоите</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={styles.challengeTitle}>{group.name}</Text>
+              <Text style={styles.challengeDesc} numberOfLines={2}>{group.description}</Text>
+              <View style={styles.challengeFooter}>
+                <MaterialIcons name="people" size={16} color={group.isJoined ? '#2E7D4A' : '#666'} />
+                <Text style={[
+                  styles.challengeParticipants,
+                  group.isJoined && { color: '#2E7D4A', fontWeight: 'bold' }
+                ]}>{group.membersCount} участников</Text>
+              </View>
+            </TouchableOpacity>
+          ))
+        )}
+      </ScrollView>
+
+      <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Цели сообщества</Text>
       </View>
 
@@ -770,6 +914,34 @@ export default function CommunityPage() {
         ) : (
           stories.map(story => (
             <SuccessStoryCard key={story.id} story={story} />
+          ))
+        )}
+      </ScrollView>
+
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Стена благодарности ❤️</Text>
+        {!isLoading && (
+          <TouchableOpacity onPress={() => setIsGratitudeModalVisible(true)}>
+            <Text style={styles.seeAllText}>Поделиться</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.storiesContainer}
+      >
+        {isLoading ? (
+          [1, 2].map(i => <Skeleton key={i} width={screenWidth * 0.7} height={120} borderRadius={16} />)
+        ) : (
+          gratitudes.map(gratitude => (
+            <GratitudeCard
+              key={gratitude.id}
+              gratitude={gratitude}
+              onHeartPress={handleGratitudeHeartPress}
+              themeColors={themeColors}
+            />
           ))
         )}
       </ScrollView>
@@ -920,6 +1092,43 @@ export default function CommunityPage() {
               onPress={handleCreatePost}
             >
               <Text style={styles.submitButtonText}>Опубликовать</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={isGratitudeModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setIsGratitudeModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Новая благодарность ❤️</Text>
+              <TouchableOpacity onPress={() => setIsGratitudeModalVisible(false)}>
+                <MaterialIcons name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.modalHelperText}>Напишите, за что вы благодарны сегодня. Это укрепляет дух и помогает другим!</Text>
+
+            <TextInput
+              style={styles.postInput}
+              placeholder="Я благодарен за..."
+              multiline
+              numberOfLines={6}
+              value={newGratitudeText}
+              onChangeText={setNewGratitudeText}
+              textAlignVertical="top"
+            />
+
+            <TouchableOpacity
+              style={styles.submitButton}
+              onPress={handleCreateGratitude}
+            >
+              <Text style={styles.submitButtonText}>Поделиться благодарностью</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1411,6 +1620,49 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+  },
+  gratitudeCard: {
+    width: screenWidth * 0.7,
+    borderRadius: 16,
+    padding: 16,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  gratitudeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  gratitudeAuthor: {
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
+  gratitudeDays: {
+    fontSize: 11,
+    color: '#E91E63',
+    fontWeight: '600',
+  },
+  gratitudeHeartBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  gratitudeHeartCount: {
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  gratitudeText: {
+    fontSize: 14,
+    lineHeight: 18,
+    fontStyle: 'italic',
   },
   challengeHeader: {
     flexDirection: 'row',
