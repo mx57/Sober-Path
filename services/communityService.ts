@@ -110,8 +110,150 @@ const USER_KARMA_KEY = 'sober_path_user_karma';
 const COMMUNITY_KARMA_MAP_KEY = 'sober_path_community_karma';
 const BUDDY_STORAGE_KEY = 'sober_path_buddy';
 const GROUPS_STORAGE_KEY = 'sober_path_community_groups';
+const GRATITUDES_STORAGE_KEY = 'sober_path_community_gratitudes';
 
 export class CommunityService {
+  /**
+   * Получить список благодарностей. Инициализирует дефолтными при первом запуске.
+   */
+  static async getGratitudes(): Promise<CommunityGratitude[]> {
+    try {
+      const stored = await AsyncStorage.getItem(GRATITUDES_STORAGE_KEY);
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (e) {
+      console.error('Failed to get gratitudes', e);
+    }
+
+    const defaultList: CommunityGratitude[] = [
+      {
+        id: 'g1',
+        author: 'Мария В.',
+        authorDaysSober: 34,
+        text: 'Благодарна за поддержку в этом приложении и за новое чудесное утро без похмелья!',
+        hearts: 12,
+        date: new Date().toISOString(),
+        userHearted: false
+      },
+      {
+        id: 'g2',
+        author: 'Константин',
+        authorDaysSober: 120,
+        text: 'Сегодня ровно 4 месяца трезвости. Благодарен семье за то, что поверили в меня снова.',
+        hearts: 25,
+        date: new Date().toISOString(),
+        userHearted: false
+      },
+      {
+        id: 'g3',
+        author: 'Анна К.',
+        authorDaysSober: 15,
+        text: 'Благодарна за каждую минуту чистоты. Жизнь обретает новые краски, пусть даже маленькими шагами.',
+        hearts: 8,
+        date: new Date().toISOString(),
+        userHearted: false
+      },
+      {
+        id: 'g4',
+        author: 'Сергей Д.',
+        authorDaysSober: 365,
+        text: 'Год чистоты! Безумно благодарен за силу воли и за этот замечательный инструмент трезвости.',
+        hearts: 42,
+        date: new Date().toISOString(),
+        userHearted: false
+      }
+    ];
+
+    try {
+      await AsyncStorage.setItem(GRATITUDES_STORAGE_KEY, JSON.stringify(defaultList));
+    } catch (e) {
+      console.error('Failed to save default gratitudes', e);
+    }
+    return defaultList;
+  }
+
+  /**
+   * Сохранить новую благодарность, начислить карму (+15) и вернуть созданную благодарность.
+   */
+  static async saveGratitude(text: string, author: string, authorDaysSober: number): Promise<CommunityGratitude> {
+    const list = await this.getGratitudes();
+    const newGrat: CommunityGratitude = {
+      id: `grat_${Date.now()}`,
+      author,
+      authorDaysSober,
+      text,
+      hearts: 0,
+      date: new Date().toISOString(),
+      userHearted: false
+    };
+
+    const updated = [newGrat, ...list];
+    try {
+      await AsyncStorage.setItem(GRATITUDES_STORAGE_KEY, JSON.stringify(updated));
+    } catch (e) {
+      console.error('Failed to save gratitude', e);
+    }
+
+    // Начислить +15 кармы за публикацию
+    await this.addKarmaPoints(15);
+
+    return newGrat;
+  }
+
+  /**
+   * Переключить лайк у благодарности (userHearted: boolean). Изменяет количество hearts (+1 или -1).
+   */
+  static async toggleGratitudeHeart(id: string): Promise<CommunityGratitude[]> {
+    const list = await this.getGratitudes();
+    const updated = list.map(grat => {
+      if (grat.id === id) {
+        const userHearted = !grat.userHearted;
+        const hearts = userHearted ? grat.hearts + 1 : Math.max(0, grat.hearts - 1);
+        return {
+          ...grat,
+          userHearted,
+          hearts
+        };
+      }
+      return grat;
+    });
+
+    try {
+      await AsyncStorage.setItem(GRATITUDES_STORAGE_KEY, JSON.stringify(updated));
+    } catch (e) {
+      console.error('Failed to toggle gratitude heart', e);
+    }
+
+    return updated;
+  }
+
+  /**
+   * Получить карму другого пользователя.
+   */
+  static async getOtherUserKarma(userName: string): Promise<number> {
+    try {
+      if (userName === 'Вы') {
+        return await this.getUserKarma();
+      }
+      const storedMap = await AsyncStorage.getItem(COMMUNITY_KARMA_MAP_KEY);
+      if (storedMap) {
+        const karmaMap = JSON.parse(storedMap);
+        if (karmaMap && karmaMap[userName] !== undefined) {
+          return karmaMap[userName];
+        }
+      }
+      // Возвращаем вычисленное значение для имитации активности участников
+      const buddies = [...this.getAvailableBuddies(), ...this.getPotentialBuddies()];
+      const found = buddies.find(b => b.name === userName);
+      if (found) {
+        return found.daysSober * 2 + 10;
+      }
+      return 0;
+    } catch (e) {
+      return 0;
+    }
+  }
   private static userPosts: SupportPost[] = [];
 
   /**
