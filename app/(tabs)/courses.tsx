@@ -1,31 +1,26 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Dimensions,
   Modal,
   TextInput,
-  ActivityIndicator,
-  Platform,
-  Alert
+  Platform
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeInUp, FadeInRight, useSharedValue, useAnimatedStyle, withSpring, withTiming, withSequence } from 'react-native-reanimated';
+import Animated, { FadeInUp, useSharedValue, useAnimatedStyle, withSpring, withTiming, withSequence } from 'react-native-reanimated';
 
 // Import databases and services
 import { MicroCoursesService, MicroCourse, Lesson } from '../../services/microCoursesService';
-import { PsychologyService, AdvancedTherapy, TherapeuticSound, ModernTechnique } from '../../services/PsychologyService';
+import { PsychologyService, TherapeuticSound } from '../../services/PsychologyService';
 import { allExpandedTechniques } from '../../services/expandedNLPTechniques';
 import { modernTherapeuticTechniques } from '../../services/therapeuticTechniques';
-
-const { width: screenWidth } = Dimensions.get('window');
 
 export default function CoursesPage() {
   const insets = useSafeAreaInsets();
@@ -37,7 +32,6 @@ export default function CoursesPage() {
   const [selectedCourse, setSelectedCourse] = useState<MicroCourse | null>(null);
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [selectedTechnique, setSelectedTechnique] = useState<any | null>(null);
-  const [selectedTherapy, setSelectedTherapy] = useState<AdvancedTherapy | null>(null);
   const [selectedSound, setSelectedSound] = useState<TherapeuticSound | null>(null);
 
   // User input answers/reflections
@@ -54,7 +48,6 @@ export default function CoursesPage() {
 
   // Sound Playback simulation
   const [isPlayingSound, setIsPlayingSound] = useState(false);
-  const [soundVolume, setSoundVolume] = useState(0.7);
   const [sleepTimer, setSleepTimer] = useState<number | null>(null);
   const [sleepTimeLeft, setSleepTimeLeft] = useState(0);
 
@@ -595,7 +588,7 @@ export default function CoursesPage() {
               <View>
                 <Text style={styles.lessonsTitle}>Уроки:</Text>
                 {selectedCourse?.lessons.map((lesson, idx) => (
-                  <TouchableOpacity key={lesson.id} style={styles.lessonItem} onPress={() => setSelectedLesson(lesson)}>
+                  <TouchableOpacity key={lesson.id} style={styles.lessonItem} onPress={() => startLesson(lesson)}>
                     <View style={styles.lessonNumber}>
                       <Text style={styles.lessonNumberText}>{idx + 1}</Text>
                     </View>
@@ -1106,5 +1099,247 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#5D4037',
     lineHeight: 18,
+  },
+  stepProgressBar: {
+    flexDirection: 'row',
+    height: 6,
+    gap: 6,
+    marginBottom: 20,
+    width: '100%',
+  },
+  stepProgressDot: {
+    flex: 1,
+    height: '100%',
+    backgroundColor: '#E0E0E0',
+    borderRadius: 3,
+  },
+  intensitySection: {
+    backgroundColor: 'white',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  intensityLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 12,
+  },
+  intensityRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 6,
+    marginBottom: 15,
+  },
+  intensityBtn: {
+    flex: 1,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F5F5F5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  intensityBtnActive: {
+    backgroundColor: '#2E7D4A',
+    borderColor: '#2E7D4A',
+  },
+  intensityBtnText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#666',
+  },
+  stepCard: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+    elevation: 1,
+  },
+  stepInstructionText: {
+    fontSize: 15,
+    color: '#444',
+    lineHeight: 22,
+  },
+  soundPlayerContent: {
+    alignItems: 'center',
+    paddingBottom: 30,
+  },
+  soundDiscContainer: {
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: '#2A2C30',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 30,
+    borderWidth: 8,
+    borderColor: '#3F51B5',
+    elevation: 5,
+  },
+  soundPlayerTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: 'white',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  soundPlayerDesc: {
+    fontSize: 14,
+    color: '#AAA',
+    textAlign: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 20,
+    lineHeight: 18,
+  },
+  soundPlayerFreqTag: {
+    backgroundColor: '#3F51B5',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    marginBottom: 25,
+  },
+  soundPlayerFreqText: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  playerControlsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 30,
+  },
+  playerPlayBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sleepTimerSection: {
+    width: '100%',
+    backgroundColor: '#2A2C30',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 20,
+  },
+  sleepTimerTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 12,
+  },
+  sleepTimerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginBottom: 12,
+  },
+  sleepTimerBtn: {
+    flex: 1,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#3A3C40',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sleepTimerBtnActive: {
+    backgroundColor: '#3F51B5',
+  },
+  sleepTimerBtnText: {
+    fontSize: 12,
+    color: '#CCC',
+    fontWeight: 'bold',
+  },
+  sleepTimerCountdown: {
+    fontSize: 13,
+    color: '#FFD700',
+    textAlign: 'center',
+    fontWeight: '600',
+    marginTop: 8,
+  },
+  soundInstructionsCard: {
+    backgroundColor: '#2A2C30',
+    padding: 16,
+    borderRadius: 16,
+    width: '100%',
+  },
+  soundInstructionsTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 8,
+  },
+  soundInstructionsText: {
+    fontSize: 13,
+    color: '#BBB',
+    lineHeight: 18,
+  },
+  stepTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10,
+  },
+  emdrBilateralAnimation: {
+    height: 60,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 15,
+    overflow: 'hidden',
+  },
+  emdrBall: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#2E7D4A',
+  },
+  emdrHelpText: {
+    fontSize: 11,
+    color: '#666',
+    marginTop: 6,
+  },
+  timerSection: {
+    backgroundColor: 'white',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  timerTitleText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+  },
+  timerContainerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  timerCountdown: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#2E7D4A',
+  },
+  timerToggleBtn: {
+    backgroundColor: '#2E7D4A',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  timerToggleBtnText: {
+    color: 'white',
+    fontSize: 13,
+    fontWeight: 'bold',
   }
 });

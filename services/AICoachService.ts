@@ -697,8 +697,17 @@ export class AICoachService {
 
   static async getUserInsights(userId: string) {
     const memory = this.getUserMemory(userId);
-    const sleepData = await this.analyzeSleepPatterns();
-    const profile = this.calculatePsychologicalProfile(memory, sleepData.averageScore);
+    const sleepPatterns = await this.analyzeSleepPatterns();
+    const journalResult = await JournalService.getEntries();
+    const sleepFromJournal = this.analyzeSleepFromJournal(journalResult.success ? journalResult.data : []);
+
+    // Combine both sleep analysis data formats for backward compatibility and UI support
+    const sleepAnalysis = {
+      ...sleepPatterns,
+      ...sleepFromJournal
+    };
+
+    const profile = this.calculatePsychologicalProfile(memory, sleepAnalysis.averageScore);
     const dailyEnergy = await this.getDailyEnergyForecast(userId);
     const burnoutData = await this.getBurnoutRate(userId);
     return {
@@ -711,7 +720,7 @@ export class AICoachService {
         ? 'Ваше состояние улучшается.'
         : 'Мы продолжаем работу.',
       profile,
-      sleepAnalysis: sleepData,
+      sleepAnalysis,
       burnoutAnalysis: burnoutData,
       dailyEnergy
     };
