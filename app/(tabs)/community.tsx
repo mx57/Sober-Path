@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
-  Image, Dimensions, Modal, TextInput, Alert, Platform,
-  KeyboardAvoidingView
+  Image, Dimensions, Modal, TextInput, Alert
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FlashList } from '@shopify/flash-list';
@@ -18,18 +17,11 @@ import { useRecovery } from '../../hooks/useRecovery';
 
 const { width: screenWidth } = Dimensions.get('window');
 
-const BUDDIES = [
-  { id: 'b1', name: 'Александр', daysSober: 365, karma: 1200, avatar: 'https://i.pravatar.cc/150?u=alex', status: 'Всегда готов поддержать! 🤝', level: 'Легенда сообщества' },
-  { id: 'b2', name: 'Елена', daysSober: 120, karma: 510, avatar: 'https://i.pravatar.cc/150?u=elena', status: 'Трезвость — это свобода 🦋', level: 'Мастер поддержки' },
-  { id: 'b3', name: 'Дмитрий', daysSober: 500, karma: 850, avatar: 'https://i.pravatar.cc/150?u=dmitry', status: 'Бег и медитация — мой выбор 🏃‍♂️', level: 'Мастер поддержки' },
-  { id: 'b4', name: 'Кристина', daysSober: 95, karma: 210, avatar: 'https://i.pravatar.cc/150?u=kristina', status: 'Шаг за шагом к новой жизни 🌱', level: 'Активный помощник' }
-];
-
 const KarmaBadge = ({ userName }: { userName: string }) => {
   const [karma, setKarma] = useState(0);
 
   useEffect(() => {
-    CommunityService.getOtherUserKarma(userName).then(setKarma);
+    CommunityService.getUserKarma(userName).then(setKarma);
   }, [userName]);
 
   if (userName === 'Вы' || userName === 'Sober Path Bot') return null;
@@ -167,8 +159,6 @@ const SupportPostItem = ({
   onReactionPress: (postId: string, reaction: ReactionType) => void,
   onVotePress: (postId: string, optionId: string) => void
 }) => {
-  const isMentor = (post.authorDaysSober || 0) >= 365;
-  const isRisingStar = (post.authorDaysSober || 0) >= 30 && (post.authorDaysSober || 0) < 365;
   const [showReactions, setShowReactions] = useState(false);
   const heartScale = useSharedValue(1);
   const heartAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: heartScale.value }] }));
@@ -216,8 +206,9 @@ const SupportPostItem = ({
           <MaterialIcons name={getCategoryIcon(post.category)} size={20} color={getCategoryColor(post.category)} />
         </View>
         <View style={styles.authorInfo}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
             <Text style={styles.authorName}>{post.author}</Text>
+            <KarmaBadge userName={post.author} />
             {post.authorSoberDays && post.authorSoberDays >= 100 && (
                 <View style={styles.mentorBadge}>
                     <MaterialIcons name="verified" size={12} color="white" />
@@ -317,19 +308,18 @@ const CommunityPulse = () => {
   return (
     <Animated.View entering={FadeInUp} style={styles.userCountPulseContainer}>
       <View style={styles.pulseDotContainer}>
-        <View style={styles.userCountPulseDot} />
-        <View style={[styles.userCountPulseDot, styles.pulseDotPing]} />
+        <View style={styles.bottomPulseDot} />
+        <View style={[styles.bottomPulseDot, styles.pulseDotPing]} />
       </View>
       <Text style={styles.userCountPulseText}>{activeUsers} участников сейчас онлайн и поддерживают друг друга</Text>
     </Animated.View>
   );
 };
 
-const BUDDY_CANDIDATES = [
-  { name: 'Александр', soberDays: 45, avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80', lastStatus: 'Сегодня пробежал 5 км, полет нормальный!', statusIcon: 'directions-run' },
-  { name: 'Екатерина', soberDays: 21, avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80', lastStatus: 'Читаю книгу по психологии и пью мятный чай ☕', statusIcon: 'menu-book' },
-  { name: 'Максим', soberDays: 90, avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=100&q=80', lastStatus: 'Помог другу остаться трезвым на дне рождения!', statusIcon: 'sentiment-very-satisfied' },
-  { name: 'Анна', soberDays: 8, avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=100&q=80', lastStatus: 'Тяжело, но держусь благодаря поддержке сообщества!', statusIcon: 'favorite' }
+const availableBuddies = [
+  { id: 'b1', name: 'Андрей', daysSober: 45, status: 'Держусь уверенно, сегодня тренировка', avatar: 'https://i.pravatar.cc/150?u=b1' },
+  { id: 'b2', name: 'Марина', daysSober: 12, status: 'Сложно под вечер, но медитации спасают', avatar: 'https://i.pravatar.cc/150?u=b2' },
+  { id: 'b3', name: 'Евгений', daysSober: 180, status: 'Полгода чистоты! Готов делиться опытом', avatar: 'https://i.pravatar.cc/150?u=b3' }
 ];
 
 export default function CommunityPage() {
@@ -361,12 +351,6 @@ export default function CommunityPage() {
 
   const [selectedBuddy, setSelectedBuddy] = useState<any>(null);
   const [pulseSent, setPulseSent] = useState(false);
-
-  const availableBuddies = [
-    { id: 'b1', name: 'Андрей', daysSober: 45, status: 'Держусь уверенно, сегодня тренировка', avatar: 'https://i.pravatar.cc/150?u=b1' },
-    { id: 'b2', name: 'Марина', daysSober: 12, status: 'Сложно под вечер, но медитации спасают', avatar: 'https://i.pravatar.cc/150?u=b2' },
-    { id: 'b3', name: 'Евгений', daysSober: 180, status: 'Полгода чистоты! Готов делиться опытом', avatar: 'https://i.pravatar.cc/150?u=b3' }
-  ];
 
   useEffect(() => {
     const loadData = async () => {
