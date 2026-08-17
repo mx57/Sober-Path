@@ -1484,4 +1484,19 @@ export class CommunityService {
     }
   }
 
+  /**
+   * Получить статистику благодарностей пользователя (количество постов и набранных сердец).
+   */
+  static async getUserGratitudeStats(authorName: string): Promise<{ totalPosts: number; totalHearts: number }> {
+    try {
+      const gratitudes = await this.getGratitudes();
+      const userPosts = gratitudes.filter(g => g.author === authorName);
+      const totalPosts = userPosts.length;
+      const totalHearts = userPosts.reduce((sum, item) => sum + item.hearts, 0);
+      return { totalPosts, totalHearts };
+    } catch (e) {
+      return { totalPosts: 0, totalHearts: 0 };
+    }
+  }
+
 }

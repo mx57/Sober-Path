@@ -112,6 +112,10 @@ const MessageBubble = React.memo(({ message, onArticlePress, onCoursePress, onSp
 
         {message.exercise && (
           <View style={styles.exerciseProgressContainer}>
+            <View style={styles.exerciseHeaderRow}>
+              <MaterialIcons name="psychology" size={18} color="#2D5A27" />
+              <Text style={styles.exerciseTitleText}>{message.exercise.name}</Text>
+            </View>
             <View style={styles.exerciseProgressBar}>
               {message.exercise.steps.map((_: any, idx: number) => (
                 <View
@@ -124,7 +128,7 @@ const MessageBubble = React.memo(({ message, onArticlePress, onCoursePress, onSp
               ))}
             </View>
             <Text style={styles.exerciseStepInfo}>
-              Шаг {message.exercise.currentStep + 1} из {message.exercise.steps.length}
+              Прогресс: Шаг {Math.max(1, message.exercise.currentStep + 1)} из {message.exercise.steps.length}
             </Text>
           </View>
         )}
@@ -750,6 +754,17 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: '#F0F0F0',
+  },
+  exerciseHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  exerciseTitleText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2D5A27',
   },
   exerciseProgressBar: {
     flexDirection: 'row',

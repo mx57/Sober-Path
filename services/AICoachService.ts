@@ -428,6 +428,53 @@ export class AICoachService {
           });
         }
 
+        if (lowercaseMessage.includes('письмо тяге') || lowercaseMessage.includes('письмо к тяге') || lowercaseMessage.includes('письмо срыву')) {
+          return success({
+            message: 'Разделение себя и своей тяги — одна из самых эффективных методик. Напишем "Письмо Тяге", чтобы осознать её как отдельную, временную эмоцию. Готовы?',
+            emotionalTone: 'supportive',
+            suggestions: ['Начать письмо', 'Не сейчас'],
+            followUpQuestions: [],
+            memoryUpdates: ['User requested Letter to Craving exercise'],
+            confidenceLevel: 1.0,
+            exercise: {
+              id: 'letter_to_craving',
+              name: 'Письмо к Тяге',
+              type: 'nlp',
+              currentStep: -1,
+              steps: [
+                'Обратитесь к своей тяге как к отдельному персонажу или объекту (например: "Привет, Тяга").',
+                'Честно признайтесь ей, какую иллюзию или обещание она вам предлагает прямо сейчас.',
+                'Напомните ей и себе о реальной цене, которую придется заплатить, если вы ей поддадитесь.',
+                'Заявите о своем решении: "Я слышу тебя, но сегодня я выбираю себя и свою свободу".',
+                'Сделайте глубокий медленный выдох и почувствуйте, как тяга теряет свою силу.'
+              ]
+            }
+          });
+        }
+
+        if (lowercaseMessage.includes('halt анализ') || lowercaseMessage.includes('анализ halt') || lowercaseMessage.includes('проверка halt')) {
+          return success({
+            message: 'Острая тяга или раздражение часто возникают из-за басовых физиологических потребностей HALT. Давайте проведем экспресс-диагностику!',
+            emotionalTone: 'educational',
+            suggestions: ['Начать HALT-проверку', 'Не сейчас'],
+            followUpQuestions: [],
+            memoryUpdates: ['User requested HALT analysis exercise'],
+            confidenceLevel: 1.0,
+            exercise: {
+              id: 'halt_analysis',
+              name: 'Анализ факторов HALT',
+              type: 'grounding',
+              currentStep: -1,
+              steps: [
+                'H (Hungry / Голоден?): Когда вы последний раз ели? Низкий уровень сахара в крови имитирует тревогу. Выпейте воды или поешьте.',
+                'A (Angry / Раздражен?): Есть ли скрытая злость или обида, которую вы подавляете? Выпустите её через физическую активность.',
+                'L (Lonely / Одиноко?): Чувствуете ли вы изолированность? Напишите другу, трезвому напарнику или в наш чат сообщества.',
+                'T (Tired / Устал?): Нужен ли вашему телу просто отдых или сон? Сделайте 15-минутную паузу и побудьте в тишине.'
+              ]
+            }
+          });
+        }
+
         // Когнитивный рефрейминг при негативных мыслях
         if (sentiment === 'frustrated' || sentiment === 'anxious' || lowercaseMessage.includes('никогда') || lowercaseMessage.includes('не смогу')) {
           if (Math.random() > 0.6) {
