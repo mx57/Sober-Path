@@ -176,6 +176,36 @@ export class CommunityService {
   /**
    * Сохранить новую благодарность, начислить карму (+15) и вернуть созданную благодарность.
    */
+  /**
+   * Получить список поддерживающих стикеров сообщества.
+   */
+  static getSupportStickers(): { id: string; label: string; icon: string; karmaBonus: number }[] {
+    return [
+      { id: 'hug', label: 'Обнимаю 🫂', icon: 'favorite', karmaBonus: 15 },
+      { id: 'faith', label: 'Веры в себя ✨', icon: 'auto-awesome', karmaBonus: 15 },
+      { id: 'not_alone', label: 'Ты не один 🤝', icon: 'people', karmaBonus: 15 }
+    ];
+  }
+
+  /**
+   * Отправить поддерживающий стикер пользователю. Начисляет +15 очков кармы.
+   */
+  static async sendSupportSticker(stickerId: string, recipientName: string): Promise<boolean> {
+    try {
+      const stickers = this.getSupportStickers();
+      const sticker = stickers.find(s => s.id === stickerId);
+      if (!sticker) return false;
+
+      await this.addKarmaPoints(sticker.karmaBonus);
+      if (recipientName && recipientName !== 'Sober Path Bot') {
+        await this.updateUserKarma(recipientName, 5);
+      }
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   static async saveGratitude(text: string, author: string, authorDaysSober: number): Promise<CommunityGratitude> {
     const list = await this.getGratitudes();
     const newGrat: CommunityGratitude = {

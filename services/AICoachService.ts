@@ -428,6 +428,29 @@ export class AICoachService {
           });
         }
 
+        if (lowercaseMessage.includes('тревожность') || lowercaseMessage.includes('паника') || lowercaseMessage.includes('паническая атака') || lowercaseMessage.includes('тревога')) {
+          return success({
+            message: 'Приступ тревоги или паники — это временная реакция вегетативной нервной системы. Давайте выполним пошаговую сессию "Преодоления тревоги и паники", чтобы быстро вернуть контроль. Начнем?',
+            emotionalTone: 'supportive',
+            suggestions: ['Начать упражнение', 'Не сейчас'],
+            followUpQuestions: [],
+            memoryUpdates: ['User requested anxiety management exercise'],
+            confidenceLevel: 1.0,
+            exercise: {
+              id: 'anxiety_management',
+              name: 'Преодоление тревоги и паники',
+              type: 'breathing',
+              currentStep: -1,
+              steps: [
+                'Почувствуйте опору: поставьте обе стопы на пол и почувствуйте вес своего тела на стуле.',
+                'Сделайте глубокий вдох носом на 4 счета, задержите дыхание на 2 секунды и медленно выдыхайте через слегка сжатые губы на 6 счетов.',
+                'Посмотрите по сторонам и найдите 3 физических предмета прямоугольной формы вокруг себя.',
+                'Положите руку на грудь или живот и скажите себе: "Это лишь волна тревоги. Мое тело в безопасности, и это состояние скоро пройдет".'
+              ]
+            }
+          });
+        }
+
         if (lowercaseMessage.includes('письмо тяге') || lowercaseMessage.includes('письмо к тяге') || lowercaseMessage.includes('письмо срыву')) {
           return success({
             message: 'Разделение себя и своей тяги — одна из самых эффективных методик. Напишем "Письмо Тяге", чтобы осознать её как отдельную, временную эмоцию. Готовы?',
