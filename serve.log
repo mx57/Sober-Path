@@ -1,0 +1,28 @@
+npm warn exec The following package was not found and will be installed: serve@14.2.6
+ INFO  Accepting connections at http://localhost:3000
+ HTTP  8/18/2026 8:59:02 PM ::1 HEAD /
+ HTTP  8/18/2026 8:59:02 PM ::1 Returned 200 in 20 ms
+ HTTP  8/18/2026 9:00:18 PM ::1 GET /
+ HTTP  8/18/2026 9:00:18 PM ::1 Returned 200 in 10 ms
+ HTTP  8/18/2026 9:00:18 PM ::1 GET /_expo/static/js/web/entry-69da561d41ea915c1653bc223d705781.js
+ HTTP  8/18/2026 9:00:18 PM ::1 Returned 200 in 28 ms
+ HTTP  8/18/2026 9:00:19 PM ::1 GET /assets/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialIcons.4e85bc9ebe07e0340c9c4fc2f6c38908.ttf
+ HTTP  8/18/2026 9:00:19 PM ::1 Returned 200 in 5 ms
+ HTTP  8/18/2026 9:00:22 PM ::1 GET /courses
+ HTTP  8/18/2026 9:00:22 PM ::1 Returned 200 in 2 ms
+ HTTP  8/18/2026 9:00:22 PM ::1 GET /_expo/static/js/web/entry-69da561d41ea915c1653bc223d705781.js
+ HTTP  8/18/2026 9:00:22 PM ::1 Returned 304 in 1 ms
+ HTTP  8/18/2026 9:00:22 PM ::1 GET /assets/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialIcons.4e85bc9ebe07e0340c9c4fc2f6c38908.ttf
+ HTTP  8/18/2026 9:00:22 PM ::1 Returned 304 in 2 ms
+ HTTP  8/18/2026 9:00:24 PM ::1 GET /ai-coach
+ HTTP  8/18/2026 9:00:24 PM ::1 Returned 200 in 1 ms
+ HTTP  8/18/2026 9:00:24 PM ::1 GET /_expo/static/js/web/entry-69da561d41ea915c1653bc223d705781.js
+ HTTP  8/18/2026 9:00:24 PM ::1 Returned 304 in 3 ms
+ HTTP  8/18/2026 9:00:24 PM ::1 GET /assets/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialIcons.4e85bc9ebe07e0340c9c4fc2f6c38908.ttf
+ HTTP  8/18/2026 9:00:24 PM ::1 Returned 304 in 1 ms
+ HTTP  8/18/2026 9:00:27 PM ::1 GET /community
+ HTTP  8/18/2026 9:00:27 PM ::1 Returned 200 in 1 ms
+ HTTP  8/18/2026 9:00:27 PM ::1 GET /_expo/static/js/web/entry-69da561d41ea915c1653bc223d705781.js
+ HTTP  8/18/2026 9:00:27 PM ::1 Returned 304 in 1 ms
+ HTTP  8/18/2026 9:00:27 PM ::1 GET /assets/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialIcons.4e85bc9ebe07e0340c9c4fc2f6c38908.ttf
+ HTTP  8/18/2026 9:00:27 PM ::1 Returned 304 in 1 ms

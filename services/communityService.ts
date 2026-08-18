@@ -104,6 +104,14 @@ export interface SupportGroup {
   isJoined?: boolean;
 }
 
+export interface SupportSticker {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;
+  karmaReward: number;
+}
+
 const POSTS_STORAGE_KEY = 'sober_path_community_posts';
 const CHALLENGES_STORAGE_KEY = 'sober_path_community_challenges';
 const USER_KARMA_KEY = 'sober_path_user_karma';
@@ -1496,6 +1504,33 @@ export class CommunityService {
       return { totalPosts, totalHearts };
     } catch (e) {
       return { totalPosts: 0, totalHearts: 0 };
+    }
+  }
+
+  /**
+   * Получить доступные стикеры поддержки для отправки участникам сообщества.
+   */
+  static getSupportStickers(): SupportSticker[] {
+    return [
+      { id: 'hug', name: 'Обнимаю', icon: 'favorite', description: 'Теплая виртуальная поддержка', karmaReward: 15 },
+      { id: 'star', name: 'Горжусь тобой', icon: 'star', description: 'Отметка важного достижения', karmaReward: 15 },
+      { id: 'fire', name: 'Так держать!', icon: 'local-fire-department', description: 'Заряд энергии и мотивации', karmaReward: 15 },
+      { id: 'shield', name: 'Я рядом', icon: 'shield', description: 'Поддержка в непростой момент', karmaReward: 15 }
+    ];
+  }
+
+  /**
+   * Отправить стикер поддержки участнику сообщества, начислив себе +15 очков кармы.
+   */
+  static async sendSupportSticker(stickerId: string, targetUser: string): Promise<{ success: boolean; newKarma: number }> {
+    try {
+      const stickers = this.getSupportStickers();
+      const sticker = stickers.find(s => s.id === stickerId) || stickers[0];
+      const newKarma = await this.addKarmaPoints(sticker.karmaReward);
+      return { success: true, newKarma };
+    } catch (e) {
+      const karma = await this.getUserKarma();
+      return { success: false, newKarma: karma };
     }
   }
 
