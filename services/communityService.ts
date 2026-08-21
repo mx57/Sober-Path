@@ -1485,6 +1485,21 @@ export class CommunityService {
   }
 
   /**
+   * Отправить быструю поддержку участнику (+15 кармы).
+   */
+  static async sendQuickSupport(postId: string): Promise<{ success: boolean; karma: number }> {
+    try {
+      const posts = await this.loadUserPosts();
+      const updated = posts.map(p => p.id === postId ? { ...p, likes: p.likes + 1 } : p);
+      await AsyncStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(updated));
+      const newKarma = await this.addKarmaPoints(15);
+      return { success: true, karma: newKarma };
+    } catch (e) {
+      return { success: false, karma: 0 };
+    }
+  }
+
+  /**
    * Получить статистику благодарностей пользователя (количество постов и набранных сердец).
    */
   static async getUserGratitudeStats(authorName: string): Promise<{ totalPosts: number; totalHearts: number }> {
