@@ -1499,4 +1499,23 @@ export class CommunityService {
     }
   }
 
+  /**
+   * Отправить индивидуальную благодарность напарнику (+10 кармы).
+   */
+  static async sendBuddyAppreciation(appreciationText: string): Promise<boolean> {
+    try {
+      const buddy = await this.getSelectedBuddy();
+      if (!buddy) return false;
+
+      await this.addKarmaPoints(10);
+      const todayStr = new Date().toDateString();
+      buddy.status = `Получил благодарность: "${appreciationText.slice(0, 30)}..."`;
+      buddy.lastPulseSent = todayStr;
+      await this.selectBuddy(buddy);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
 }

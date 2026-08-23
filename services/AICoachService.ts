@@ -404,6 +404,29 @@ export class AICoachService {
         const sentiment = this.detectSentiment(userMessage);
 
         // Проверка на запрос упражнения
+        if (lowercaseMessage.includes('тревожн') || lowercaseMessage.includes('паник') || lowercaseMessage.includes('паническая атака') || lowercaseMessage.includes('тревога') || lowercaseMessage.includes('управление тревогой')) {
+          return success({
+            message: 'Паника и острая тревога — это естественный всплеск адреналина, который не причинит вам вреда. Давайте выполним упражнение "Преодоление тревоги и паники", чтобы вернуть спокойствие. Начнем?',
+            emotionalTone: 'supportive',
+            suggestions: ['Начать упражнение', 'Не сейчас'],
+            followUpQuestions: [],
+            memoryUpdates: ['User requested anxiety management exercise'],
+            confidenceLevel: 1.0,
+            exercise: {
+              id: 'anxiety_management',
+              name: 'Преодоление тревоги и паники',
+              type: 'grounding',
+              currentStep: -1,
+              steps: [
+                'Сделайте глубокий медленный вдох носом на 4 счета и плавный выдох через рот на 6 счетов. Повторите 3 раза.',
+                'Осмотритесь вокруг и почувствуйте свои стопы, плотно прижатые к полу. Скажите себе: "Я в безопасности прямо сейчас".',
+                'Осознайте тревожную мысль как простой проходящий сигнал нервной системы, а не истинный факт.',
+                'Сделайте еще один спокойный выдох и вернитесь к текущему занятию в удобном темпе.'
+              ]
+            }
+          });
+        }
+
         if (lowercaseMessage.includes('мегаполис') || lowercaseMessage.includes('город') || lowercaseMessage.includes('шум') || lowercaseMessage.includes('детокс')) {
           return success({
             message: 'Стресс мегаполиса — частый триггер срыва. Давайте проведем сессию "Умного городского детокса", чтобы быстро сбросить напряжение и вернуть фокус. Начнем?',
