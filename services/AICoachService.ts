@@ -404,6 +404,30 @@ export class AICoachService {
         const sentiment = this.detectSentiment(userMessage);
 
         // Проверка на запрос упражнения
+        if (lowercaseMessage.includes('тревожность') || lowercaseMessage.includes('паника') || lowercaseMessage.includes('паническая атака') || lowercaseMessage.includes('тревога')) {
+          return success({
+            message: 'Приступ тревоги или паники — это временная реакция амигдалы. Давайте выполним пошаговую технику "Преодоление тревоги и паники", чтобы вернуть чувство безопасности.',
+            emotionalTone: 'supportive',
+            suggestions: ['Начать упражнение', 'Не сейчас'],
+            followUpQuestions: [],
+            memoryUpdates: ['User requested anxiety management exercise'],
+            confidenceLevel: 1.0,
+            exercise: {
+              id: 'anxiety_management',
+              name: 'Преодоление тревоги и паники',
+              type: 'grounding',
+              currentStep: -1,
+              steps: [
+                'Примите устойчивое положение. Ощутите стопами пол, расправьте плечи и глубоко вдохните.',
+                'Сделайте вдох на 4 секунды, задержите дыхание на 4 секунды и выдыхайте через рот на 6 секунд.',
+                'Посмотрите по сторонам и найдите 3 предмета синего или зеленого цвета.',
+                'Напомните себе: "Паника полностью безопасна для сердца. Это просто выброс адреналина, который утихнет через несколько минут".',
+                'Положите руку на грудь и сфокусируйтесь на плавном движении диафрагмы.'
+              ]
+            }
+          });
+        }
+
         if (lowercaseMessage.includes('мегаполис') || lowercaseMessage.includes('город') || lowercaseMessage.includes('шум') || lowercaseMessage.includes('детокс')) {
           return success({
             message: 'Стресс мегаполиса — частый триггер срыва. Давайте проведем сессию "Умного городского детокса", чтобы быстро сбросить напряжение и вернуть фокус. Начнем?',

@@ -1499,4 +1499,31 @@ export class CommunityService {
     }
   }
 
+  /**
+   * Отправить стикер поддержки у застенчивого участника (+15 Кармы).
+   */
+  static async sendSupportSticker(stickerId: string, recipientName: string): Promise<boolean> {
+    try {
+      await this.addKarmaPoints(15);
+      await this.updateUserKarma(recipientName, 5);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /**
+   * Отправить знак признательности своему напарнику (+10 Кармы).
+   */
+  static async sendBuddyAppreciation(message: string): Promise<boolean> {
+    try {
+      const buddy = await this.getSelectedBuddy();
+      if (!buddy) return false;
+      await this.addKarmaPoints(10);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
 }
