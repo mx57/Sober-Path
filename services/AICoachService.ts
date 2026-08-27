@@ -403,6 +403,31 @@ export class AICoachService {
         const knowledgeMatch = findRelevantKnowledge(userMessage);
         const sentiment = this.detectSentiment(userMessage);
 
+        // Проверка на запрос упражнения "Преодоление тревоги и паники"
+        if (lowercaseMessage.includes('тревожность') || lowercaseMessage.includes('паника') || lowercaseMessage.includes('паническая атака') || lowercaseMessage.includes('тревога')) {
+          return success({
+            message: 'Паника и сильная тревога — это естественная реакция истощенной ЦНС. Давайте выполним пошаговую технику заземления и регуляции дыхания "Преодоление тревоги и паники". Начнем?',
+            emotionalTone: 'empathetic',
+            suggestions: ['Начать упражнение', 'Не сейчас'],
+            followUpQuestions: [],
+            memoryUpdates: ['User requested anxiety and panic control exercise'],
+            confidenceLevel: 1.0,
+            exercise: {
+              id: 'anxiety_management',
+              name: 'Преодоление тревоги и паники',
+              type: 'breathing',
+              currentStep: -1,
+              steps: [
+                'Напомните себе: паническая атака безопасна и пройдет через несколько минут. Вы в безопасности.',
+                'Сделайте глубокий вдох носом на 4 счета, задержите дыхание на 4 счета и плавно выдыхайте через рот на 6-8 секунд.',
+                'Осмотритесь вокруг и найдите 3 твердых предмета. Прикоснитесь к ним, чувствуя их температуру и текстуру.',
+                'Расслабьте плечи, челюсть и сожмите-разомкните кулаки 5 раз, выравнивая пульс.',
+                'Сделайте еще 3 спокойных выдоха. Сказав про себя: "Мой организм восстанавливает баланс".'
+              ]
+            }
+          });
+        }
+
         // Проверка на запрос упражнения
         if (lowercaseMessage.includes('мегаполис') || lowercaseMessage.includes('город') || lowercaseMessage.includes('шум') || lowercaseMessage.includes('детокс')) {
           return success({

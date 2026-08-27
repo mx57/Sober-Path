@@ -330,6 +330,25 @@ export class CommunityService {
   }
 
   /**
+   * Отправить экстренное SOS-уведомление (Pulse) о панике или сильной тревоге напарнику (+15 Кармы).
+   */
+  static async sendPanicSupportPulse(reason?: string): Promise<boolean> {
+    try {
+      const buddy = await this.getSelectedBuddy();
+      await this.addKarmaPoints(15);
+      const todayStr = new Date().toISOString();
+      if (buddy) {
+        buddy.lastPulseSent = todayStr;
+        buddy.status = `⚠️ Нужна срочная поддержка! ${reason || 'Сильная тревога'}`;
+        await this.selectBuddy(buddy);
+      }
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /**
    * Отправить импульс поддержки напарнику (+15 Кармы, раз в день).
    */
   static async sendSupportPulse(): Promise<boolean> {
