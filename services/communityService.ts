@@ -366,6 +366,26 @@ export class CommunityService {
   }
 
   /**
+   * Мгновенный экстренный импульс помощи напарнику при панике/тревоге (+15 Кармы).
+   */
+  static async sendPanicSupportPulse(reason?: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const buddy = await this.getSelectedBuddy();
+      await this.addKarmaPoints(15);
+      const recipient = buddy ? buddy.name : 'сообществу';
+      return {
+        success: true,
+        message: `Экстренный сигнал помощи отправлен ${recipient}. Поддержка уже в пути!`
+      };
+    } catch (e) {
+      return {
+        success: false,
+        message: 'Не удалось отправить сигнал помощи.'
+      };
+    }
+  }
+
+  /**
    * Получить текущее количество очков Кармы (Очков поддержки) пользователя.
    */
   static async getUserKarma(userName?: string): Promise<number> {
