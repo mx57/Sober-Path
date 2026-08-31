@@ -403,6 +403,31 @@ export class AICoachService {
         const knowledgeMatch = findRelevantKnowledge(userMessage);
         const sentiment = this.detectSentiment(userMessage);
 
+        // Проверка на запрос упражнения по преодолению тревожности и паники
+        if (lowercaseMessage.includes('тревожность') || lowercaseMessage.includes('паника') || lowercaseMessage.includes('паническая атака') || lowercaseMessage.includes('тревога')) {
+          return success({
+            message: 'Чувство тревоги или приступ паники могут казаться пугающими, но они абсолютно безопасны. Давайте проведем сессию "Преодоление тревоги и паники", чтобы быстро стабилизировать пульс и вернуть спокойствие. Начнем?',
+            emotionalTone: 'supportive',
+            suggestions: ['Начать упражнение', 'Не сейчас'],
+            followUpQuestions: [],
+            memoryUpdates: ['User triggered anxiety and panic management exercise'],
+            confidenceLevel: 1.0,
+            exercise: {
+              id: 'anxiety_management',
+              name: 'Преодоление тревоги и паники',
+              type: 'grounding',
+              currentStep: -1,
+              steps: [
+                'Напомните себе: "Это всего лишь выброс адреналина. Мое тело невредимо, а паника пройдет через несколько минут".',
+                'Сделайте глубокий вдох на 4 счета и медленный выдох через рот на 6 счетов. Повторите 3 раза.',
+                'Почувствуйте опору под ногами. Сильно прижмите стопы к полу и обратите внимание на тяжесть в ногах.',
+                'Найдите глазами 5 предметов синего или зеленого цвета вокруг себя и назовите их про себя.',
+                'Медленно расслабьте плечи, разожмите челюсти и скажите: "Я в полной безопасности прямо сейчас".'
+              ]
+            }
+          });
+        }
+
         // Проверка на запрос упражнения
         if (lowercaseMessage.includes('мегаполис') || lowercaseMessage.includes('город') || lowercaseMessage.includes('шум') || lowercaseMessage.includes('детокс')) {
           return success({

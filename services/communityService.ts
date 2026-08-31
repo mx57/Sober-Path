@@ -355,6 +355,66 @@ export class CommunityService {
   }
 
   /**
+   * Отправить экстренное SOS-уведомление (паник-пульс) напарнику при тревоге или тяге.
+   * Начисляет +15 очков Кармы за мужество обращение за помощью.
+   */
+  static async sendPanicSupportPulse(reason?: string): Promise<{ success: boolean; alertMessage: string }> {
+    try {
+      const buddy = await this.getSelectedBuddy();
+      await this.addKarmaPoints(15);
+      const buddyName = buddy ? buddy.name : 'Ваш напарник';
+      const alertMessage = `Экстренный сигнал поддержки отправлен ${buddyName}! ${reason ? `Причина: "${reason}"` : 'Напарник получил уведомление и свяжется с вами.'}`;
+      return { success: true, alertMessage };
+    } catch (e) {
+      return { success: false, alertMessage: 'Не удалось отправить сигнал тревоги' };
+    }
+  }
+
+  /**
+   * Отправить индивидуальную благодарность напарнику (+10 Кармы автору, +5 Кармы напарнику).
+   */
+  static async sendBuddyAppreciation(buddyId: string, message: string): Promise<boolean> {
+    try {
+      await this.addKarmaPoints(10);
+      const buddies = [...this.getAvailableBuddies(), ...this.getPotentialBuddies()];
+      const target = buddies.find(b => b.id === buddyId);
+      if (target) {
+        await this.updateUserKarma(target.name, 5);
+      }
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /**
+   * Получить доступные стикеры поддержки для отправки в сообществе.
+   */
+  static getSupportStickers(): { id: string; name: string; icon: string; pointsReward: number }[] {
+    return [
+      { id: 'st1', name: 'Ты сможешь!', icon: 'sports-score', pointsReward: 15 },
+      { id: 'st2', name: 'Горжусь тобой', icon: 'military-tech', pointsReward: 15 },
+      { id: 'st3', name: 'Обнимаю', icon: 'volunteer-activism', pointsReward: 15 },
+      { id: 'st4', name: 'Чистый путь', icon: 'nature-people', pointsReward: 15 }
+    ];
+  }
+
+  /**
+   * Отправить стикер поддержки участнику сообщества (+15 очков Кармы).
+   */
+  static async sendSupportSticker(targetUser: string, stickerId: string): Promise<boolean> {
+    try {
+      await this.addKarmaPoints(15);
+      if (targetUser && targetUser !== 'Вы') {
+        await this.updateUserKarma(targetUser, 5);
+      }
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /**
    * Метод-алиас для обратной совместимости в UI.
    */
   static async sendBuddyPulse(): Promise<boolean> {

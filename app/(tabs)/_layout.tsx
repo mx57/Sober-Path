@@ -13,11 +13,15 @@ const TabLayout = () => {
     tabBarActiveTintColor: themeColors.primary,
     tabBarInactiveTintColor: themeColors.isDark ? '#888' : '#666',
     tabBarStyle: {
-      height: 60,
-      paddingBottom: 10,
-      paddingTop: 5,
+      height: 65,
+      paddingBottom: 6,
+      paddingTop: 4,
       backgroundColor: themeColors.cardBackground,
       borderTopColor: themeColors.border,
+    },
+    tabBarLabelStyle: {
+      fontSize: 11,
+      marginBottom: 2,
     }
   };
 
