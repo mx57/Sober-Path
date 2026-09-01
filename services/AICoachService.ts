@@ -403,6 +403,31 @@ export class AICoachService {
         const knowledgeMatch = findRelevantKnowledge(userMessage);
         const sentiment = this.detectSentiment(userMessage);
 
+        // Проверка на запрос упражнения паники / тревоги
+        if (lowercaseMessage.includes('паника') || lowercaseMessage.includes('тревожность') || lowercaseMessage.includes('паническая атака') || lowercaseMessage.includes('тревога') || lowercaseMessage.includes('приступ паники')) {
+          return success({
+            message: 'Приступ паники или тревоги — это временная реакция вегетативной нервной системы на выброс адреналина. Вы в безопасности. Давайте сделаем экстренное соматическое заземление, чтобы вернуть контроль.',
+            emotionalTone: 'supportive',
+            suggestions: ['Начать упражнение', 'Не сейчас'],
+            followUpQuestions: [],
+            memoryUpdates: ['User requested anxiety and panic management exercise'],
+            confidenceLevel: 1.0,
+            exercise: {
+              id: 'anxiety_management',
+              name: 'Преодоление тревоги и паники',
+              type: 'grounding',
+              currentStep: -1,
+              steps: [
+                'Напомните себе: "Паника не опасна для жизни. Это просто выброс адреналина, который спадет через 10-15 минут".',
+                'Сделайте глубокий вдох носом на 4 счета и медленный выдох через рот на 6-8 счетов. Повторите 3 раза.',
+                'Плотно прижмите стопы к полу и почувствуйте твердую опору под собой. Оглядитесь вокруг и назовите 4 синих предмета.',
+                'Сжмите кулаки на 5 секунд со всей силы, а затем резко расслабьте пальцы, сбрасывая мышечный зажим.',
+                'Сделайте еще один длинный плавный выдох и мысленно скажите: "Я в безопасности. Моё тело расслабляется".'
+              ]
+            }
+          });
+        }
+
         // Проверка на запрос упражнения
         if (lowercaseMessage.includes('мегаполис') || lowercaseMessage.includes('город') || lowercaseMessage.includes('шум') || lowercaseMessage.includes('детокс')) {
           return success({
