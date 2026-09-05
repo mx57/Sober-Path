@@ -344,6 +344,7 @@ export default function CommunityPage() {
   const [newStoryContent, setNewStoryContent] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<'motivation' | 'question' | 'support' | 'milestone'>('support');
   const [gratitudes, setGratitudes] = useState<CommunityGratitude[]>([]);
+  const [gratitudeLeaders, setGratitudeLeaders] = useState<{ author: string; hearts: number; posts: number }[]>([]);
   const [isGratitudeModalVisible, setIsGratitudeModalVisible] = useState(false);
   const [newGratitudeText, setNewGratitudeText] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -379,6 +380,9 @@ export default function CommunityPage() {
       setCommunityGoals(CommunityService.getCommunityGoals());
       const loadedGratitudes = await CommunityService.getGratitudes();
       setGratitudes(loadedGratitudes);
+
+      const leaders = await CommunityService.getGratitudeLeaderboard();
+      setGratitudeLeaders(leaders);
       const loadedChallenges = await CommunityService.getGroupChallenges();
       setGroupChallenges(loadedChallenges);
 
@@ -903,6 +907,21 @@ export default function CommunityPage() {
           </TouchableOpacity>
         )}
       </View>
+
+      {gratitudeLeaders.length > 0 && (
+        <View style={styles.leaderboardContainer}>
+          <Text style={styles.leaderboardTitle}>🏆 Лидеры благодарности дня</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.leaderboardScroll}>
+            {gratitudeLeaders.map((leader, idx) => (
+              <View key={idx} style={styles.leaderBadge}>
+                <Text style={styles.leaderRank}>#{idx + 1}</Text>
+                <Text style={styles.leaderName}>{leader.author}</Text>
+                <Text style={styles.leaderHearts}>❤️ {leader.hearts}</Text>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      )}
 
       <ScrollView
         horizontal
@@ -2418,5 +2437,49 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#2E7D4A',
     marginTop: 2,
+  },
+  leaderboardContainer: {
+    backgroundColor: '#FFFDF0',
+    marginHorizontal: 20,
+    marginBottom: 12,
+    borderRadius: 12,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#FCEFB4',
+  },
+  leaderboardTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#8C6D00',
+    marginBottom: 6,
+  },
+  leaderboardScroll: {
+    gap: 8,
+  },
+  leaderBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: '#FFE8A3',
+  },
+  leaderRank: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#D87A00',
+  },
+  leaderName: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#333',
+  },
+  leaderHearts: {
+    fontSize: 10,
+    color: '#E91E63',
+    fontWeight: 'bold',
   }
 });

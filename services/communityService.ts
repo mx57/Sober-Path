@@ -1499,4 +1499,29 @@ export class CommunityService {
     }
   }
 
+  /**
+   * Получить Лидерборд Самых Активных Участников Стены Благодарностей (Top Gratitude Contributors).
+   */
+  static async getGratitudeLeaderboard(): Promise<{ author: string; hearts: number; posts: number }[]> {
+    try {
+      const gratitudes = await this.getGratitudes();
+      const map = new Map<string, { hearts: number; posts: number }>();
+
+      gratitudes.forEach(g => {
+        const current = map.get(g.author) || { hearts: 0, posts: 0 };
+        map.set(g.author, {
+          hearts: current.hearts + g.hearts,
+          posts: current.posts + 1
+        });
+      });
+
+      return Array.from(map.entries())
+        .map(([author, stats]) => ({ author, ...stats }))
+        .sort((a, b) => b.hearts - a.hearts)
+        .slice(0, 5);
+    } catch (e) {
+      return [];
+    }
+  }
+
 }
