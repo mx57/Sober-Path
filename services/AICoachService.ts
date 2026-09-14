@@ -404,6 +404,36 @@ export class AICoachService {
         const sentiment = this.detectSentiment(userMessage);
 
         // Проверка на запрос упражнения
+        if (
+          lowercaseMessage.includes('тревожность') ||
+          lowercaseMessage.includes('паника') ||
+          lowercaseMessage.includes('паническая атака') ||
+          lowercaseMessage.includes('тревога') ||
+          lowercaseMessage.includes('сильный страх')
+        ) {
+          return success({
+            message: 'Приступ паники или высокой тревожности — это кратковременный всплеск адреналина. Давайте проведем экспресс-технику "Преодоление тревоги и паники", чтобы вернуть покой.',
+            emotionalTone: 'supportive',
+            suggestions: ['Начать упражнение', 'Не сейчас'],
+            followUpQuestions: [],
+            memoryUpdates: ['User requested anxiety and panic management exercise'],
+            confidenceLevel: 1.0,
+            exercise: {
+              id: 'anxiety_management',
+              name: 'Преодоление тревоги и паники',
+              type: 'grounding',
+              currentStep: -1,
+              steps: [
+                'Сделайте медленный глубокий вдох через нос на 4 счета и долгий плавный выдох через слегка сжатые губы на 6 счетов.',
+                'Почувствуйте твердую опору: почувствуйте вес своего тела на стуле или стопы, плотно прижатые к полу.',
+                'Скажите себе вслух или про себя: "Это просто адреналиновая волна. Мое тело в безопасности, паника проходит".',
+                'Найдите вокруг себя 3 предмета синего или зеленого цвета и сфокусируйтесь на их деталях.',
+                'Сделайте еще один глубокий вдох и медленно расслабьте плечи и челюсть.'
+              ]
+            }
+          });
+        }
+
         if (lowercaseMessage.includes('мегаполис') || lowercaseMessage.includes('город') || lowercaseMessage.includes('шум') || lowercaseMessage.includes('детокс')) {
           return success({
             message: 'Стресс мегаполиса — частый триггер срыва. Давайте проведем сессию "Умного городского детокса", чтобы быстро сбросить напряжение и вернуть фокус. Начнем?',

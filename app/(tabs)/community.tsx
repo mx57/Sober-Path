@@ -613,6 +613,19 @@ export default function CommunityPage() {
     );
   };
 
+  const handlePanicPulse = async () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    const sent = await CommunityService.sendPanicSupportPulse('Острая тревожность / паника');
+    if (sent) {
+      const updatedKarma = await CommunityService.getUserKarma();
+      setUserKarma(updatedKarma);
+      Alert.alert(
+        '🚨 SOS сигнал отправлен',
+        `Сигнал о поддержке при тревоге отправлен вашему напарнику (${selectedBuddy?.name || 'Напарник'}). Вы получили +15 очков Кармы 🌟.`
+      );
+    }
+  };
+
   const handleDisconnectBuddy = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedBuddy(null);
@@ -651,8 +664,15 @@ export default function CommunityPage() {
               >
                 <MaterialIcons name="flash-on" size={16} color="white" />
                 <Text style={styles.pulseButtonText}>
-                  {pulseSent ? 'Пульс отправлен' : 'Отправить пульс поддержки (+15 🌟)'}
+                  {pulseSent ? 'Пульс отправлен' : 'Отправить пульс (+15 🌟)'}
                 </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.panicPulseButton}
+                onPress={handlePanicPulse}
+              >
+                <MaterialIcons name="warning" size={16} color="white" />
+                <Text style={styles.pulseButtonText}>SOS</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.disconnectButton}
@@ -2367,6 +2387,16 @@ const styles = StyleSheet.create({
   },
   pulseButtonDisabled: {
     backgroundColor: '#A5D6A7',
+  },
+  panicPulseButton: {
+    backgroundColor: '#E53935',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
   },
   pulseButtonText: {
     color: 'white',
