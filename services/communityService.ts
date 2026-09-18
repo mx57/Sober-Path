@@ -1499,4 +1499,41 @@ export class CommunityService {
     }
   }
 
+  /**
+   * Получить Лидерборд активных участников Стены Благодарностей (топ по полученным сердцам и постам).
+   */
+  static async getGratitudeLeaderboard(): Promise<{ author: string; authorDaysSober: number; totalHearts: number; postCount: number }[]> {
+    try {
+      const gratitudes = await this.getGratitudes();
+      const userMap: Record<string, { authorDaysSober: number; totalHearts: number; postCount: number }> = {};
+
+      gratitudes.forEach(g => {
+        if (!userMap[g.author]) {
+          userMap[g.author] = {
+            authorDaysSober: g.authorDaysSober,
+            totalHearts: 0,
+            postCount: 0
+          };
+        }
+        userMap[g.author].totalHearts += g.hearts;
+        userMap[g.author].postCount += 1;
+        if (g.authorDaysSober > userMap[g.author].authorDaysSober) {
+          userMap[g.author].authorDaysSober = g.authorDaysSober;
+        }
+      });
+
+      const leaderboard = Object.keys(userMap).map(author => ({
+        author,
+        authorDaysSober: userMap[author].authorDaysSober,
+        totalHearts: userMap[author].totalHearts,
+        postCount: userMap[author].postCount
+      }));
+
+      leaderboard.sort((a, b) => b.totalHearts - a.totalHearts || b.postCount - a.postCount);
+      return leaderboard;
+    } catch (e) {
+      return [];
+    }
+  }
+
 }

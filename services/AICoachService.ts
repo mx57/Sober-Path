@@ -403,7 +403,31 @@ export class AICoachService {
         const knowledgeMatch = findRelevantKnowledge(userMessage);
         const sentiment = this.detectSentiment(userMessage);
 
-        // Проверка на запрос упражнения
+        // Проверка на запрос упражнений
+        if (lowercaseMessage.includes('тревожность') || lowercaseMessage.includes('паника') || lowercaseMessage.includes('паническая атака') || lowercaseMessage.includes('тревога')) {
+          return success({
+            message: 'Приступ тревоги или панической атаки — это временная реакция организма на выброс адреналина. Давайте проведем экспресс-технику "Преодоление тревоги и паники", чтобы снизить пульс и вернуть спокойствие. Готовы начать?',
+            emotionalTone: 'supportive',
+            suggestions: ['Начать упражнение', 'Не сейчас'],
+            followUpQuestions: [],
+            memoryUpdates: ['User requested Anxiety and Panic Management exercise'],
+            confidenceLevel: 1.0,
+            exercise: {
+              id: 'anxiety_management',
+              name: 'Преодоление тревоги и паники',
+              type: 'grounding',
+              currentStep: -1,
+              steps: [
+                'Осознайте прямо сейчас: тревога и паника безопасны для жизни. Адреналин спадет через несколько минут.',
+                'Сложите ладони лодочкой перед лицом и сделайте 5 медленных циклов дыхания (вдох на 4 счета, выдох на 4 счета).',
+                'Плотно прижмите стопы к полу, почувствуйте твердую опору под собой. Напрягите и расслабьте икры и бёдра.',
+                'Найдите глазами в комнате 3 синих или зеленых предмета. Вслух или про себя назовите их.',
+                'Сделайте глубокий длинный выдох и скажите себе: "Я в безопасности, мое тело расслабляется, я контролирую свои мысли".'
+              ]
+            }
+          });
+        }
+
         if (lowercaseMessage.includes('мегаполис') || lowercaseMessage.includes('город') || lowercaseMessage.includes('шум') || lowercaseMessage.includes('детокс')) {
           return success({
             message: 'Стресс мегаполиса — частый триггер срыва. Давайте проведем сессию "Умного городского детокса", чтобы быстро сбросить напряжение и вернуть фокус. Начнем?',
