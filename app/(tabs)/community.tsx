@@ -344,6 +344,7 @@ export default function CommunityPage() {
   const [newStoryContent, setNewStoryContent] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<'motivation' | 'question' | 'support' | 'milestone'>('support');
   const [gratitudes, setGratitudes] = useState<CommunityGratitude[]>([]);
+  const [gratitudeLeaderboard, setGratitudeLeaderboard] = useState<{ author: string; authorDaysSober: number; totalHearts: number; totalPosts: number }[]>([]);
   const [isGratitudeModalVisible, setIsGratitudeModalVisible] = useState(false);
   const [newGratitudeText, setNewGratitudeText] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -379,6 +380,8 @@ export default function CommunityPage() {
       setCommunityGoals(CommunityService.getCommunityGoals());
       const loadedGratitudes = await CommunityService.getGratitudes();
       setGratitudes(loadedGratitudes);
+      const leaderboard = await CommunityService.getGratitudeLeaderboard();
+      setGratitudeLeaderboard(leaderboard);
       const loadedChallenges = await CommunityService.getGroupChallenges();
       setGroupChallenges(loadedChallenges);
 
@@ -543,6 +546,8 @@ export default function CommunityPage() {
   const handleGratitudeHeartPress = async (id: string) => {
     const updated = await CommunityService.toggleGratitudeHeart(id);
     setGratitudes(updated);
+    const updatedLeaderboard = await CommunityService.getGratitudeLeaderboard();
+    setGratitudeLeaderboard(updatedLeaderboard);
 
     // Получить обновленную Карму
     const updatedKarma = await CommunityService.getUserKarma();
@@ -779,6 +784,28 @@ export default function CommunityPage() {
           ))
         )}
       </ScrollView>
+
+      {/* Лидеры благодарности */}
+      {!isLoading && gratitudeLeaderboard.length > 0 && (
+        <View style={styles.leaderboardWidgetContainer}>
+          <View style={styles.leaderboardWidgetHeader}>
+            <MaterialIcons name="emoji-events" size={20} color="#FFD700" />
+            <Text style={styles.leaderboardWidgetTitle}>Лидеры благодарности</Text>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.leaderboardScroll}>
+            {gratitudeLeaderboard.slice(0, 5).map((user, idx) => (
+              <View key={idx} style={styles.leaderboardUserCard}>
+                <Text style={styles.leaderboardRank}>#{idx + 1}</Text>
+                <Text style={styles.leaderboardName} numberOfLines={1}>{user.author}</Text>
+                <View style={styles.leaderboardStatsRow}>
+                  <MaterialIcons name="favorite" size={12} color="#E91E63" />
+                  <Text style={styles.leaderboardHearts}>{user.totalHearts}</Text>
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      )}
 
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Группы поддержки 💬</Text>
@@ -2448,5 +2475,63 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#2E7D4A',
     marginTop: 2,
+  },
+  leaderboardWidgetContainer: {
+    backgroundColor: 'white',
+    marginHorizontal: 20,
+    marginTop: 15,
+    borderRadius: 16,
+    padding: 14,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  leaderboardWidgetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  leaderboardWidgetTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  leaderboardScroll: {
+    gap: 10,
+  },
+  leaderboardUserCard: {
+    backgroundColor: '#FFFDF0',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FCEFB4',
+    minWidth: 80,
+  },
+  leaderboardRank: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#FF9800',
+    marginBottom: 2,
+  },
+  leaderboardName: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 4,
+  },
+  leaderboardStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  leaderboardHearts: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#E91E63',
   }
 });
