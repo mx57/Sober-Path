@@ -366,6 +366,23 @@ export class CommunityService {
   }
 
   /**
+   * Отправить экстренный импульс SOS напарнику при острой панике или тяге. Начисляет +15 Кармы.
+   */
+  static async sendPanicSupportPulse(reason: string = 'Экстренная тревога / паника'): Promise<boolean> {
+    try {
+      await this.addKarmaPoints(15);
+      const buddy = await this.getSelectedBuddy();
+      if (buddy) {
+        buddy.status = `🚨 SOS сигнал: ${reason}`;
+        await this.selectBuddy(buddy);
+      }
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /**
    * Получить текущее количество очков Кармы (Очков поддержки) пользователя.
    */
   static async getUserKarma(userName?: string): Promise<number> {
@@ -1496,6 +1513,38 @@ export class CommunityService {
       return { totalPosts, totalHearts };
     } catch (e) {
       return { totalPosts: 0, totalHearts: 0 };
+    }
+  }
+
+  /**
+   * Получить лидерборд благодарностей (топ участников по сердечкам и постам).
+   */
+  static async getGratitudeLeaderboard(): Promise<{ author: string; authorDaysSober: number; totalHearts: number; totalPosts: number }[]> {
+    try {
+      const gratitudes = await this.getGratitudes();
+      const map: Record<string, { authorDaysSober: number; totalHearts: number; totalPosts: number }> = {};
+
+      gratitudes.forEach(g => {
+        if (!map[g.author]) {
+          map[g.author] = { authorDaysSober: g.authorDaysSober, totalHearts: 0, totalPosts: 0 };
+        }
+        map[g.author].totalHearts += g.hearts;
+        map[g.author].totalPosts += 1;
+        if (g.authorDaysSober > map[g.author].authorDaysSober) {
+          map[g.author].authorDaysSober = g.authorDaysSober;
+        }
+      });
+
+      const list = Object.entries(map).map(([author, data]) => ({
+        author,
+        authorDaysSober: data.authorDaysSober,
+        totalHearts: data.totalHearts,
+        totalPosts: data.totalPosts
+      }));
+
+      return list.sort((a, b) => b.totalHearts - a.totalHearts);
+    } catch (e) {
+      return [];
     }
   }
 
