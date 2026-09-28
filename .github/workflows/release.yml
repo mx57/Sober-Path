@@ -87,17 +87,6 @@ jobs:
 
           ---
 
-          ### Included in this release
-
-          | Architecture | Description | For whom |
-          |:---:|:---|:---|
-          | \`universal\` | Universal APK (all architectures) | **Recommended** - works on most devices |
-          | \`arm64-v8a\` | ARM 64-bit | Modern phones (2019+) |
-          | \`armeabi-v7a\` | ARM 32-bit | Old and budget devices |
-          | \`x86_64\` | x86 64-bit | Emulators and Chromebook |
-
-          **Tip:** If unsure, download \`universal\` - it works on all devices.
-
           ### System requirements
           - Android 7.0 (API 24) or higher
           - ~50 MB free space
@@ -123,29 +112,13 @@ jobs:
           echo "Tag: ${TAG}"
 
   # ---------------------------------------------------------------
-  # Build APK for each architecture in parallel
+  # Build Release APK
   # ---------------------------------------------------------------
   build-apk:
-    name: "Build APK (${{ matrix.abi }})"
+    name: "Build APK"
     needs: prepare-release
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - abi: universal
-            ndk_filter: ""
-            artifact_suffix: universal
-          - abi: arm64-v8a
-            ndk_filter: arm64-v8a
-            artifact_suffix: arm64
-          - abi: armeabi-v7a
-            ndk_filter: armeabi-v7a
-            artifact_suffix: arm32
-          - abi: x86_64
-            ndk_filter: x86_64
-            artifact_suffix: x86_64
 
     steps:
       - name: Checkout repository
@@ -194,58 +167,6 @@ jobs:
             -keypass android \
             -dname "CN=Android Debug,O=Android,C=US"
 
-      - name: Inject ABI filter into build.gradle
-        if: matrix.ndk_filter != ''
-        run: |
-          python3 << 'PYEOF'
-          import re, sys
-
-          path = "android/app/build.gradle"
-          abi = "${{ matrix.ndk_filter }}"
-
-          with open(path, "r") as f:
-              content = f.read()
-
-          # Find the defaultConfig block and inject ndk { abiFilters inside it
-          # Strategy: find "defaultConfig {" and then find the matching closing brace,
-          # then insert ndk { abiFilters "..."; } before the closing brace
-
-          # Match defaultConfig { ... } — handles nested braces
-          pattern = r'(defaultConfig\s*\{)'
-          match = re.search(pattern, content)
-          if not match:
-              print("WARNING: defaultConfig block not found, ABI filter not applied")
-              sys.exit(0)
-
-          start = match.end()
-          # Count braces to find the closing } of defaultConfig
-          depth = 1
-          pos = start
-          while pos < len(content) and depth > 0:
-              if content[pos] == '{':
-                  depth += 1
-              elif content[pos] == '}':
-                  depth -= 1
-              pos += 1
-
-          # pos is now right after the closing } of defaultConfig
-          closing_brace_pos = pos - 1
-
-          # Check if ndk block already exists
-          default_config_text = content[match.start():pos]
-          if 'ndk' in default_config_text and 'abiFilters' in default_config_text:
-              print("ABI filter already present, skipping injection")
-              sys.exit(0)
-
-          ndk_block = f"\n            ndk {{\n                abiFilters \"{abi}\"\n            }}\n"
-          content = content[:closing_brace_pos] + ndk_block + "        " + content[closing_brace_pos:]
-
-          with open(path, "w") as f:
-              f.write(content)
-
-          print(f"Injected ABI filter: {abi}")
-          PYEOF
-
       - name: Ensure Gradle settings
         run: |
           chmod +x android/gradlew
@@ -259,30 +180,29 @@ jobs:
         working-directory: android
         run: ./gradlew assembleRelease --no-daemon --stacktrace --warning-mode all
 
-      - name: Collect and rename APK
+      - name: Collect and copy APK to root directory
         run: |
-          mkdir -p artifacts
           VERSION="${{ needs.prepare-release.outputs.version }}"
           APK_PATH=$(find android/app/build/outputs/apk/release -type f -name "*.apk" | head -n 1)
           if [ -z "$APK_PATH" ]; then
-            echo "Release APK not found for ABI: ${{ matrix.abi }}"
+            echo "Release APK not found"
             exit 1
           fi
-          DEST="artifacts/Sober-Path-v${VERSION}-${{ matrix.artifact_suffix }}.apk"
+          DEST="Sober-Path-v${VERSION}.apk"
           cp "$APK_PATH" "$DEST"
-          echo "Built: $DEST"
+          echo "Built and placed in root: $DEST"
           ls -lh "$DEST"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: apk-${{ matrix.artifact_suffix }}
-          path: artifacts/*.apk
+          name: apk-release
+          path: Sober-Path-v*.apk
           if-no-files-found: error
           retention-days: 30
 
   # ---------------------------------------------------------------
-  # Create GitHub Release with all APKs
+  # Create GitHub Release with APK
   # ---------------------------------------------------------------
   create-release:
     name: Create GitHub Release
@@ -292,15 +212,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download all APK artifacts
+      - name: Download APK artifact
         uses: actions/download-artifact@v4
         with:
-          path: artifacts/
-          pattern: apk-*
-          merge-multiple: true
+          name: apk-release
+          path: ./
 
       - name: List release artifacts
-        run: ls -lh artifacts/
+        run: ls -lh Sober-Path-v*.apk
 
       - name: Delete existing release if tag exists
         if: needs.prepare-release.outputs.is_new_version == 'false'
@@ -315,7 +234,7 @@ jobs:
           name: "Sober Path ${{ needs.prepare-release.outputs.tag }}"
           tag_name: ${{ needs.prepare-release.outputs.tag }}
           body: ${{ needs.prepare-release.outputs.body }}
-          files: artifacts/*.apk
+          files: Sober-Path-v*.apk
           draft: false
           prerelease: false
         env:
